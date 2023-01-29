@@ -1,11 +1,12 @@
-import User from "./User.js"
+import {db} from "./assets/firebase-utils.js"
 import fs from "fs"
 
 class World{
     constructor(shell){
-        this.shell = shell,
-        this.admins = [],
+        this.shell = shell
+        this.admins = {}
         this.players = []
+        this.online = 0
 
         this.wipeAllowlist()
         this.handleServerEvents()
@@ -27,15 +28,6 @@ class World{
         })
     }
 
-    async allowAdmins(){
-        const admins = await User.getAdmins()
-        
-        admins.forEach((admin) => {
-            const user = admin.data()
-            this.allowPlayer(user.gamertag)
-        })
-    }
-
     verifyServerStarted(output){
         if(output.includes("Server started")){
             console.log("Bedrock Server Started!")
@@ -43,36 +35,43 @@ class World{
         }
     }
 
-    async verifyPlayerConnected(output){
+    verifyAdmin(gamertag){
+        return this.admins[gamertag]
+    }
+
+    verifyPlayerConnected(output){
         if(output.includes("Player connected")){
             const gamertag = (output.split("] Player connected: ")[1]).split(",")[0]
-            const isAdmin = await User.verifyUserAdmin(gamertag)
-    
-            if(isAdmin){
-                const user = isAdmin.data()
+            this.players.push(gamertag)
+            this.online++            
 
-                this.admins.push(user)                
-                this.allowAdminAcceptPlayersList(user.accept)
-            }else{
-                this.users.push(gamertag)
-            }
+            const admin = this.verifyAdmin(gamertag)
+
+            if(admin) this.allowAdminAcceptPlayersList(admin.accept)
         }
     }
 
-    async verifyPlayerDisconnected(output){
+    verifyPlayerDisconnected(output){
         if(output.includes("Player disconnected")){
             const gamertag = (output.split("] Player disconnected: ")[1]).split(",")[0]
-            const isAdmin = await User.verifyUserAdmin(gamertag)
-    
-            if(isAdmin){
-                const user = isAdmin.data()
+            this.players.splice(this.players.indexOf(gamertag), 1)
+            this.online--
 
-                this.admins.splice(this.admins.indexOf(user), 1)
-                this.denyAdminAcceptPlayersList(user.accept)
-            }else{
-                this.users.splice(this.users.indexOf(gamertag), 1)
-            }
+            const admin = this.verifyAdmin(gamertag)
+    
+            if(admin) this.denyAdminAcceptPlayersList(admin.accept)
         }
+    }
+
+    async allowAdmins(){
+        const admins = await this.readAdminsFromDB()
+        
+        admins.forEach((admin) => {
+            const user = admin.data()
+
+            this.admins[user.gamertag] = user
+            this.allowPlayer(user.gamertag)
+        })
     }
 
     allowAdminAcceptPlayersList(lista){
@@ -83,8 +82,30 @@ class World{
         })
     }
 
+    verifyDenyAdminAcceptPlayersList(lista){
+        const removePlayerFromDenyList = []
+        const adminPlayers = this.listAdminPlayers()
+
+        lista.forEach((gamertag) => {
+            if(this.verifyAdmin(gamertag)) removePlayerFromDenyList.push(gamertag)
+
+            adminPlayers.forEach((adminPlayer) => {
+                if(adminPlayer.accept.includes(gamertag) && !removePlayerFromDenyList.includes(gamertag)) removePlayerFromDenyList.push(gamertag)
+            })
+        })
+
+        const denyList = []
+        lista.forEach((gamertag) => {
+            if(!removePlayerFromDenyList.includes(gamertag)) denyList.push(gamertag)
+        })
+
+        return denyList
+    }
+
     denyAdminAcceptPlayersList(lista){
         if(!lista) return
+
+        lista = this.verifyDenyAdminAcceptPlayersList(lista)
 
         lista.forEach((playerGamertag) => {
             this.denyPlayer(playerGamertag)
@@ -97,6 +118,24 @@ class World{
 
     denyPlayer(gamertag){
         this.shell.stdin.write(`allowlist remove ${gamertag}\n`)
+    }
+
+    listAdminPlayers(){
+        const adminPlayers = []
+
+        Object.keys(this.players).forEach((player) => {
+            if(this.admins[player]) adminPlayers.push(this.admins[player])
+        });
+
+        return adminPlayers
+    }
+
+    async readAdminsFromDB(){
+        const usersRef = db.collection("users");
+        const queryPlayerAdmin = usersRef.where("admin", "==", true);
+        const snapshot = await queryPlayerAdmin.get()
+        
+        return snapshot.docs
     }
 }
 

@@ -7,7 +7,8 @@ async function createUserTemplate(email,uid){
     const data = {
         "email": email,
         "admin": false,
-        "accept": []    
+        "accept": [],
+        "gamertag": ""    
     };
 
     await setDoc(doc(db, "users", uid), data);

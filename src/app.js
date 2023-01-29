@@ -3,7 +3,7 @@ import { initBedrockServer } from "./bedrock.js"
 
 const app = express()
 
-app.use("/", express.static("../public"))
+app.use("/", express.static("public"))
 const world = initBedrockServer()
 
 export default app
