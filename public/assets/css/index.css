@@ -1,0 +1,48 @@
+body{
+    position: absolute;
+    background-color: var(--primaryColor);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+}
+
+.setUser{
+    width: 100%;
+    max-width: 700px;
+    background-color: #FFF;
+    border-radius: 6px;
+    height: 360px;
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-around;
+}
+
+.setUser__title{
+    font-size: 3rem;
+    font-weight: bold;
+    text-align: center;
+    width: 80%;
+}
+
+.setUser__gamertag{
+    border: none;
+    outline: none;
+    border-bottom: 1px solid;
+    font-size: 1.5rem;
+    text-align: center;
+}
+
+.setUser__submit{
+    background-color: rgb(0, 255, 0);
+    font-size: 1.5em;
+    color: #fff;
+    border: none;
+    text-align: center;
+    cursor: pointer;
+    width: 126px;
+    height: 46px;
+}

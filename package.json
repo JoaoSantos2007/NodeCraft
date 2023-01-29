@@ -1,0 +1,18 @@
+{
+  "name": "bedrock_server",
+  "version": "1.0.0",
+  "description": "a node application to control a minecraft bedrock server for linux",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "João Pedro Tomaz dos Santos",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2",
+    "firebase-admin": "^11.4.1",
+    "shelljs": "^0.8.5"
+  }
+}

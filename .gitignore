@@ -1,0 +1,3 @@
+node_modules
+/bedrock
+/src/assets/serviceAccountKey.json
