@@ -1,4 +1,4 @@
-import { onAuthStateChanged, getAuth, signInWithRedirect, GoogleAuthProvider,OAuthProvider } from "https://www.gstatic.com/firebasejs/9.16.0/firebase-auth.js";
+import { onAuthStateChanged, getAuth, signInWithRedirect, GoogleAuthProvider, OAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/9.16.0/firebase-auth.js";
 import { verifyUserTemplate } from "./database.js";
 import app from "./firebase.js";
 
@@ -6,9 +6,13 @@ const auth = getAuth(app);
 
 function onUser(callback){
     onAuthStateChanged(auth, (user) => {
-        if(!user) return
-
-        callback(user)
+        if(user){
+            callback(user)
+        }else{
+            //redirect to login page
+            const url = `${window.location.protocol}//${window.location.host}`
+            if(!window.location.href.includes("index.html")) window.location.assign(url + "/index.html")
+        }
     });
 };
 
@@ -27,5 +31,8 @@ onAuthStateChanged(auth,async (user) => {
     verifyUserTemplate(user)
 });
 
+function logout(){
+    signOut(auth)
+}
 
-export {onUser, auth, login}
+export {onUser, auth, login, logout}
