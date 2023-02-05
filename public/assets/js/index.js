@@ -1,13 +1,15 @@
-import {login, auth} from "./authentication.js"
-import { verifyUserTemplate } from "./database.js"
+import { login, onUser } from "./authentication.js";
 import "./jquery.js"
 
-$(".setUser").on("submit",async (event) => {
-    event.preventDefault()
+$(".login__google__btn").on("click", () => {
+    login("google")
+})
 
-    const user = auth.currentUser
-    if(!user) return login
-    await verifyUserTemplate(user)
+$(".login__microsoft__btn").on("click", () => {
+    login("microsoft")
+})
 
-    const gamertag = $(".setUser__gamertag").val()
+onUser(() => {
+    const url = (window.location.href).replace("index.html", "")
+    window.location.assign(url+"gamertag.html")
 })

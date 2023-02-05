@@ -1,4 +1,4 @@
-import {getFirestore, setDoc, doc, getDoc} from "https://www.gstatic.com/firebasejs/9.16.0/firebase-firestore.js";
+import {getFirestore, setDoc, doc, onSnapshot, getDoc, updateDoc, arrayUnion, arrayRemove} from "https://www.gstatic.com/firebasejs/9.16.0/firebase-firestore.js";
 import app from "./firebase.js";
 
 const db = getFirestore(app);
@@ -25,4 +25,29 @@ async function verifyUserTemplate(user){
     sessionStorage.setItem("verifiedUserTemplate", true)
 }
 
-export {verifyUserTemplate, createUserTemplate, db}
+async function getUserTemplateOnChange(user, callback){
+    const uid = user.uid
+    const userRef = doc(db, "users", uid);
+
+    onSnapshot(userRef, (doc) => {
+        callback(doc.data())
+    });
+}
+
+async function pushUserToAcceptList(gamertag, user){
+    const userRef = doc(db, "users", user.uid);
+
+    await updateDoc(userRef, {
+        accept: arrayUnion(gamertag)
+    });
+}
+
+async function removeUserFromAcceptList(gamertag, user){
+    const userRef = doc(db, "users", user.uid);
+
+    await updateDoc(userRef, {
+        accept: arrayRemove(gamertag)
+    });
+}
+
+export {verifyUserTemplate, createUserTemplate, getUserTemplateOnChange, pushUserToAcceptList, removeUserFromAcceptList, db}
