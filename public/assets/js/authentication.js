@@ -26,13 +26,13 @@ function login(provider){
     else if(provider === "microsoft") signInWithRedirect(auth, microsoftProvider)
 }
 
-onAuthStateChanged(auth,async (user) => {
-    if(!user) return
-    verifyUserTemplate(user)
-});
-
 function logout(){
     signOut(auth)
 }
+
+onAuthStateChanged(auth,async (user) => {
+    if(!user) return
+    await verifyUserTemplate(user)
+});
 
 export {onUser, auth, login, logout}
