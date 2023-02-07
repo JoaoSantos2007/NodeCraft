@@ -2,140 +2,152 @@ import {db} from "./assets/firebase-utils.js"
 import fs from "fs"
 
 class World{
-    constructor(shell){
-        this.shell = shell
-        this.admins = {}
+    constructor(terminal, bedrockPath){
+        this.terminal = terminal
+        this.shell = (cmd) => {terminal.stdin.write(`${cmd}\n`)}
+        this.path = bedrockPath
+        this.admins = []
         this.players = []
         this.online = 0
+        
+        this.setupWorld()
+    }
 
-        this.wipeAllowlist()
+    /*
+    ====================================
+        Start The Bedrock Server
+    ====================================
+    */
+    
+    setupWorld(){
+        console.log("Bedrock Server Started!")
+        
+        this.syncAdminsListFromDB()
         this.handleServerEvents()
     }
 
-    wipeAllowlist(){
-        const allowlistPath = "../bedrock/allowlist.json"
-        const data = JSON.stringify([])
+    syncAdminsListFromDB(){
+        const query = db.collection('users').where('admin', '==', true);
 
-        fs.writeFileSync(allowlistPath, data)
-        this.shell.stdin.write(`allowlist reload\n`)
+        query.onSnapshot(querySnapshot => {
+            const docs = querySnapshot.docs
+
+            docs.forEach((doc) => {
+                this.admins.push(doc.data())
+            })
+
+            this.updateAllowList()
+        })
     }
 
     handleServerEvents(){
-        this.shell.stdout.on("data", (data) => {
-            this.verifyServerStarted(data)
+        this.terminal.stdout.on("data", (data) => {
             this.verifyPlayerConnected(data)
             this.verifyPlayerDisconnected(data)
         })
     }
 
-    verifyServerStarted(output){
-        if(output.includes("Server started")){
-            console.log("Bedrock Server Started!")
-            this.allowAdmins()
-        }
+    /*
+    ====================================
+                Allowlist
+    ====================================
+    */
+
+    wipeAllowList(){
+        const allowList = `${this.path}/allowlist.json`
+        fs.writeFileSync(allowList, JSON.stringify([]))
+
+        this.shell("allowlist reload")
     }
 
-    verifyAdmin(gamertag){
-        return this.admins[gamertag]
+    allowPlayer(gamertag){
+        this.shell(`allowlist add ${gamertag}`)
     }
 
-    verifyPlayerConnected(output){
+    denyPlayer(gamertag){
+        this.shell(`allowlist remove ${gamertag}`)
+    }
+
+    addAdminsToAllowList(){
+        if(!this.admins) return
+        
+        this.admins.forEach((admin) => {
+            this.allowPlayer(admin.gamertag)
+        })
+    }
+
+    async allowAdminsAcceptList(){
+        const adminPlayers = await this.listAdminPlayers()
+        if(!adminPlayers) return
+
+        adminPlayers.forEach((admin) => {
+            admin.accept.forEach((gamertag) => {
+                this.allowPlayer(gamertag)
+            })
+        })
+    }
+
+    updateAllowList(){
+        this.wipeAllowList()
+        this.addAdminsToAllowList()
+        this.allowAdminsAcceptList()
+    }
+
+
+    /*
+    ====================================
+                  Main
+    ====================================
+    */
+
+    async verifyPlayerConnected(output){
         if(output.includes("Player connected")){
+            //Player Connected
             const gamertag = (output.split("] Player connected: ")[1]).split(",")[0]
             this.players.push(gamertag)
             this.online++            
 
-            const admin = this.verifyAdmin(gamertag)
+            const admin = await this.verifyPlayerIsAdmin(gamertag)
 
-            if(admin) this.allowAdminAcceptPlayersList(admin.accept)
+            if(admin) this.updateAllowList()
         }
     }
 
-    verifyPlayerDisconnected(output){
+    async verifyPlayerDisconnected(output){
         if(output.includes("Player disconnected")){
+            //Player Disconnected
             const gamertag = (output.split("] Player disconnected: ")[1]).split(",")[0]
             this.players.splice(this.players.indexOf(gamertag), 1)
             this.online--
 
-            const admin = this.verifyAdmin(gamertag)
+            const admin = await this.verifyPlayerIsAdmin(gamertag)
     
-            if(admin) this.denyAdminAcceptPlayersList(admin.accept)
+            if(admin) this.updateAllowList()
         }
     }
 
-    async allowAdmins(){
-        const admins = await this.readAdminsFromDB()
-        
-        admins.forEach((admin) => {
-            const user = admin.data()
-
-            this.admins[user.gamertag] = user
-            this.allowPlayer(user.gamertag)
-        })
-    }
-
-    allowAdminAcceptPlayersList(lista){
-        if(!lista) return
-
-        lista.forEach((playerGamertag) => {
-            this.allowPlayer(playerGamertag)
-        })
-    }
-
-    verifyDenyAdminAcceptPlayersList(lista){
-        const removePlayerFromDenyList = []
-        const adminPlayers = this.listAdminPlayers()
-
-        lista.forEach((gamertag) => {
-            if(this.verifyAdmin(gamertag)) removePlayerFromDenyList.push(gamertag)
-
-            adminPlayers.forEach((adminPlayer) => {
-                if(adminPlayer.accept.includes(gamertag) && !removePlayerFromDenyList.includes(gamertag)) removePlayerFromDenyList.push(gamertag)
-            })
-        })
-
-        const denyList = []
-        lista.forEach((gamertag) => {
-            if(!removePlayerFromDenyList.includes(gamertag)) denyList.push(gamertag)
-        })
-
-        return denyList
-    }
-
-    denyAdminAcceptPlayersList(lista){
-        if(!lista) return
-
-        lista = this.verifyDenyAdminAcceptPlayersList(lista)
-
-        lista.forEach((playerGamertag) => {
-            this.denyPlayer(playerGamertag)
-        })
-    }
-
-    allowPlayer(gamertag){
-        this.shell.stdin.write(`allowlist add ${gamertag}\n`)
-    }
-
-    denyPlayer(gamertag){
-        this.shell.stdin.write(`allowlist remove ${gamertag}\n`)
-    }
-
     listAdminPlayers(){
-        const adminPlayers = []
+        return new Promise((resolve, reject) => {
+            const adminPlayersList = []
+        
+            this.players.forEach((gamertag) => {
+                this.admins.forEach((admin) => {
+                    if(admin.gamertag === gamertag) adminPlayersList.push(admin)
+                })
+            })
 
-        Object.keys(this.players).forEach((player) => {
-            if(this.admins[player]) adminPlayers.push(this.admins[player])
-        });
-
-        return adminPlayers
+            return resolve(adminPlayersList)
+        })
     }
 
-    async readAdminsFromDB(){
-        const usersRef = db.collection("users");
-        const queryPlayerAdmin = usersRef.where("admin", "==", true);
-        const snapshot = await queryPlayerAdmin.get()
-        
-        return snapshot.docs
+    verifyPlayerIsAdmin(gamertag){
+        return new Promise((resolve, reject) => {
+            this.admins.forEach((admin) => {
+                if(admin.gamertag == gamertag) return resolve(admin)
+            })
+
+            return resolve(false)
+        })
     }
 }
 
