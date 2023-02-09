@@ -1,4 +1,4 @@
-import {db} from "./assets/firebase-utils.js"
+import { db } from "./assets/firebase-utils.js"
 import fs from "fs"
 
 class World{
@@ -31,6 +31,7 @@ class World{
 
         query.onSnapshot(querySnapshot => {
             const docs = querySnapshot.docs
+            this.admins = []
 
             docs.forEach((doc) => {
                 this.admins.push(doc.data())
@@ -56,41 +57,84 @@ class World{
     wipeAllowList(){
         const allowList = `${this.path}/allowlist.json`
         fs.writeFileSync(allowList, JSON.stringify([]))
+    }
 
-        this.shell("allowlist reload")
+    readAllowlist(){
+        return new Promise((resolve, reject) => {
+            const allowList = `${this.path}/allowlist.json`
+            const rawdata = fs.readFileSync(allowList);
+            const data = JSON.parse(rawdata);
+            
+            if(data){
+                const gamertags = []
+                data.forEach((player) => {
+                    gamertags.push(player.name)
+                })
+
+                resolve(gamertags)
+            }else{
+                resolve([])
+            }
+        })
     }
 
     allowPlayer(gamertag){
-        this.shell(`allowlist add ${gamertag}`)
-    }
+        const allowList = `${this.path}/allowlist.json`
 
-    denyPlayer(gamertag){
-        this.shell(`allowlist remove ${gamertag}`)
+        const rawdata = fs.readFileSync(allowList);
+        const data = JSON.parse(rawdata);
+
+        data.push({
+            "ignoresPlayerLimit": false,
+            "name": gamertag
+        })
+
+        fs.writeFileSync(allowList, JSON.stringify(data))
     }
 
     addAdminsToAllowList(){
-        if(!this.admins) return
+        return new Promise((resolve, reject) => {
+            if(!this.admins) return
         
-        this.admins.forEach((admin) => {
-            this.allowPlayer(admin.gamertag)
+            this.admins.forEach((admin) => {
+                this.allowPlayer(admin.gamertag)
+            })
+
+            resolve(true)
         })
     }
 
     async allowAdminsAcceptList(){
-        const adminPlayers = await this.listAdminPlayers()
-        if(!adminPlayers) return
-
-        adminPlayers.forEach((admin) => {
-            admin.accept.forEach((gamertag) => {
-                this.allowPlayer(gamertag)
+        return new Promise(async (resolve, reject) => {
+            const adminPlayers = await this.listAdminPlayers()
+            if(!adminPlayers) return resolve(true)
+    
+            adminPlayers.forEach((admin) => {
+                admin.accept.forEach((gamertag) => {
+                    this.allowPlayer(gamertag)
+                })
             })
+
+            resolve(true)
         })
     }
 
-    updateAllowList(){
+    async removeNotAllowedPlayers(){
+        const allowedPlayers = await this.readAllowlist()
+
+        if(!this.players || !allowedPlayers) return
+
+        this.players.forEach((player) => {
+            if(!allowedPlayers.includes(player)) this.kickPlayer(player)
+        })
+    }
+
+    async updateAllowList(){
         this.wipeAllowList()
-        this.addAdminsToAllowList()
-        this.allowAdminsAcceptList()
+        await this.addAdminsToAllowList()
+        await this.allowAdminsAcceptList()
+        this.shell("allowlist reload")
+        await this.removeNotAllowedPlayers()
     }
 
 
@@ -129,6 +173,8 @@ class World{
     listAdminPlayers(){
         return new Promise((resolve, reject) => {
             const adminPlayersList = []
+
+            if(!this.players || !this.admins) return resolve(adminPlayersList)
         
             this.players.forEach((gamertag) => {
                 this.admins.forEach((admin) => {
@@ -142,12 +188,18 @@ class World{
 
     verifyPlayerIsAdmin(gamertag){
         return new Promise((resolve, reject) => {
+            if(!this.admins) return resolve(false)
+
             this.admins.forEach((admin) => {
                 if(admin.gamertag == gamertag) return resolve(admin)
             })
 
             return resolve(false)
         })
+    }
+
+    kickPlayer(gamertag){
+        this.shell(`kick ${gamertag}`)
     }
 }
 
