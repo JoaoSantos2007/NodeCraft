@@ -1,10 +1,10 @@
 import { db } from "./assets/firebase-utils.js"
 import fs from "fs"
 
-class World{
+class Bredock{
     constructor(terminal, bedrockPath){
-        this.terminal = terminal
-        this.shell = (cmd) => {terminal.stdin.write(`${cmd}\n`)}
+        //this.terminal = terminal
+        //this.shell = (cmd) => {terminal.stdin.write(`${cmd}\n`)}
         this.path = bedrockPath
         this.admins = []
         this.players = []
@@ -203,4 +203,4 @@ class World{
     }
 }
 
-export default World
+export default Bredock
