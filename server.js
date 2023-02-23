@@ -1,8 +1,9 @@
-import dotenv from "dotenv"
-import app from "./src/app.js"
+import express from "express"
 import bedrock from "./src/bedrock.js"
+import dotenv from "dotenv"
 dotenv.config()
 
+const app = express()
 const port = process.env.SERVER_PORT
 
 app.listen(port, () => {

@@ -19,8 +19,8 @@ class BredockServer{
     }
 
     async setup(){
-        //await this.backup()
-        //this.update()
+        await this.backup()
+        this.update()
         this.start()
         ControlAccess.setup()
         ControlEvents.setup()
