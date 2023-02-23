@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.16.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.16.0/firebase-analytics.js";
-
+import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/9.16.0/firebase-app-check.js"
 
 const firebaseConfig = {
 apiKey: "AIzaSyA2x-_Q36-K9LzRkbuf1aCrVZjc9tg9kOw",
@@ -13,6 +13,13 @@ measurementId: "G-T49K4RF9Q8"
 };
 
 const app = initializeApp(firebaseConfig);
-//const analytics = getAnalytics(app);
+
+const appCheck = initializeAppCheck(app, {
+    provider: new ReCaptchaV3Provider('6Ldf4KokAAAAANKyMilXJJnWT5Yl9xjy4m2qJuRU'),
+
+    isTokenAutoRefreshEnabled: true
+});
+
+const analytics = getAnalytics(app);
 
 export default app
