@@ -1,4 +1,4 @@
-import bedrock from "../bedrock.js"
+import { bedrock } from "../server.js"
 import ControlAccess from "./ControlAccess.js"
 
 class ControlEvents{

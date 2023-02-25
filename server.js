@@ -1,12 +1,9 @@
-import express from "express"
-import bedrock from "./src/bedrock.js"
 import dotenv from "dotenv"
 dotenv.config()
+import BedrockServer from "./src/BedrockServer.js"
 
-const app = express()
-const port = process.env.SERVER_PORT
+const bedrock = new BedrockServer(process.env.SERVER_PATH, process.env.WORLD_NAME)
 
-app.listen(port, () => {
-    console.log(`Control server is running on port ${port}`)
-})
 bedrock.setup()
+
+export { bedrock }

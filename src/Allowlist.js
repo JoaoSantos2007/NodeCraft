@@ -1,6 +1,6 @@
 import fs from "fs"
 import ControlEvents from "./ControlEvents.js";
-import bedrock from "../bedrock.js"
+import { bedrock } from "../server.js"
 
 class Allowlist{
     static wipe(){

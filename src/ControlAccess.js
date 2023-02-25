@@ -1,11 +1,17 @@
-import { db } from "../utils/firebase-utils.js"
-import bedrock from "../bedrock.js";
+import { db } from "./utils/firebase-utils.js"
+import { bedrock } from "../server.js";
 import ControlEvents from "./ControlEvents.js";
 import Allowlist from "./Allowlist.js";
 
 class ControlAccess{
     static setup(){
         ControlAccess.syncDB()
+    }
+
+    static stop(){
+        const unsub = db.collection('users').where('admin', '==', true).onSnapshot(() => {})
+
+        unsub()
     }
 
     static syncDB(){

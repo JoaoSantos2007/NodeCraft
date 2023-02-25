@@ -1,11 +1,11 @@
 import shell from "shelljs"
 import ControlEvents from "./ControlEvents.js"
 import ControlAccess from "./ControlAccess.js"
-import { bucket } from "../utils/firebase-utils.js"
+import { bucket } from "./utils/firebase-utils.js"
 import dotenv from "dotenv"
 dotenv.config()
 
-class BredockServer{
+class BedrockServer{
     constructor(serverPath, bedrockWorldName){
         this.path = serverPath,
         this.terminal = null,
@@ -18,7 +18,11 @@ class BredockServer{
         this.debug = process.env.DEBUG
     }
 
-    async setup(){
+    setup(){
+        this.init()
+    }
+
+    async init(){
         await this.backup()
         this.update()
         this.start()
@@ -36,7 +40,9 @@ class BredockServer{
 
     stop(){
         ControlEvents.emitEvent("stop")
+        ControlAccess.stop()
         this.status = "offline"
+        this.terminal = null
     }
 
     update(){
@@ -91,14 +97,17 @@ class BredockServer{
         await bucket.upload(file)
             .then(() => {
                 console.log("Backup feito com sucesso!")
+                //Exclude tmp path
+                shell.rm("-r", tmp)
             })
             .catch((err) => {
                 console.error(`Erro ao fazer o backup! ${err}`)
+                //Exclude tmp path
+                shell.rm("-r", tmp)
             })
 
-        //Exclude tmp path
-        shell.rm("-r", tmp)
+
     }
 }
 
-export default BredockServer
+export default BedrockServer
