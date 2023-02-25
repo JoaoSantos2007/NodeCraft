@@ -20,14 +20,15 @@ class BedrockServer{
 
     setup(){
         this.init()
+        this.defineResetTime()
     }
 
     async init(){
         await this.backup()
         this.update()
         this.start()
-        ControlAccess.setup()
-        ControlEvents.setup()
+        ControlAccess.start()
+        ControlEvents.start()
     }
 
     start(){
@@ -107,6 +108,24 @@ class BedrockServer{
             })
 
 
+    }
+
+    defineResetTime() {
+        const now = new Date();
+        const resetHour = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 5, 0, 0);
+      
+        if (now > resetHour) {
+          // Se já passou das 5 horas da manhã, agendar para o dia seguinte
+          resetHour.setDate(resetHour.getDate() + 1);
+        }
+      
+        const delay = resetHour.getTime() - now.getTime();
+        setTimeout(() => {
+            this.stop()
+            this.init()
+        }, delay);
+
+        console.log("Reset time definido com sucesso!")
     }
 }
 

@@ -2,7 +2,7 @@ import { bedrock } from "../server.js"
 import ControlAccess from "./ControlAccess.js"
 
 class ControlEvents{
-    static setup(){
+    static start(){
         ControlEvents.handleServerEvents()
     }
     

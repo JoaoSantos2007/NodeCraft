@@ -4,7 +4,7 @@ import ControlEvents from "./ControlEvents.js";
 import Allowlist from "./Allowlist.js";
 
 class ControlAccess{
-    static setup(){
+    static start(){
         ControlAccess.syncDB()
     }
 
