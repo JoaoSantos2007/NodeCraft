@@ -1,4 +1,4 @@
-import { db } from "./utils/firebase-utils.js"
+import { db } from "./utils/firebase.js"
 import { bedrock } from "../server.js";
 import ControlEvents from "./ControlEvents.js";
 import Allowlist from "./Allowlist.js";

@@ -1,12 +1,14 @@
 import shell from "shelljs"
 import ControlEvents from "./ControlEvents.js"
 import ControlAccess from "./ControlAccess.js"
-import { bucket } from "./utils/firebase-utils.js"
+import { bucket } from "./utils/firebase.js"
+import { getWorldName, verifyNecessaryToolsInstaled } from "./utils/bedrockServer.js"
+import cron from "node-cron"
 import dotenv from "dotenv"
 dotenv.config()
 
 class BedrockServer{
-    constructor(serverPath, bedrockWorldName){
+    constructor(serverPath){
         this.path = serverPath,
         this.terminal = null,
         this.admins = [],
@@ -14,18 +16,18 @@ class BedrockServer{
         this.online = 0,
         this.status = "offline",
         this.allowlist = this.path + "/allowlist.json",
-        this.world = bedrockWorldName,
-        this.debug = process.env.DEBUG
+        this.world = getWorldName(`${serverPath}/server.properties`),
+        this.debug = (process.env.DEBUG==="true") ? true : false 
     }
 
     setup(){
+        verifyNecessaryToolsInstaled()
+        this.defineRoutine()
+        this.update()
         this.init()
-        this.defineResetTime()
     }
 
-    async init(){
-        await this.backup()
-        this.update()
+    init(){
         this.start()
         ControlAccess.start()
         ControlEvents.start()
@@ -33,9 +35,9 @@ class BedrockServer{
 
     start(){
         shell.cd(this.path)
-        this.terminal = shell.exec("./bedrock_server", {silent: this.debug, async: true})
+        this.terminal = shell.exec("./bedrock_server", {silent: !this.debug, async: true})
         
-        console.log("Bedrock Server Started!")
+        console.log("Servidor inicializado!")
         this.status = "online"
     }
 
@@ -46,11 +48,20 @@ class BedrockServer{
         this.terminal = null
     }
 
+    async keepHealth(){
+        this.stop()
+        
+        await this.backup()
+        this.update()
+
+        this.init()
+    }
+
     update(){
         shell.cd(this.path)
 
         //Create temp path if not created
-        if(!shell.exec("ls -d */", {silent: this.debug}).stdout.includes("tmp")) shell.mkdir("tmp")
+        if(!shell.exec("ls -d */", {silent: !this.debug}).stdout.includes("tmp")) shell.mkdir("tmp")
         const tmp = this.path + "/tmp"
 
         //Make backup
@@ -62,13 +73,13 @@ class BedrockServer{
 
         //Dowload the latest version of bedrock server
         shell.touch(`${tmp}/version.html`)
-        shell.exec(`curl -H "Accept-Encoding: identity" -H "Accept-Language: en" -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.33 (KHTML, like Gecko) Chrome/90.0.$RandNum.212 Safari/537.33" -o ${tmp}/version.html https://minecraft.net/en-us/download/server/bedrock/`, {silent: this.debug})
-        const DownloadURL = shell.exec(`grep -o 'https://minecraft.azureedge.net/bin-linux/[^"]*' ${tmp}/version.html`, {silent: this.debug}).stdout
+        shell.exec(`curl -H "Accept-Encoding: identity" -H "Accept-Language: en" -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.33 (KHTML, like Gecko) Chrome/90.0.$RandNum.212 Safari/537.33" -o ${tmp}/version.html https://minecraft.net/en-us/download/server/bedrock/`, {silent: !this.debug})
+        const DownloadURL = shell.exec(`grep -o 'https://minecraft.azureedge.net/bin-linux/[^"]*' ${tmp}/version.html`, {silent: !this.debug}).stdout
         const DownloadFile = "bedrock-server-latest.zip"
-        shell.exec(`curl -H "Accept-Encoding: identity" -H "Accept-Language: en" -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.33 (KHTML, like Gecko) Chrome/90.0.$RandNum.212 Safari/537.33" -o ${tmp}/${DownloadFile} ${DownloadURL}`, {silent: this.debug})
+        shell.exec(`curl -H "Accept-Encoding: identity" -H "Accept-Language: en" -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.33 (KHTML, like Gecko) Chrome/90.0.$RandNum.212 Safari/537.33" -o ${tmp}/${DownloadFile} ${DownloadURL}`, {silent: !this.debug})
 
         //Apply changes
-        shell.exec(`unzip -o ${tmp}/${DownloadFile} -d ${this.path}`, {silent: this.debug})
+        shell.exec(`unzip -o ${tmp}/${DownloadFile} -d ${this.path}`, {silent: !this.debug})
 
         //Restore backup
         shell.mv(`${bkp}/server.properties`, this.path)
@@ -77,14 +88,14 @@ class BedrockServer{
 
         //Exclude tmp path
         shell.rm("-r", tmp)
-        console.log("Bedrock Server is up to date!")
+        console.log("O Servidor já está atualizado!")
     }
 
     async backup(){
         shell.cd(this.path)
 
         //Create temp path if not created
-        if(!shell.exec("ls -d */", {silent: this.debug}).stdout.includes("tmp")) shell.mkdir("tmp")
+        if(!shell.exec("ls -d */", {silent: !this.debug}).stdout.includes("tmp")) shell.mkdir("tmp")
         const tmp = this.path + "/tmp"
 
 
@@ -92,7 +103,7 @@ class BedrockServer{
         shell.cd(tmp)
         const timestamp = new Date().getTime();
         const file = `${tmp}/world-backup-${timestamp}.zip`
-        shell.exec(`zip -r ${file} ${this.path}/worlds/${this.world}`, {silent: this.debug})
+        shell.exec(`zip -r ${file} ${this.path}/worlds/${this.world}`, {silent: !this.debug})
         
         //Upload world backup
         await bucket.upload(file)
@@ -102,7 +113,7 @@ class BedrockServer{
                 shell.rm("-r", tmp)
             })
             .catch((err) => {
-                console.error(`Erro ao fazer o backup! ${err}`)
+                console.error(`Erro ao fazer o backup, ${err}`)
                 //Exclude tmp path
                 shell.rm("-r", tmp)
             })
@@ -110,22 +121,15 @@ class BedrockServer{
 
     }
 
-    defineResetTime() {
-        const now = new Date();
-        const resetHour = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 5, 0, 0);
-      
-        if (now > resetHour) {
-          // Se já passou das 5 horas da manhã, agendar para o dia seguinte
-          resetHour.setDate(resetHour.getDate() + 1);
-        }
-      
-        const delay = resetHour.getTime() - now.getTime();
-        setTimeout(() => {
-            this.stop()
-            this.init()
-        }, delay);
+    defineRoutine() {
+        cron.schedule('0 5 * * *', () => {
+            this.keepHealth();
+        },{
+            scheduled: false,
+            timezone: "America/Sao_Paulo"
+        });
 
-        console.log("Reset time definido com sucesso!")
+        console.log("Tempo para manutenção definido com sucesso!")
     }
 }
 
