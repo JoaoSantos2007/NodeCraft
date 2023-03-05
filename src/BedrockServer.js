@@ -22,7 +22,7 @@ class BedrockServer{
     setup(){
         verifyNecessaryToolsInstaled()
         this.defineRoutine()
-        this.keepHealth()
+        this.update()
         this.init()
     }
 
