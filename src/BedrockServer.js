@@ -2,8 +2,7 @@ import shell from "shelljs"
 import ControlEvents from "./ControlEvents.js"
 import ControlAccess from "./ControlAccess.js"
 import { bucket } from "./utils/firebase.js"
-import { getWorldName, verifyNecessaryToolsInstaled } from "./utils/bedrockServer.js"
-import cron from "node-cron"
+import { deleteOldBackups, getWorldName, verifyNecessaryToolsInstaled } from "./utils/bedrockServer.js"
 import dotenv from "dotenv"
 dotenv.config()
 
@@ -23,7 +22,7 @@ class BedrockServer{
     setup(){
         verifyNecessaryToolsInstaled()
         this.defineRoutine()
-        this.update()
+        this.keepHealth()
         this.init()
     }
 
@@ -92,6 +91,8 @@ class BedrockServer{
     }
 
     async backup(){
+        await deleteOldBackups()
+
         shell.cd(this.path)
 
         //Create temp path if not created
@@ -117,18 +118,24 @@ class BedrockServer{
                 //Exclude tmp path
                 shell.rm("-r", tmp)
             })
-
-
     }
 
     defineRoutine() {
-        cron.schedule('0 5 * * *', () => {
-            this.keepHealth();
-        },{
-            scheduled: false,
-            timezone: "America/Sao_Paulo"
-        });
-
+        const timestamp = new Date();
+        const updateHour = new Date(timestamp.getFullYear(), timestamp.getMonth(), timestamp.getDate(), 5, 0, 0);
+      
+        let timeToUpdate = updateHour.getTime() - timestamp.getTime();
+      
+        if(timeToUpdate < 0){
+            updateHour.setDate(updateHour.getDate() + 1);
+            timeToUpdate = updateHour.getTime() - timestamp.getTime();
+        }
+      
+        setTimeout(() => {
+          this.keepHealth()
+          this.defineRoutine();
+        }, timeToUpdate);
+    
         console.log("Tempo para manutenção definido com sucesso!")
     }
 }

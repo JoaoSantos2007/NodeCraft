@@ -14,7 +14,7 @@ class ControlEvents{
     }
 
     static emitEvent(cmd){
-        bedrock.terminal.stdin.write(`${cmd} \n`)
+        if(bedrock.terminal) bedrock.terminal.stdin.write(`${cmd} \n`)
     }
 
     static listAdminPlayers(){
