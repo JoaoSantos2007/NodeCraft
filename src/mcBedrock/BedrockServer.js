@@ -1,8 +1,8 @@
 import shell from "shelljs"
 import ControlEvents from "./ControlEvents.js"
 import ControlAccess from "./ControlAccess.js"
-import { bucket } from "./utils/firebase.js"
-import { deleteOldBackups, getWorldName, verifyNecessaryToolsInstaled } from "./utils/bedrockServer.js"
+import { bucket } from "../utils/firebase.js"
+import { deleteOldBackups, getWorldName, verifyNecessaryToolsInstaled } from "../utils/bedrockServer.js"
 import dotenv from "dotenv"
 dotenv.config()
 
