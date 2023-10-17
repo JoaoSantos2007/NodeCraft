@@ -1,3 +1,0 @@
-
-
-export {admin, db, bucket}
