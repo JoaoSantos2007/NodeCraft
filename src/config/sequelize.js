@@ -8,6 +8,7 @@ const db = new Sequelize({
 
 try {
   await db.authenticate();
+
   // eslint-disable-next-line no-console
   console.log('Connected to Database!');
 } catch (err) {

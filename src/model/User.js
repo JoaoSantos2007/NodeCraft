@@ -1,9 +1,9 @@
-import { Sequelize, DataTypes } from 'sequelize';
+import { Sequelize, DataTypes, Model } from 'sequelize';
 import db from '../config/sequelize.js';
-import Role from './Role.js';
-import UserRole from './UserRole.js';
 
-const User = db.define('User', {
+class User extends Model { }
+
+User.init({
   id: {
     type: Sequelize.UUIDV4,
     defaultValue: Sequelize.UUIDV4,
@@ -30,6 +30,8 @@ const User = db.define('User', {
     allowNull: false,
   },
 }, {
+  tableName: 'User',
+  sequelize: db,
   timestamps: false,
   defaultScope: {
     attributes: {
@@ -38,11 +40,6 @@ const User = db.define('User', {
   },
 });
 
-User.belongsToMany(Role, {
-  through: UserRole,
-  as: 'User_Roles',
-  foreignKey: 'UserId',
-});
-User.sync({ force: true });
+await User.sync({ alter: true });
 
 export default User;

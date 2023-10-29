@@ -18,6 +18,10 @@ class Auth {
       return errorHandler(err, res);
     }
   }
+
+  static async verifyAdmin(req, res, next) {
+
+  }
 }
 
 export default Auth;

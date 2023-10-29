@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js"
+    "dev": "nodemon --ignore instances/ --ignore temp/ server.js"
   },
   "keywords": [],
   "author": "João Pedro Tomaz dos Santos",
