@@ -14,7 +14,7 @@ const errorHandler = (error, res) => {
   }
 
   if (error instanceof ValidationError) {
-    return new InvalidRequest().send(res);
+    return new InvalidRequest(error.message.split('Validation error: ')[1]).send(res);
   }
 
   // eslint-disable-next-line no-console
