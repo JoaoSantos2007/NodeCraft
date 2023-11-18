@@ -1,9 +1,9 @@
 import { Sequelize, Model, DataTypes } from 'sequelize';
 import db from '../config/sequelize.js';
 
-class Instance extends Model {}
+class Bedrock extends Model {}
 
-Instance.init({
+Bedrock.init({
   id: {
     type: Sequelize.UUIDV4,
     defaultValue: Sequelize.UUIDV4,
@@ -329,11 +329,11 @@ Instance.init({
     },
   },
 }, {
-  tableName: 'Instance',
+  tableName: 'Bedrock',
   sequelize: db,
   timestamps: false,
 });
 
-await Instance.sync({ alter: true });
+await Bedrock.sync({ alter: true });
 
-export default Instance;
+export default Bedrock;

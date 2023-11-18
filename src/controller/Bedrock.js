@@ -1,10 +1,10 @@
-import InstanceService from '../services/Instance.js';
+import BedrockService from '../services/Bedrock.js';
 
-class Instance {
+class Bedrock {
   static async create(req, res, next) {
     try {
       const { body } = req;
-      const instance = await InstanceService.create(body);
+      const instance = await BedrockService.create(body);
 
       return res.status(201).json({ success: true, created: true, instance });
     } catch (err) {
@@ -14,7 +14,7 @@ class Instance {
 
   static async readAll(req, res, next) {
     try {
-      const instances = await InstanceService.readAll();
+      const instances = await BedrockService.readAll();
 
       return res.status(200).json({ success: true, instances });
     } catch (err) {
@@ -25,7 +25,7 @@ class Instance {
   static async readOne(req, res, next) {
     try {
       const { id } = req.params;
-      const instance = await InstanceService.readOne(id);
+      const instance = await BedrockService.readOne(id);
 
       return res.status(200).json({ success: true, instance });
     } catch (err) {
@@ -37,7 +37,7 @@ class Instance {
     try {
       const { id } = req.params;
       const { body } = req;
-      const instance = await InstanceService.update(id, body);
+      const instance = await BedrockService.update(id, body);
 
       return res.status(200).json({ success: true, updated: true, instance });
     } catch (err) {
@@ -48,7 +48,7 @@ class Instance {
   static async delete(req, res, next) {
     try {
       const { id } = req.params;
-      const instance = await InstanceService.delete(id);
+      const instance = await BedrockService.delete(id);
 
       return res.status(200).json({ success: true, deleted: true, instance });
     } catch (err) {
@@ -59,7 +59,7 @@ class Instance {
   static async run(req, res, next) {
     try {
       const { id } = req.params;
-      const instance = await InstanceService.run(id);
+      const instance = await BedrockService.run(id);
 
       return res.status(200).json({ success: true, running: true, instance });
     } catch (err) {
@@ -70,7 +70,7 @@ class Instance {
   static async stop(req, res, next) {
     try {
       const { id } = req.params;
-      const instance = await InstanceService.stop(id);
+      const instance = await BedrockService.stop(id);
 
       return res.status(200).json({ success: true, stopped: true, instance });
     } catch (err) {
@@ -79,4 +79,4 @@ class Instance {
   }
 }
 
-export default Instance;
+export default Bedrock;

@@ -1,13 +1,13 @@
-import Bedrock from '../bedrock/Bedrock.js';
-import InstanceModel from '../model/Instance.js';
+import BedrockScript from '../bedrock/Bedrock.js';
+import BedrockModel from '../model/Bedrock.js';
 import DuplicateError from '../errors/Duplicate.js';
 import BadRequestError from '../errors/BadRequest.js';
 import instancesList from '../utils/instances.js';
 
-class Instance {
+class Bedrock {
   static async create(body) {
     const { name } = body;
-    let instance = await InstanceModel.findOne({
+    let instance = await BedrockModel.findOne({
       where: {
         name,
       },
@@ -17,21 +17,21 @@ class Instance {
       throw new DuplicateError(`Instance ${name} already exists!`);
     }
 
-    const data = Instance.extractInstanceList(body);
+    const data = Bedrock.extractInstanceList(body);
 
-    instance = await InstanceModel.create(data);
-    await Bedrock.createInstance(instance);
+    instance = await BedrockModel.create(data);
+    await BedrockScript.createInstance(instance);
 
     return instance;
   }
 
   static async readAll() {
-    const instances = await InstanceModel.findAll();
+    const instances = await BedrockModel.findAll();
     return instances;
   }
 
   static async readOne(id) {
-    const instance = await InstanceModel.findOne({
+    const instance = await BedrockModel.findOne({
       where: {
         id,
       },
@@ -43,33 +43,33 @@ class Instance {
   }
 
   static async update(id, body) {
-    const data = Instance.extractInstanceList(body);
+    const data = Bedrock.extractInstanceList(body);
 
-    const instance = await Instance.readOne(id);
+    const instance = await Bedrock.readOne(id);
     await instance.update(data);
 
     return instance;
   }
 
   static async delete(id) {
-    const instance = await Instance.readOne(id);
-    await Bedrock.deleteInstance(instance.name);
+    const instance = await Bedrock.readOne(id);
+    await BedrockScript.deleteInstance(instance.name);
     await instance.destroy();
 
     return instance;
   }
 
   static async run(id) {
-    const instance = await Instance.readOne(id);
+    const instance = await Bedrock.readOne(id);
 
-    const bedrockInstance = new Bedrock(instance);
+    const bedrockInstance = new BedrockScript(instance);
     instancesList[id] = bedrockInstance;
 
     return instance;
   }
 
   static async stop(id) {
-    const instance = await Instance.readOne(id);
+    const instance = await Bedrock.readOne(id);
     instancesList[id].stop();
 
     return instance;
@@ -115,4 +115,4 @@ class Instance {
   }
 }
 
-export default Instance;
+export default Bedrock;

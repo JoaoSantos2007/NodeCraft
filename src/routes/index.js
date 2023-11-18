@@ -2,7 +2,7 @@ import express from 'express';
 import cookieParser from 'cookie-parser';
 import user from './user.js';
 import auth from './auth.js';
-import instance from './instance.js';
+import bedrock from './bedrock.js';
 
 const routes = (app) => {
   app.get('/', (req, res) => {
@@ -14,7 +14,7 @@ const routes = (app) => {
     cookieParser(),
     user,
     auth,
-    instance,
+    bedrock,
   );
 };
 
