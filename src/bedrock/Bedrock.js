@@ -1,11 +1,11 @@
 import shell from 'shelljs';
 import crypto from 'crypto';
 import curl from '../utils/curl.js';
-import Propreties from './Properties.js';
+import Propreties from '../utils/Properties.js';
 
 const absolutePath = shell.pwd().stdout;
 const tempsPath = `${absolutePath}/temp`;
-const instancesPath = `${absolutePath}/instances`;
+const instancesPath = `${absolutePath}/instances/bedrock`;
 
 class Bedrock {
   constructor(saved) {
@@ -49,7 +49,7 @@ class Bedrock {
   }
 
   setup() {
-    Propreties.syncPropertiesLists(this.path, this.saved);
+    Propreties.syncPropertiesLists('bedrock', this.path, this.saved);
     this.run();
     this.handleServerEvents();
   }

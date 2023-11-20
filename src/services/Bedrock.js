@@ -2,7 +2,7 @@ import BedrockScript from '../bedrock/Bedrock.js';
 import BedrockModel from '../model/Bedrock.js';
 import DuplicateError from '../errors/Duplicate.js';
 import BadRequestError from '../errors/BadRequest.js';
-import instancesList from '../utils/instances.js';
+import { bedrockInstances } from '../utils/instances.js';
 
 class Bedrock {
   static async create(body) {
@@ -62,15 +62,20 @@ class Bedrock {
   static async run(id) {
     const instance = await Bedrock.readOne(id);
 
-    const bedrockInstance = new BedrockScript(instance);
-    instancesList[id] = bedrockInstance;
+    let bedrockInstance = bedrockInstances[id];
+
+    if (bedrockInstance) throw new BadRequestError('Instance already in progress');
+
+    bedrockInstance = new BedrockScript(instance);
+    bedrockInstances[id] = bedrockInstance;
 
     return instance;
   }
 
   static async stop(id) {
     const instance = await Bedrock.readOne(id);
-    instancesList[id].stop();
+    bedrockInstances[id].stop();
+    bedrockInstances[id] = null;
 
     return instance;
   }

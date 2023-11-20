@@ -291,7 +291,6 @@ Java.init({
     allowNull: false,
     defaultValue: 'A Minecraft Server',
     validate: {
-      isAlphanumeric: { msg: 'name field must be a string' },
       len: { args: [1, 59], msg: 'name length is not between 1 and 59' },
     },
   },
@@ -516,3 +515,7 @@ Java.init({
   sequelize: db,
   timestamps: false,
 });
+
+await Java.sync({ alter: true });
+
+export default Java;

@@ -1,3 +1,4 @@
-const instances = {};
+const bedrockInstances = {};
+const javaInstances = {};
 
-export default instances;
+export { bedrockInstances, javaInstances };
