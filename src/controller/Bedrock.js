@@ -1,4 +1,5 @@
 import BedrockService from '../services/Bedrock.js';
+import validate from '../validator/Bedrock.js';
 
 class Bedrock {
   static async create(req, res, next) {
@@ -37,9 +38,10 @@ class Bedrock {
     try {
       const { id } = req.params;
       const { body } = req;
-      const instance = await BedrockService.update(id, body);
+      validate(body);
+      // const instance = await BedrockService.update(id, body);
 
-      return res.status(200).json({ success: true, updated: true, instance });
+      return res.status(200).json({ success: true, updated: true });
     } catch (err) {
       return next(err);
     }

@@ -13,7 +13,7 @@ class Bedrock {
   }
 
   setup() {
-    // Propreties.syncPropertiesLists('bedrock', this.path, this.settings);
+    Propreties.syncPropertiesLists(this.path, this.settings);
     this.run();
     this.handleServerEvents();
   }
