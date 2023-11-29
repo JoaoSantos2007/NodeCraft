@@ -5,6 +5,7 @@ class Bedrock {
   static async create(req, res, next) {
     try {
       const { body } = req;
+      validate(body);
       const instance = await BedrockService.create(body);
 
       return res.status(201).json({ success: true, created: true, instance });
@@ -39,9 +40,9 @@ class Bedrock {
       const { id } = req.params;
       const { body } = req;
       validate(body);
-      // const instance = await BedrockService.update(id, body);
+      const instance = await BedrockService.update(id, body);
 
-      return res.status(200).json({ success: true, updated: true });
+      return res.status(200).json({ success: true, updated: true, instance });
     } catch (err) {
       return next(err);
     }
@@ -75,6 +76,29 @@ class Bedrock {
       const instance = await BedrockService.stop(id);
 
       return res.status(200).json({ success: true, stopped: true, instance });
+    } catch (err) {
+      return next(err);
+    }
+  }
+
+  static async getWorld(req, res, next) {
+    try {
+      const { id } = req.params;
+      const path = await BedrockService.generateWorldZip(id);
+
+      return res.download(path);
+    } catch (err) {
+      return next(err);
+    }
+  }
+
+  static async uploadWorld(req, res, next) {
+    try {
+      const { id } = req.params;
+      const { upload } = req;
+      const instance = await BedrockService.uploadWorld(id, upload);
+
+      return res.status(200).json({ success: true, uploaded: true, instance });
     } catch (err) {
       return next(err);
     }

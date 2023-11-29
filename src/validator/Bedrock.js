@@ -1,5 +1,19 @@
 import InvalidRequest from '../errors/InvalidRequest.js';
 
+const nodecraftModel = {
+  name: {
+    type: 'string',
+    min: 4,
+    max: 30,
+  },
+  properties: {
+    type: 'object',
+  },
+  allowlist: {
+    type: 'object',
+  },
+};
+
 const propertiesModel = {
   'server-name': {
     type: 'string',
@@ -62,9 +76,6 @@ const propertiesModel = {
   'max-threads': {
     type: 'number',
     int: true,
-  },
-  'level-name': {
-    type: 'string',
   },
   'default-player-permission-level': {
     type: 'string',
@@ -153,54 +164,63 @@ const propertiesModel = {
   },
 };
 
+const analize = (analizedAttribute, field, value) => {
+  if (!analizedAttribute) throw new InvalidRequest(`${field} field is not valid`);
+
+  const desiredType = String(analizedAttribute.type);
+  if (String(typeof value) !== desiredType) throw new InvalidRequest(`${field} field must be a ${desiredType} value`);
+
+  // For numbers
+  if (desiredType === 'number') {
+    if (analizedAttribute.int && !Number.isInteger(value)) throw new InvalidRequest(`${field} field must be a integer value`);
+
+    // eslint-disable-next-line prefer-destructuring
+    const min = analizedAttribute.min;
+    if (min) {
+      if (value < min) throw new InvalidRequest(`${field} field must be greater or equal to ${min}`);
+    }
+
+    // eslint-disable-next-line prefer-destructuring
+    const max = analizedAttribute.max;
+    if (max) {
+      if (value > max) throw new InvalidRequest(`${field} field must be less or equal to ${max}`);
+    }
+  }
+
+  // For strings
+  if (desiredType === 'string') {
+    // eslint-disable-next-line prefer-destructuring
+    const min = analizedAttribute.min;
+    if (min) {
+      if (value.length < min) throw new InvalidRequest(`${field} field characters must be greater or equal to ${min}`);
+    }
+
+    // eslint-disable-next-line prefer-destructuring
+    const max = analizedAttribute.max;
+    if (max) {
+      if (value.length > max) throw new InvalidRequest(`${field} field characters must be less or equal to ${max}`);
+    }
+
+    const possibleValues = analizedAttribute.values;
+    if (possibleValues) {
+      if (!possibleValues.includes(value)) throw new InvalidRequest(`${field} field value must be ${possibleValues}`);
+    }
+  }
+};
+
 const validate = (data) => {
-  if (data.properties) {
-    const { properties } = data;
+  // eslint-disable-next-line no-restricted-syntax
+  for (const [key, value] of Object.entries(data)) {
+    const analizedAttribute = nodecraftModel[key];
+    analize(analizedAttribute, key, value);
 
-    // eslint-disable-next-line no-restricted-syntax
-    for (const [key, value] of Object.entries(properties)) {
-      const analizedPropertie = propertiesModel[key];
-
-      if (!analizedPropertie) throw new InvalidRequest(`${key} field is not valid`);
-
-      const desiredType = String(analizedPropertie.type);
-      if (String(typeof value) !== desiredType) throw new InvalidRequest(`${key} field must be a ${desiredType} value`);
-
-      // For numbers
-      if (desiredType === 'number') {
-        if (analizedPropertie.int && !Number.isInteger(value)) throw new InvalidRequest(`${key} field must be a integer value`);
-
-        // eslint-disable-next-line prefer-destructuring
-        const min = analizedPropertie.min;
-        if (min) {
-          if (value < min) throw new InvalidRequest(`${key} field must be greater or equal to ${min}`);
-        }
-
-        // eslint-disable-next-line prefer-destructuring
-        const max = analizedPropertie.max;
-        if (max) {
-          if (value > max) throw new InvalidRequest(`${key} field must be less or equal to ${max}`);
-        }
-      }
-
-      // For strings
-      if (desiredType === 'string') {
-        // eslint-disable-next-line prefer-destructuring
-        const min = analizedPropertie.min;
-        if (min) {
-          if (value.length < min) throw new InvalidRequest(`${key} field characters must be greater or equal to ${min}`);
-        }
-
-        // eslint-disable-next-line prefer-destructuring
-        const max = analizedPropertie.max;
-        if (max) {
-          if (value.length > max) throw new InvalidRequest(`${key} field characters must be less or equal to ${max}`);
-        }
-
-        const possibleValues = analizedPropertie.values;
-        if (possibleValues) {
-          if (!possibleValues.includes(value)) throw new InvalidRequest(`${key} field value must be ${possibleValues}`);
-        }
+    // Analize Properties Object
+    if (key === 'properties') {
+      const { properties } = data;
+      // eslint-disable-next-line no-restricted-syntax
+      for (const [propertieKey, propertieValue] of Object.entries(properties)) {
+        const analizedPropertie = propertiesModel[propertieKey];
+        analize(analizedPropertie, `${key}.${propertieKey}`, propertieValue);
       }
     }
   }
