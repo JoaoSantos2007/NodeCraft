@@ -176,6 +176,7 @@ class Bedrock {
     return zipFile;
   }
 
+  // Revisar Upload, Upload está sendo feito mesmo com a instancia rodando
   static async uploadWorld(id, uploadPath) {
     if (Bedrock.verifyInstanceInProgess(id)) throw new InvalidRequestError('You cannot download a world while the instance is in progress!');
     const instance = await Bedrock.readOne(id);
