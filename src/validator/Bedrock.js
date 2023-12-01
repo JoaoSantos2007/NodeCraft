@@ -9,9 +9,6 @@ const nodecraftModel = {
   properties: {
     type: 'object',
   },
-  allowlist: {
-    type: 'object',
-  },
 };
 
 const propertiesModel = {

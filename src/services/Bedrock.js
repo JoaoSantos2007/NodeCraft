@@ -2,12 +2,10 @@ import shell from 'shelljs';
 import crypto from 'crypto';
 import fs from 'fs';
 import BadRequestError from '../errors/BadRequest.js';
-import { bedrockInstances } from '../utils/instances.js';
 import curl from '../utils/curl.js';
-import Propreties from '../utils/Properties.js';
 import { INSTANCES_PATH, TEMPORARY_PATH } from '../utils/env.js';
-import BedrockScript from '../scripts/Bedrock.js';
-import InvalidRequestError from '../errors/InvalidRequest.js';
+import Instance from './Instance.js';
+import getNodeCraftObj from '../utils/getNodeCraftObj.js';
 
 class Bedrock {
   static async create(data) {
@@ -36,36 +34,11 @@ class Bedrock {
 
     // Create NodeCraft settings json
     const version = this.extractVersionFromUrl(DownloadURL);
-    const settings = await Bedrock.getNodeCraftSettings(newInstancePath, id, version, data);
+    const settings = getNodeCraftObj(newInstancePath, id, version, data);
     const json = JSON.stringify(settings);
     fs.writeFileSync(`${newInstancePath}/nodecraft.json`, json, 'utf-8');
 
     return settings;
-  }
-
-  static async readAll() {
-    const instancesList = fs.readdirSync(INSTANCES_PATH);
-
-    const instances = [];
-
-    instancesList.map((id) => {
-      const rawData = fs.readFileSync(`${INSTANCES_PATH}/${id}/nodecraft.json`, 'utf-8');
-      const data = JSON.parse(rawData);
-      return instances.push(data);
-    });
-
-    return instances;
-  }
-
-  static async readOne(id) {
-    const filePath = `${INSTANCES_PATH}/${id}/nodecraft.json`;
-
-    if (!fs.existsSync(filePath)) throw new BadRequestError('Instance not found!');
-
-    const rawData = fs.readFileSync(filePath, 'utf-8');
-    const instance = JSON.parse(rawData);
-
-    return instance;
   }
 
   static updateObject(instance, obj) {
@@ -83,52 +56,13 @@ class Bedrock {
 
   // Revisar
   static async update(id, data) {
-    const instance = await Bedrock.readOne(id);
-    if (await Bedrock.verifyInstanceInProgess(id)) throw new InvalidRequestError('You can not modify an instance in progress!');
-
+    const instance = await Instance.readOne(id);
     const settings = Bedrock.updateObject(instance, data);
 
     const json = JSON.stringify(settings);
     fs.writeFileSync(`${INSTANCES_PATH}/${id}/nodecraft.json`, json, 'utf-8');
 
     return settings;
-  }
-
-  static async delete(id) {
-    const instance = await Bedrock.readOne(id);
-    shell.exec(`rm -r ${INSTANCES_PATH}/${id}`, { silent: true });
-
-    return instance;
-  }
-
-  static async run(id) {
-    const instance = await Bedrock.readOne(id);
-
-    if (Bedrock.verifyInstanceInProgess(id)) throw new BadRequestError('Instance already is in progress');
-
-    // Run Instance
-    const bedrockInstance = new BedrockScript(instance);
-    bedrockInstances[id] = bedrockInstance;
-
-    return instance;
-  }
-
-  static async stop(id) {
-    const instance = await Bedrock.readOne(id);
-
-    if (!Bedrock.verifyInstanceInProgess(id)) throw new BadRequestError('Instance is not in progress');
-
-    // Stop Instance
-    bedrockInstances[id].stop();
-    bedrockInstances[id] = null;
-
-    return instance;
-  }
-
-  static verifyInstanceInProgess(id) {
-    const bedrockInstance = bedrockInstances[id];
-
-    return bedrockInstance;
   }
 
   static extractVersionFromUrl(url) {
@@ -146,23 +80,7 @@ class Bedrock {
     return version;
   }
 
-  static async getNodeCraftSettings(path, id, version, { name }) {
-    const properties = Propreties.getPropertiesListLocal(path);
-    properties['level-name'] = 'world';
-
-    const settings = {
-      id,
-      name,
-      version,
-      properties,
-      allowlist: {},
-    };
-
-    return settings;
-  }
-
   static async generateWorldZip(id) {
-    if (Bedrock.verifyInstanceInProgess(id)) throw new InvalidRequestError('You cannot download a world while the instance is in progress!');
     const instance = await Bedrock.readOne(id);
 
     const worldPath = `${INSTANCES_PATH}/${id}/worlds`;
@@ -176,9 +94,7 @@ class Bedrock {
     return zipFile;
   }
 
-  // Revisar Upload, Upload está sendo feito mesmo com a instancia rodando
   static async uploadWorld(id, uploadPath) {
-    if (Bedrock.verifyInstanceInProgess(id)) throw new InvalidRequestError('You cannot download a world while the instance is in progress!');
     const instance = await Bedrock.readOne(id);
 
     const uploadFile = `${uploadPath}/upload.mcworld`;
