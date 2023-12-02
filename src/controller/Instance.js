@@ -1,14 +1,10 @@
 import InstanceService from '../services/Instance.js';
-import Bedrock from '../services/Bedrock.js';
-import validate from '../validator/Bedrock.js';
 
 class Instance {
   static async create(req, res, next) {
     try {
-      // eslint-disable-next-line prefer-destructuring
-      const body = req.body;
-      validate(body);
-      const instance = await Bedrock.create(body);
+      const { body } = req;
+      const instance = await InstanceService.create(body);
 
       return res.status(201).json({ success: true, created: true, instance });
     } catch (err) {
@@ -41,8 +37,7 @@ class Instance {
     try {
       const { id } = req.params;
       const { body } = req;
-      validate(body);
-      const instance = await Bedrock.update(id, body);
+      const instance = await InstanceService.update(id, body);
 
       return res.status(200).json({ success: true, updated: true, instance });
     } catch (err) {
@@ -83,10 +78,10 @@ class Instance {
     }
   }
 
-  static async getWorld(req, res, next) {
+  static async downloadWorld(req, res, next) {
     try {
       const { id } = req.params;
-      const path = await Bedrock.generateWorldZip(id);
+      const path = await InstanceService.downloadWorld(id);
 
       return res.download(path);
     } catch (err) {
@@ -98,7 +93,7 @@ class Instance {
     try {
       const { id } = req.params;
       const { upload } = req;
-      const instance = await Bedrock.uploadWorld(id, upload);
+      const instance = await InstanceService.uploadWorld(id, upload);
 
       return res.status(200).json({ success: true, uploaded: true, instance });
     } catch (err) {

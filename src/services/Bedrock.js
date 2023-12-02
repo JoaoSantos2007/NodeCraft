@@ -4,7 +4,6 @@ import fs from 'fs';
 import BadRequestError from '../errors/BadRequest.js';
 import curl from '../utils/curl.js';
 import { INSTANCES_PATH, TEMPORARY_PATH } from '../utils/env.js';
-import Instance from './Instance.js';
 import getNodeCraftObj from '../utils/getNodeCraftObj.js';
 
 class Bedrock {
@@ -55,12 +54,11 @@ class Bedrock {
   }
 
   // Revisar
-  static async update(id, data) {
-    const instance = await Instance.readOne(id);
+  static async update(instance, data) {
     const settings = Bedrock.updateObject(instance, data);
 
     const json = JSON.stringify(settings);
-    fs.writeFileSync(`${INSTANCES_PATH}/${id}/nodecraft.json`, json, 'utf-8');
+    fs.writeFileSync(`${INSTANCES_PATH}/${instance.id}/nodecraft.json`, json, 'utf-8');
 
     return settings;
   }
@@ -80,25 +78,21 @@ class Bedrock {
     return version;
   }
 
-  static async generateWorldZip(id) {
-    const instance = await Bedrock.readOne(id);
-
-    const worldPath = `${INSTANCES_PATH}/${id}/worlds`;
+  static async downloadWorld(instance) {
+    const worldPath = `${INSTANCES_PATH}/${instance.id}/worlds`;
     const worldName = instance.properties['level-name'];
     if (!fs.existsSync(worldPath)) throw new BadRequestError('World path not found!');
     if (!fs.existsSync(`${worldPath}/${worldName}`)) throw new BadRequestError('World not found!');
 
-    shell.exec(`cd ${worldPath} && zip -r world.mcworld ${worldName}`, { silent: true });
+    shell.exec(`cd ${worldPath} && zip -j world.mcworld ${worldPath}/${worldName}/*`, { silent: true });
     const zipFile = `${worldPath}/world.mcworld`;
 
     return zipFile;
   }
 
-  static async uploadWorld(id, uploadPath) {
-    const instance = await Bedrock.readOne(id);
-
+  static async uploadWorld(instance, uploadPath) {
     const uploadFile = `${uploadPath}/upload.mcworld`;
-    const worldPath = `${INSTANCES_PATH}/${id}/worlds`;
+    const worldPath = `${INSTANCES_PATH}/${instance.id}/worlds`;
     const worldName = instance.properties['level-name'];
     if (!fs.existsSync(worldPath)) throw new BadRequestError('World path not found!');
 
