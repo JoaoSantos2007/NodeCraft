@@ -1,15 +1,16 @@
 import shell from 'shelljs';
-import crypto from 'crypto';
-import fs from 'fs';
-import curl from '../utils/curl.js';
+import { randomUUID } from 'crypto';
+import { writeFileSync, existsSync } from 'fs';
 import { INSTANCES_PATH, TEMPORARY_PATH } from '../utils/env.js';
+import { BadRequest } from '../errors/index.js';
+import curl from '../utils/curl.js';
 import getNodeCraftObj from '../utils/getNodeCraftObj.js';
+import getLatestMinecraftVersion from '../utils/getLatestMinecraftVersion.js';
 
 class Java {
   static async create(data) {
     // Create Temp path
-    const randomUUID = crypto.randomUUID();
-    const tempPath = `${TEMPORARY_PATH}/${randomUUID}`;
+    const tempPath = `${TEMPORARY_PATH}/${randomUUID()}`;
     shell.mkdir(tempPath);
 
     // Get Minecraft Java Download Url
@@ -18,7 +19,7 @@ class Java {
     const DownloadURL = shell.exec(`grep -o 'https://piston-data.mojang.com/v1/objects/[^"]*' ${tempPath}/version.html`, { silent: true }).stdout;
 
     // Create New Instance Path
-    const id = crypto.randomUUID();
+    const id = randomUUID();
     const newInstancePath = `${INSTANCES_PATH}/${id}`;
     shell.mkdir(newInstancePath);
 
@@ -29,17 +30,40 @@ class Java {
     // Delete temp path
     shell.rm('-r', tempPath);
 
-    // Create NodeCraft settings json
-    const version = this.extractVersionFromUrl(DownloadURL);
-    const settings = getNodeCraftObj(newInstancePath, id, version, data);
-    const json = JSON.stringify(settings);
-    fs.writeFileSync(`${newInstancePath}/nodecraft.json`, json, 'utf-8');
-
     // First Run
-    shell.exec(`cd ${newInstancePath} && java -Xmx1024M -Xms1024M -jar server.jar nogui`, { silent: true });
+    shell.exec(`cd ${newInstancePath} && java -jar server.jar nogui`, { silent: true });
 
     // Enable eula.txt
-    fs.writeFileSync(`${newInstancePath}/eula.txt`, 'eula=true');
+    writeFileSync(`${newInstancePath}/eula.txt`, 'eula=true');
+
+    // Create NodeCraft settings json
+    const version = await getLatestMinecraftVersion('java');
+    const settings = getNodeCraftObj(newInstancePath, id, version, data);
+    const json = JSON.stringify(settings);
+    writeFileSync(`${newInstancePath}/nodecraft.json`, json, 'utf-8');
+
+    return settings;
+  }
+
+  static async downloadWorld(instance) {
+    const worldPath = `${INSTANCES_PATH}/${instance.id}/world`;
+    if (!existsSync(worldPath)) throw new BadRequest('World path not found!');
+
+    const zipFile = `${worldPath}/world.zip`;
+    shell.exec(`cd ${worldPath} && zip -rFS ${zipFile} .`, { silent: true });
+
+    return zipFile;
+  }
+
+  static async uploadWorld(instance, uploadPath) {
+    const uploadFile = `${uploadPath}/upload.mcworld`;
+    const worldPath = `${INSTANCES_PATH}/${instance.id}/world`;
+    if (!existsSync(worldPath)) throw new BadRequest('World path not found!');
+
+    shell.exec(`unzip -o ${uploadFile} -d ${worldPath}`, { silent: true });
+    shell.rm('-r', uploadPath);
+
+    return instance;
   }
 }
 

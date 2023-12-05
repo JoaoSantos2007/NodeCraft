@@ -1,6 +1,6 @@
 node_modules
 .env
-instances
+instances/*
 *.sqlite
-temp
+temp/*
 test

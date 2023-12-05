@@ -1,15 +1,16 @@
 import shell from 'shelljs';
-import crypto from 'crypto';
-import fs from 'fs';
-import BadRequestError from '../errors/BadRequest.js';
-import curl from '../utils/curl.js';
+import { randomUUID } from 'crypto';
+import { writeFileSync, existsSync } from 'fs';
+import { BadRequest } from '../errors/index.js';
 import { INSTANCES_PATH, TEMPORARY_PATH } from '../utils/env.js';
+import curl from '../utils/curl.js';
 import getNodeCraftObj from '../utils/getNodeCraftObj.js';
+import getLatestMinecraftVersion from '../utils/getLatestMinecraftVersion.js';
 
 class Bedrock {
   static async create(data) {
     // Create Temp path
-    const tempPath = `${TEMPORARY_PATH}/${crypto.randomUUID()}`;
+    const tempPath = `${TEMPORARY_PATH}/${randomUUID()}`;
     shell.mkdir(tempPath);
 
     // Get Minecraft Bedrock Download Url
@@ -21,7 +22,7 @@ class Bedrock {
     shell.exec(`${curl()} -o ${tempPath}/${DownloadFile} ${DownloadURL}`, { silent: true });
 
     // Create New Instance Path
-    const id = crypto.randomUUID();
+    const id = randomUUID();
     const newInstancePath = `${INSTANCES_PATH}/${id}`;
     shell.mkdir(newInstancePath);
 
@@ -32,60 +33,22 @@ class Bedrock {
     shell.rm('-r', tempPath);
 
     // Create NodeCraft settings json
-    const version = this.extractVersionFromUrl(DownloadURL);
+    const version = await getLatestMinecraftVersion('bedrock', DownloadURL);
     const settings = getNodeCraftObj(newInstancePath, id, version, data);
     const json = JSON.stringify(settings);
-    fs.writeFileSync(`${newInstancePath}/nodecraft.json`, json, 'utf-8');
+    writeFileSync(`${newInstancePath}/nodecraft.json`, json, 'utf-8');
 
     return settings;
-  }
-
-  static updateObject(instance, obj) {
-    // eslint-disable-next-line no-restricted-syntax
-    for (const [key, value] of Object.entries(obj)) {
-      if (typeof value === 'object') {
-        Bedrock.updateObject(instance[key], value);
-      } else {
-        instance[key] = value;
-      }
-    }
-
-    return instance;
-  }
-
-  // Revisar
-  static async update(instance, data) {
-    const settings = Bedrock.updateObject(instance, data);
-
-    const json = JSON.stringify(settings);
-    fs.writeFileSync(`${INSTANCES_PATH}/${instance.id}/nodecraft.json`, json, 'utf-8');
-
-    return settings;
-  }
-
-  static extractVersionFromUrl(url) {
-    // Encontra a parte da URL que contém a versão
-    const partsOfUrl = url.split('/');
-    const lastPart = partsOfUrl[partsOfUrl.length - 1];
-
-    // Remove a extensão .zip
-    const archiveName = lastPart.split('.zip')[0];
-
-    // Separa a versão do restante do nome do arquivo
-    const partsOfName = archiveName.split('-');
-    const version = partsOfName[partsOfName.length - 1];
-
-    return version;
   }
 
   static async downloadWorld(instance) {
     const worldPath = `${INSTANCES_PATH}/${instance.id}/worlds`;
     const worldName = instance.properties['level-name'];
-    if (!fs.existsSync(worldPath)) throw new BadRequestError('World path not found!');
-    if (!fs.existsSync(`${worldPath}/${worldName}`)) throw new BadRequestError('World not found!');
+    if (!existsSync(worldPath)) throw new BadRequest('World path not found!');
+    if (!existsSync(`${worldPath}/${worldName}`)) throw new BadRequest('World not found!');
 
-    shell.exec(`cd ${worldPath} && zip -j world.mcworld ${worldPath}/${worldName}/*`, { silent: true });
     const zipFile = `${worldPath}/world.mcworld`;
+    shell.exec(`cd ${worldPath}/${worldName} && zip -rFS ${zipFile} .`, { silent: true });
 
     return zipFile;
   }
@@ -94,7 +57,7 @@ class Bedrock {
     const uploadFile = `${uploadPath}/upload.mcworld`;
     const worldPath = `${INSTANCES_PATH}/${instance.id}/worlds`;
     const worldName = instance.properties['level-name'];
-    if (!fs.existsSync(worldPath)) throw new BadRequestError('World path not found!');
+    if (!existsSync(worldPath)) throw new BadRequest('World path not found!');
 
     shell.exec(`unzip -o ${uploadFile} -d ${worldPath}/${worldName}`, { silent: true });
     shell.rm('-r', uploadPath);

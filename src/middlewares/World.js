@@ -13,23 +13,23 @@ const storage = multer.diskStorage({
     cb(null, `${tempPath}`);
   },
   filename(req, file, cb) {
-    if (file.originalname.endsWith('.mcworld')) {
-      cb(null, 'upload.mcworld');
+    if (file.originalname.endsWith('.mcworld') || file.originalname.endsWith('.zip')) {
+      cb(null, 'upload.zip');
     } else {
-      cb(new Error('The file uploaded must be .mcworld'));
+      cb(new Error('The file uploaded must be .mcworld or .zip!'));
     }
   },
 });
 
-const bedrockUpload = multer({
+const worldUploader = multer({
   storage,
   fileFilter: (req, file, cb) => {
-    if (!file.originalname.endsWith('.mcworld')) {
-      cb(new Error('The file uploaded must be .mcworld!'));
+    if (!file.originalname.endsWith('.mcworld') && !file.originalname.endsWith('.zip')) {
+      cb(new Error('The file uploaded must be .mcworld or .zip!'));
     } else {
       cb(null, true);
     }
   },
 });
 
-export { bedrockUpload };
+export default worldUploader;

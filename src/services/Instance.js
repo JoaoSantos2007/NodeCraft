@@ -3,7 +3,7 @@ import instancesList from '../utils/instances.js';
 import BedrockScript from '../scripts/Bedrock.js';
 import JavaScript from '../scripts/Java.js';
 import { INSTANCES_PATH } from '../utils/env.js';
-import BadRequestError from '../errors/BadRequest.js';
+import { BadRequest } from '../errors/index.js';
 import validate from '../validator/Instance.js';
 import BedrockService from './Bedrock.js';
 import JavaService from './Java.js';
@@ -35,7 +35,7 @@ class Instance {
 
   static async readOne(id) {
     const filePath = `${INSTANCES_PATH}/${id}/nodecraft.json`;
-    if (!fs.existsSync(filePath)) throw new BadRequestError('Instance not found!');
+    if (!fs.existsSync(filePath)) throw new BadRequest('Instance not found!');
 
     const rawData = fs.readFileSync(filePath, 'utf-8');
     const instance = JSON.parse(rawData);
@@ -44,12 +44,26 @@ class Instance {
   }
 
   static async update(id, data) {
-    let instance = await Instance.readOne(id);
+    const instance = await Instance.readOne(id);
     validate(data, instance);
 
-    const { type } = instance;
-    if (type === 'bedrock') instance = await BedrockService.update(instance, data);
-    else if (type === 'java') instance = await JavaService.update(instance, data);
+    // eslint-disable-next-line no-restricted-syntax
+    for (const [key, value] of Object.entries(data)) {
+      if (typeof value === 'object' && key === 'properties') {
+        const { properties } = data;
+
+        // eslint-disable-next-line no-restricted-syntax
+        for (const [propertieKey, propertieValue] of Object.entries(properties)) {
+          instance[key][propertieKey] = propertieValue;
+        }
+      } else {
+        instance[key] = value;
+      }
+    }
+
+    // Save Update
+    const json = JSON.stringify(instance);
+    fs.writeFileSync(`${INSTANCES_PATH}/${instance.id}/nodecraft.json`, json, 'utf-8');
 
     return instance;
   }
@@ -81,7 +95,7 @@ class Instance {
 
   static async stop(id) {
     const instance = await Instance.readOne(id);
-    if (!Instance.verifyInstanceInProgess(id)) throw new BadRequestError('Instance is not in progress');
+    if (!Instance.verifyInstanceInProgess(id)) throw new BadRequest('Instance is not in progress');
 
     // Stop Instance
     instancesList[id].stop();

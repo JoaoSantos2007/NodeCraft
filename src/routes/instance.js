@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import InstanceController from '../controller/Instance.js';
 import InstanceMiddleware from '../middlewares/Instance.js';
-import { bedrockUpload } from '../middlewares/World.js';
+import worldUploader from '../middlewares/World.js';
 
 const router = Router();
 
@@ -14,6 +14,6 @@ router
   .post('/instance/run/:id', InstanceMiddleware.verifyInProgress, InstanceController.run)
   .post('/instance/stop/:id', InstanceController.stop)
   .get('/instance/world/:id', InstanceMiddleware.verifyInProgress, InstanceController.downloadWorld)
-  .post('/instance/world/:id', InstanceMiddleware.verifyInProgress, bedrockUpload.single('world'), InstanceController.uploadWorld);
+  .post('/instance/world/:id', InstanceMiddleware.verifyInProgress, worldUploader.single('world'), InstanceController.uploadWorld);
 
 export default router;
