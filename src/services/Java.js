@@ -87,9 +87,8 @@ class Java {
   static async uploadWorld(instance, uploadPath) {
     const uploadFile = `${uploadPath}/upload.zip`;
     const world = `${INSTANCES_PATH}/${instance.id}/world`;
-    if (!existsSync(world)) throw new BadRequest('World path not found!');
+    if (existsSync(world)) shell.rm('-r', world);
 
-    shell.rm('-r', world);
     shell.exec(`unzip -o ${uploadFile} -d ${world}`, { silent: true });
     shell.rm('-r', uploadPath);
 
