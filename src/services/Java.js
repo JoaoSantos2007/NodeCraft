@@ -56,11 +56,12 @@ class Java {
   }
 
   static async uploadWorld(instance, uploadPath) {
-    const uploadFile = `${uploadPath}/upload.mcworld`;
-    const worldPath = `${INSTANCES_PATH}/${instance.id}/world`;
-    if (!existsSync(worldPath)) throw new BadRequest('World path not found!');
+    const uploadFile = `${uploadPath}/upload.zip`;
+    const world = `${INSTANCES_PATH}/${instance.id}/world`;
+    if (!existsSync(world)) throw new BadRequest('World path not found!');
 
-    shell.exec(`unzip -o ${uploadFile} -d ${worldPath}`, { silent: true });
+    shell.rm('-r', world);
+    shell.exec(`unzip -o ${uploadFile} -d ${world}`, { silent: true });
     shell.rm('-r', uploadPath);
 
     return instance;

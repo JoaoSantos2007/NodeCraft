@@ -54,12 +54,16 @@ class Bedrock {
   }
 
   static async uploadWorld(instance, uploadPath) {
-    const uploadFile = `${uploadPath}/upload.mcworld`;
-    const worldPath = `${INSTANCES_PATH}/${instance.id}/worlds`;
-    const worldName = instance.properties['level-name'];
-    if (!existsSync(worldPath)) throw new BadRequest('World path not found!');
+    const uploadFile = `${uploadPath}/upload.zip`;
 
-    shell.exec(`unzip -o ${uploadFile} -d ${worldPath}/${worldName}`, { silent: true });
+    const worldsPath = `${INSTANCES_PATH}/${instance.id}/worlds`;
+    if (!existsSync(worldsPath)) throw new BadRequest('Worlds path not found!');
+
+    const worldName = instance.properties['level-name'];
+    const world = `${worldsPath}/${worldName}`;
+
+    shell.rm('-r', world);
+    shell.exec(`unzip ${uploadFile} -d ${world}`, { silent: true });
     shell.rm('-r', uploadPath);
 
     return instance;
