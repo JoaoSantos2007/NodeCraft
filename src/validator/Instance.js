@@ -12,6 +12,9 @@ const nodecraftModel = {
     required: true,
     values: ['bedrock', 'java'],
   },
+  disableUpdate: {
+    type: 'boolean',
+  },
   properties: {
     type: 'object',
   },

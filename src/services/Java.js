@@ -45,6 +45,35 @@ class Java {
     return settings;
   }
 
+  static async updateVersion(instance) {
+    const instancePath = `${INSTANCES_PATH}/${instance.id}`;
+
+    // Compare Instance Version with Latest Version
+    const latestVersion = await getLatestMinecraftVersion('java');
+    if (latestVersion === instance.version) return false;
+
+    // Create Temp path
+    const tempPath = `${TEMPORARY_PATH}/${randomUUID()}`;
+    shell.mkdir(tempPath);
+
+    // Get Minecraft Java Download Url
+    shell.touch(`${tempPath}/version.html`);
+    shell.exec(`${curl()} -o ${tempPath}/version.html https://www.minecraft.net/en-us/download/server`, { silent: true });
+    const DownloadURL = shell.exec(`grep -o 'https://piston-data.mojang.com/v1/objects/[^"]*' ${tempPath}/version.html`, { silent: true }).stdout;
+
+    // Download Minecraft server.jar
+    const DownloadFile = 'server.jar';
+    shell.exec(`${curl()} -o ${instancePath}/${DownloadFile} ${DownloadURL}`, { silent: true });
+
+    // eslint-disable-next-line no-param-reassign
+    instance.version = latestVersion;
+    const json = JSON.stringify(instance);
+    writeFileSync(`${instancePath}/nodecraft.json`, json, 'utf-8');
+
+    shell.rm('-r', tempPath);
+    return true;
+  }
+
   static async downloadWorld(instance) {
     const worldPath = `${INSTANCES_PATH}/${instance.id}/world`;
     if (!existsSync(worldPath)) throw new BadRequest('World path not found!');

@@ -41,6 +41,42 @@ class Bedrock {
     return settings;
   }
 
+  static async updateVersion(instance) {
+    const instanceVersion = instance.version;
+    const instancePath = `${INSTANCES_PATH}/${instance.id}`;
+
+    // Create Temp path
+    const tempPath = `${TEMPORARY_PATH}/${randomUUID()}`;
+    shell.mkdir(tempPath);
+
+    // Get Minecraft Bedrock Download Url
+    shell.touch(`${tempPath}/version.html`);
+    shell.exec(`${curl()} -o ${tempPath}/version.html https://minecraft.net/en-us/download/server/bedrock/`, { silent: true });
+    const DownloadURL = shell.exec(`grep -o 'https://minecraft.azureedge.net/bin-linux/[^"]*' ${tempPath}/version.html`, { silent: true }).stdout;
+
+    // Compare Instance Version with Latest Version
+    const latestVersion = await getLatestMinecraftVersion('bedrock', DownloadURL);
+    if (latestVersion === instanceVersion) {
+      shell.rm('-r', tempPath);
+      return false;
+    }
+
+    // Download Minecraft Bedrock .zip
+    const DownloadFile = 'bedrock-server-latest.zip';
+    shell.exec(`${curl()} -o ${tempPath}/${DownloadFile} ${DownloadURL}`, { silent: true });
+
+    // Install Update
+    shell.exec(`unzip -o ${tempPath}/${DownloadFile} -d ${instancePath}`, { silent: true });
+
+    // eslint-disable-next-line no-param-reassign
+    instance.version = latestVersion;
+    const json = JSON.stringify(instance);
+    writeFileSync(`${instancePath}/nodecraft.json`, json, 'utf-8');
+
+    shell.rm('-r', tempPath);
+    return true;
+  }
+
   static async downloadWorld(instance) {
     const worldPath = `${INSTANCES_PATH}/${instance.id}/worlds`;
     const worldName = instance.properties['level-name'];

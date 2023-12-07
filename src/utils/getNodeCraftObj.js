@@ -9,6 +9,7 @@ const getNodeCraftObj = (path, id, version, { name, type }) => {
     name,
     type,
     version,
+    disableUpdate: false,
     properties,
   };
 

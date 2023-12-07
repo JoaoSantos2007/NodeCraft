@@ -3,7 +3,7 @@ import instancesList from '../utils/instances.js';
 import BedrockScript from '../scripts/Bedrock.js';
 import JavaScript from '../scripts/Java.js';
 import { INSTANCES_PATH } from '../utils/env.js';
-import { BadRequest } from '../errors/index.js';
+import { BadRequest, InvalidRequest } from '../errors/index.js';
 import validate from '../validator/Instance.js';
 import BedrockService from './Bedrock.js';
 import JavaService from './Java.js';
@@ -95,13 +95,26 @@ class Instance {
 
   static async stop(id) {
     const instance = await Instance.readOne(id);
-    if (!Instance.verifyInstanceInProgess(id)) throw new BadRequest('Instance is not in progress');
+    if (!Instance.verifyInstanceInProgess(id)) throw new BadRequest('Instance is not in progress!');
 
     // Stop Instance
     instancesList[id].stop();
     instancesList[id] = null;
 
     return instance;
+  }
+
+  static async updateVersion(id) {
+    const instance = await Instance.readOne(id);
+
+    if (instance.disableUpdate) throw new InvalidRequest('Updates are disabled for this instance!');
+
+    const { type } = instance;
+    let updated = false;
+    if (type === 'bedrock') updated = await BedrockService.updateVersion(instance);
+    else if (type === 'java') updated = await JavaService.updateVersion(instance);
+
+    return updated;
   }
 
   static async downloadWorld(id) {
