@@ -1,4 +1,4 @@
-import { exec, touch } from 'shelljs';
+import shell from 'shelljs';
 import { existsSync, mkdirSync, rmSync } from 'fs';
 import { BadRequest } from '../errors/index.js';
 import { INSTANCES_PATH } from '../utils/env.js';
@@ -43,8 +43,8 @@ class Bedrock {
 
     if (!existsSync(world)) throw new BadRequest('World not found!');
     const file = `${worldPath}/world.mcworld`;
-    // Zip world
-    exec(`cd ${world} && zip -rFS ${file} .`, { silent: true });
+    // Zip world path
+    shell.exec(`cd ${world} && zip -rFS ${file} .`, { silent: true });
 
     return file;
   }
@@ -58,7 +58,8 @@ class Bedrock {
     const world = `${worldsPath}/${worldName}`;
     if (existsSync(world)) rmSync(world, { recursive: true });
 
-    exec(`unzip ${uploadFile} -d ${world}`, { silent: true });
+    // Unzip uploaded world
+    shell.exec(`unzip ${uploadFile} -d ${world}`, { silent: true });
     Temp.delete(uploadPath);
 
     return instance;
@@ -67,10 +68,10 @@ class Bedrock {
   static async getDownloadUrl() {
     const tempPath = Temp.create();
 
-    // Get Minecraft Bedrock Download Url
-    touch(`${tempPath}/version.html`);
-    exec(`${curl()} -o ${tempPath}/version.html https://minecraft.net/en-us/download/server/bedrock/`, { silent: true });
-    const downloadUrl = exec(`grep -o 'https://minecraft.azureedge.net/bin-linux/[^"]*' ${tempPath}/version.html`, { silent: true }).stdout;
+    // Get Minecraft Site Html
+    shell.exec(`${curl()} -o ${tempPath}/version.html https://minecraft.net/en-us/download/server/bedrock/`, { silent: true });
+    // Extract Version from Html
+    const downloadUrl = shell.exec(`grep -o 'https://minecraft.azureedge.net/bin-linux/[^"]*' ${tempPath}/version.html`, { silent: true }).stdout;
 
     Temp.delete(tempPath);
 
@@ -95,10 +96,9 @@ class Bedrock {
 
     const downloadFile = 'bedrock.zip';
     // Download file
-    exec(`${curl()} -o ${tempPath}/${downloadFile} ${latestUrl}`, { silent: true });
-
+    shell.exec(`${curl()} -o ${tempPath}/${downloadFile} ${latestUrl}`, { silent: true });
     // Install update
-    exec(`unzip -o ${tempPath}/${downloadFile} -d ${path}`, { silent: true });
+    shell.exec(`unzip -o ${tempPath}/${downloadFile} -d ${path}`, { silent: true });
 
     Temp.delete(tempPath);
   }

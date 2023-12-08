@@ -1,76 +1,41 @@
+import {
+  existsSync, mkdirSync, rmSync, writeFileSync,
+} from 'fs';
 import shell from 'shelljs';
-import { randomUUID } from 'crypto';
-import { writeFileSync, existsSync } from 'fs';
-import { INSTANCES_PATH, TEMPORARY_PATH } from '../utils/env.js';
+import { INSTANCES_PATH } from '../utils/env.js';
 import { BadRequest } from '../errors/index.js';
 import curl from '../utils/curl.js';
-import getNodeCraftObj from '../utils/getNodeCraftObj.js';
-import getLatestMinecraftVersion from '../utils/getLatestMinecraftVersion.js';
+import NodeCraft from './NodeCraft.js';
+import Temp from './Temp.js';
 
 class Java {
-  static async create(data) {
-    // Create Temp path
-    const tempPath = `${TEMPORARY_PATH}/${randomUUID()}`;
-    shell.mkdir(tempPath);
-
-    // Get Minecraft Java Download Url
-    shell.touch(`${tempPath}/version.html`);
-    shell.exec(`${curl()} -o ${tempPath}/version.html https://www.minecraft.net/en-us/download/server`, { silent: true });
-    const DownloadURL = shell.exec(`grep -o 'https://piston-data.mojang.com/v1/objects/[^"]*' ${tempPath}/version.html`, { silent: true }).stdout;
-
-    // Create New Instance Path
-    const id = randomUUID();
+  static async create(id) {
     const newInstancePath = `${INSTANCES_PATH}/${id}`;
-    shell.mkdir(newInstancePath);
+    mkdirSync(newInstancePath);
 
-    // Download Minecraft server.jar
-    const DownloadFile = 'server.jar';
-    shell.exec(`${curl()} -o ${newInstancePath}/${DownloadFile} ${DownloadURL}`, { silent: true });
-
-    // Delete temp path
-    shell.rm('-r', tempPath);
-
+    await Java.install(newInstancePath);
     // First Run
     shell.exec(`cd ${newInstancePath} && java -jar server.jar nogui`, { silent: true });
-
-    // Enable eula.txt
+    // Agree with eula.txt
     writeFileSync(`${newInstancePath}/eula.txt`, 'eula=true');
 
-    // Create NodeCraft settings json
-    const version = await getLatestMinecraftVersion('java');
-    const settings = getNodeCraftObj(newInstancePath, id, version, data);
-    const json = JSON.stringify(settings);
-    writeFileSync(`${newInstancePath}/nodecraft.json`, json, 'utf-8');
+    const version = await Java.getLatestVersion();
+    const settings = NodeCraft.create(id, version, 'java');
 
     return settings;
   }
 
   static async updateVersion(instance) {
     const instancePath = `${INSTANCES_PATH}/${instance.id}`;
-
-    // Compare Instance Version with Latest Version
-    const latestVersion = await getLatestMinecraftVersion('java');
+    const latestVersion = await Java.getLatestVersion();
     if (latestVersion === instance.version) return false;
 
-    // Create Temp path
-    const tempPath = `${TEMPORARY_PATH}/${randomUUID()}`;
-    shell.mkdir(tempPath);
-
-    // Get Minecraft Java Download Url
-    shell.touch(`${tempPath}/version.html`);
-    shell.exec(`${curl()} -o ${tempPath}/version.html https://www.minecraft.net/en-us/download/server`, { silent: true });
-    const DownloadURL = shell.exec(`grep -o 'https://piston-data.mojang.com/v1/objects/[^"]*' ${tempPath}/version.html`, { silent: true }).stdout;
-
-    // Download Minecraft server.jar
-    const DownloadFile = 'server.jar';
-    shell.exec(`${curl()} -o ${instancePath}/${DownloadFile} ${DownloadURL}`, { silent: true });
+    await Java.install(instancePath);
 
     // eslint-disable-next-line no-param-reassign
     instance.version = latestVersion;
-    const json = JSON.stringify(instance);
-    writeFileSync(`${instancePath}/nodecraft.json`, json, 'utf-8');
+    NodeCraft.save(instance);
 
-    shell.rm('-r', tempPath);
     return true;
   }
 
@@ -79,6 +44,7 @@ class Java {
     if (!existsSync(worldPath)) throw new BadRequest('World path not found!');
 
     const zipFile = `${worldPath}/world.zip`;
+    // Zip world path
     shell.exec(`cd ${worldPath} && zip -rFS ${zipFile} .`, { silent: true });
 
     return zipFile;
@@ -87,12 +53,26 @@ class Java {
   static async uploadWorld(instance, uploadPath) {
     const uploadFile = `${uploadPath}/upload.zip`;
     const world = `${INSTANCES_PATH}/${instance.id}/world`;
-    if (existsSync(world)) shell.rm('-r', world);
+    if (existsSync(world)) rmSync(world, { recursive: true });
 
+    // Unzip uploaded world
     shell.exec(`unzip -o ${uploadFile} -d ${world}`, { silent: true });
-    shell.rm('-r', uploadPath);
+    Temp.delete(uploadPath);
 
     return instance;
+  }
+
+  static async getDownloadUrl() {
+    const tempPath = Temp.create();
+
+    // Get Minecraft Site Html
+    shell.exec(`${curl()} -o ${tempPath}/version.html https://www.minecraft.net/en-us/download/server`, { silent: true });
+    // Extract Version from Html
+    const downloadUrl = shell.exec(`grep -o 'https://piston-data.mojang.com/v1/objects/[^"]*' ${tempPath}/version.html`, { silent: true }).stdout;
+
+    Temp.delete(tempPath);
+
+    return downloadUrl;
   }
 
   static async getLatestVersion() {
@@ -111,6 +91,13 @@ class Java {
     }
 
     return 0;
+  }
+
+  static async install(path, url = null) {
+    const downloadUrl = url || await Java.getDownloadUrl();
+    const downloadFile = 'server.jar';
+    // Download server.jar
+    shell.exec(`${curl()} -o ${path}/${downloadFile} ${downloadUrl}`, { silent: true });
   }
 }
 

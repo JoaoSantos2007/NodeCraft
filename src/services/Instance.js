@@ -1,6 +1,8 @@
-import fs from 'fs';
+import {
+  existsSync, readdirSync, readFileSync, rmSync,
+} from 'fs';
 import { randomUUID } from 'crypto';
-import instancesList from '../utils/instances.js';
+import instancesList from '../utils/instancesList.js';
 import BedrockScript from '../scripts/Bedrock.js';
 import JavaScript from '../scripts/Java.js';
 import { INSTANCES_PATH } from '../utils/env.js';
@@ -8,6 +10,7 @@ import { BadRequest, InvalidRequest } from '../errors/index.js';
 import validate from '../validator/Instance.js';
 import BedrockService from './Bedrock.js';
 import JavaService from './Java.js';
+import NodeCraft from './NodeCraft.js';
 
 class Instance {
   static async create(data) {
@@ -25,11 +28,11 @@ class Instance {
   }
 
   static async readAll() {
-    const instanceList = fs.readdirSync(INSTANCES_PATH);
+    const instanceList = readdirSync(INSTANCES_PATH);
 
     const instances = [];
     instanceList.map((id) => {
-      const rawData = fs.readFileSync(`${INSTANCES_PATH}/${id}/nodecraft.json`, 'utf-8');
+      const rawData = readFileSync(`${INSTANCES_PATH}/${id}/nodecraft.json`, 'utf-8');
       const data = JSON.parse(rawData);
       return instances.push(data);
     });
@@ -39,9 +42,9 @@ class Instance {
 
   static async readOne(id) {
     const filePath = `${INSTANCES_PATH}/${id}/nodecraft.json`;
-    if (!fs.existsSync(filePath)) throw new BadRequest('Instance not found!');
+    if (!existsSync(filePath)) throw new BadRequest('Instance not found!');
 
-    const rawData = fs.readFileSync(filePath, 'utf-8');
+    const rawData = readFileSync(filePath, 'utf-8');
     const instance = JSON.parse(rawData);
 
     return instance;
@@ -65,16 +68,13 @@ class Instance {
       }
     }
 
-    // Save Update
-    const json = JSON.stringify(instance);
-    fs.writeFileSync(`${INSTANCES_PATH}/${instance.id}/nodecraft.json`, json, 'utf-8');
-
+    NodeCraft.save(instance);
     return instance;
   }
 
   static async delete(id) {
     const instance = await Instance.readOne(id);
-    fs.rmSync(`${INSTANCES_PATH}/${id}`, { recursive: true });
+    rmSync(`${INSTANCES_PATH}/${id}`, { recursive: true });
 
     return instance;
   }
@@ -93,7 +93,6 @@ class Instance {
     else throw new Error();
 
     instancesList[id] = newInstance;
-
     return instance;
   }
 
@@ -101,10 +100,8 @@ class Instance {
     const instance = await Instance.readOne(id);
     if (!Instance.verifyInstanceInProgess(id)) throw new BadRequest('Instance is not in progress!');
 
-    // Stop Instance
     instancesList[id].stop();
     instancesList[id] = null;
-
     return instance;
   }
 
@@ -115,12 +112,13 @@ class Instance {
 
     const { type } = instance;
     let updated = false;
-    if (type === 'bedrock') updated = await BedrockService.getLatestBedrockServerURL(instance);
+    if (type === 'bedrock') updated = await BedrockService.updateVersion(instance);
     else if (type === 'java') updated = await JavaService.updateVersion(instance);
 
     return updated;
   }
 
+  // Revisar
   static async updateVersionAll() {
     const instances = await Instance.readAll();
 

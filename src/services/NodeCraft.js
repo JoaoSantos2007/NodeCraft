@@ -21,15 +21,15 @@ class NodeCraft {
   }
 
   static create(id, version, type) {
-    const data = NodeCraft.get(id, version, type);
-    NodeCraft.save(id, data);
+    const settings = NodeCraft.get(id, version, type);
+    NodeCraft.save(settings);
 
-    return data;
+    return settings;
   }
 
-  static save(id, data) {
-    const json = JSON.stringify(data);
-    writeFileSync(`${INSTANCES_PATH}/${id}/nodecraft.json`, json, 'utf-8');
+  static save(settings) {
+    const json = JSON.stringify(settings);
+    writeFileSync(`${INSTANCES_PATH}/${settings.id}/nodecraft.json`, json, 'utf-8');
   }
 }
 
