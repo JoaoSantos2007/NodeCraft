@@ -1,6 +1,6 @@
 import shell from 'shelljs';
 import { INSTANCES_PATH } from '../utils/env.js';
-import Propreties from '../utils/Properties.js';
+import Propreties from '../services/Properties.js';
 
 class Java {
   constructor(settings) {

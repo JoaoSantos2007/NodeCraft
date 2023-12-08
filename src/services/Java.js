@@ -94,6 +94,24 @@ class Java {
 
     return instance;
   }
+
+  static async getLatestVersion() {
+    const response = await fetch('https://launchermeta.mojang.com/mc/game/version_manifest.json');
+    const data = await response.json();
+
+    if (data && data.latest && data.versions) {
+      const latestVersion = data.latest.release;
+
+      // eslint-disable-next-line no-restricted-syntax
+      for (const version of data.versions) {
+        if (version.id === latestVersion && version.type === 'release') {
+          return version.id;
+        }
+      }
+    }
+
+    return 0;
+  }
 }
 
 export default Java;

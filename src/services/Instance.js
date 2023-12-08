@@ -1,4 +1,5 @@
 import fs from 'fs';
+import { randomUUID } from 'crypto';
 import instancesList from '../utils/instances.js';
 import BedrockScript from '../scripts/Bedrock.js';
 import JavaScript from '../scripts/Java.js';
@@ -13,9 +14,12 @@ class Instance {
     validate(data);
 
     const { type } = data;
+    const id = randomUUID();
     let instance = null;
-    if (type === 'bedrock') instance = await BedrockService.create(data);
-    else if (type === 'java') instance = await JavaService.create(data);
+    if (type === 'bedrock') instance = await BedrockService.create(id);
+    else if (type === 'java') instance = await JavaService.create(id);
+
+    instance = await Instance.update(id, data);
 
     return instance;
   }
@@ -111,10 +115,22 @@ class Instance {
 
     const { type } = instance;
     let updated = false;
-    if (type === 'bedrock') updated = await BedrockService.updateVersion(instance);
+    if (type === 'bedrock') updated = await BedrockService.getLatestBedrockServerURL(instance);
     else if (type === 'java') updated = await JavaService.updateVersion(instance);
 
     return updated;
+  }
+
+  static async updateVersionAll() {
+    const instances = await Instance.readAll();
+
+    instances.forEach(async (instance) => {
+      if (!instance.disableUpdate) {
+        const { id } = instance;
+        if (Instance.verifyInstanceInProgess(id)) await Instance.stop(id);
+        await Instance.updateVersion(instance.id);
+      }
+    });
   }
 
   static async downloadWorld(id) {
