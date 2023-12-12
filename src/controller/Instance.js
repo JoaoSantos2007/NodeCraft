@@ -3,8 +3,10 @@ import InstanceService from '../services/Instance.js';
 class Instance {
   static async create(req, res, next) {
     try {
+      // eslint-disable-next-line prefer-destructuring
+      const version = req.params.version;
       const { body } = req;
-      const instance = await InstanceService.create(body);
+      const instance = await InstanceService.create(body, version);
 
       return res.status(201).json({ success: true, created: true, instance });
     } catch (err) {

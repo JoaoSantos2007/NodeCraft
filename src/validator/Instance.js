@@ -12,6 +12,10 @@ const nodecraftModel = {
     required: true,
     values: ['bedrock', 'java'],
   },
+  software: {
+    type: 'string',
+    values: ['vanilla', 'paper', 'spigot', 'purpur', 'fabric', 'forge'],
+  },
   disableUpdate: {
     type: 'boolean',
   },

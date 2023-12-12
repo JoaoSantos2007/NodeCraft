@@ -1,6 +1,7 @@
 node_modules
 .env
-instances/*
+instances
 *.sqlite
-temp/*
-test
+temp
+package-lock.json
+yarn.lock

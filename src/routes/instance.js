@@ -9,6 +9,7 @@ router
   .get('/instance', InstanceController.readAll)
   .get('/instance/:id', InstanceController.readOne)
   .post('/instance', InstanceController.create)
+  .post('/instance/:version', InstanceController.create)
   .put('/instance/:id', InstanceMiddleware.verifyInProgress, InstanceController.update)
   .delete('/instance/:id', InstanceMiddleware.verifyInProgress, InstanceController.delete)
   .post('/instance/run/:id', InstanceMiddleware.verifyInProgress, InstanceController.run)

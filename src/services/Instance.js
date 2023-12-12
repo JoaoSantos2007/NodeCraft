@@ -13,14 +13,17 @@ import JavaService from './Java.js';
 import NodeCraft from './NodeCraft.js';
 
 class Instance {
-  static async create(data) {
+  static async create(data, version) {
     validate(data);
 
     const { type } = data;
     const id = randomUUID();
     let instance = null;
+    const software = data.software || 'vanilla';
+
+    if (type === 'bedrock' && (software !== 'vanilla' || version)) throw new InvalidRequest("Bedrock doesn't support unnoficial softwares");
     if (type === 'bedrock') instance = await BedrockService.create(id);
-    else if (type === 'java') instance = await JavaService.create(id);
+    else if (type === 'java') instance = await JavaService.create(id, software, version);
 
     instance = await Instance.update(id, data);
 

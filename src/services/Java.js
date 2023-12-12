@@ -7,21 +7,31 @@ import { BadRequest } from '../errors/index.js';
 import curl from '../utils/curl.js';
 import NodeCraft from './NodeCraft.js';
 import Temp from './Temp.js';
+import Paper from './Paper.js';
 
 class Java {
-  static async create(id) {
+  static async create(id, software, version) {
     const newInstancePath = `${INSTANCES_PATH}/${id}`;
     mkdirSync(newInstancePath);
 
-    await Java.install(newInstancePath);
-    // First Run
+    switch (software) {
+      case 'paper':
+        await Paper.install(newInstancePath, version);
+        break;
+      case 'purpur':
+        await Paper.install(newInstancePath);
+        break;
+      default:
+        await Java.install(newInstancePath);
+        // eslint-disable-next-line no-param-reassign
+        version = await Java.getLatestVersion();
+    }
+
+    // First Run and Agree With eula.txt
     shell.exec(`cd ${newInstancePath} && java -jar server.jar nogui`, { silent: true });
-    // Agree with eula.txt
     writeFileSync(`${newInstancePath}/eula.txt`, 'eula=true');
 
-    const version = await Java.getLatestVersion();
     const settings = NodeCraft.create(id, version, 'java');
-
     return settings;
   }
 
