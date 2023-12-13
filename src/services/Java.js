@@ -8,6 +8,7 @@ import curl from '../utils/curl.js';
 import NodeCraft from './NodeCraft.js';
 import Temp from './Temp.js';
 import Paper from './Paper.js';
+import Purpur from './Purpur.js';
 
 class Java {
   static async create(id, software, version) {
@@ -19,7 +20,7 @@ class Java {
         await Paper.install(newInstancePath, version);
         break;
       case 'purpur':
-        await Paper.install(newInstancePath);
+        await Purpur.install(newInstancePath);
         break;
       default:
         await Java.install(newInstancePath);

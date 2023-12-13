@@ -13,6 +13,7 @@ class NodeCraft {
       name: 'A Minecraft Server',
       type,
       version,
+      software: 'vanilla',
       disableUpdate: false,
       properties,
     };

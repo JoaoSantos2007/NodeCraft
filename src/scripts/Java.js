@@ -24,6 +24,7 @@ class Java {
 
   stop() {
     this.emitEvent('/stop');
+    this.emitEvent('stop');
   }
 
   emitEvent(cmd) {
