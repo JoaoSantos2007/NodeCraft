@@ -20,7 +20,7 @@ class Java {
         await Paper.install(newInstancePath, version);
         break;
       case 'purpur':
-        await Purpur.install(newInstancePath);
+        await Purpur.install(newInstancePath, version);
         break;
       default:
         await Java.install(newInstancePath);
