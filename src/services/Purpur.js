@@ -1,86 +1,79 @@
-import shell from 'shelljs';
-import curl from '../utils/curl.js';
+import * as cheerio from 'cheerio';
+import fs from 'fs';
+import axios from 'axios';
 import { BadRequest } from '../errors/index.js';
+import Temp from './Temp.js';
+import download from '../utils/download.js';
 
 class Purpur {
   static async getVersions() {
-    const response = await fetch('https://api.purpurmc.org/v2/purpur/');
-    const data = await response.json();
+    const response = await axios.get('https://api.purpurmc.org/v2/purpur/');
 
-    return data.versions;
+    return response.data.versions;
   }
 
   static async getBuilds(version) {
-    const response = await fetch(`https://api.purpurmc.org/v2/purpur/${version}`);
-    const data = await response.json();
+    const response = await axios.get(`https://api.purpurmc.org/v2/purpur/${version}`);
 
-    return data.builds;
+    return response.data.builds.all;
   }
 
   static async analizeBuild(version, build) {
-    const response = await fetch(`https://papermc.io/api/v2/projects/paper/versions/${version}/builds/${build}`);
-    const data = await response.json();
+    const response = await axios.get(`https://api.purpurmc.org/v2/purpur/${version}/${build}`);
 
-    return data;
+    return response.data;
+  }
+
+  static async getStableVersion() {
+    const tempPath = Temp.create();
+
+    await download(`${tempPath}/index.html`, 'https://purpurmc.org/downloads');
+    const html = fs.readFileSync(`${tempPath}/index.html`, 'utf8');
+    const $ = cheerio.load(html);
+
+    const dropdown = $('#dropdown');
+    const selectedVersion = dropdown.find('option[selected]');
+    const version = selectedVersion.attr('value');
+
+    Temp.delete(tempPath);
+    return version;
   }
 
   static async getLatestBuild(version) {
-    const builds = await Purpur.getBuilds(version);
-    const latestBuild = builds[builds.length - 1];
+    const response = await axios.get(`https://api.purpurmc.org/v2/purpur/${version}`);
 
-    return latestBuild;
+    return response.data.builds.latest;
   }
 
-  static async getLatestStableBuild(version) {
-    const builds = await Purpur.getBuilds(version);
+  static async getStable() {
+    const version = await Purpur.getStableVersion();
+    const build = await Purpur.getLatestBuild(version);
 
-    let index = builds.length - 1;
-    while (index >= 0) {
-      const buildIndex = builds[index];
-      // eslint-disable-next-line no-await-in-loop
-      const buildData = await Purpur.analizeBuild(version, buildIndex);
-      if (buildData.channel === 'default') return buildIndex;
-      index -= 1;
-    }
-
-    return false;
+    return { version, build };
   }
 
-  static async getLatestStableVersionAndBuild() {
+  static async getSpecifDownloadUrl(version = null) {
     const versions = await Purpur.getVersions();
-    const latestVersion = versions[versions.length - 1];
-    const latestBuild = await Purpur.getLatestBuild(latestVersion);
+    if (!versions.includes(version)) throw new BadRequest(`version ${version} not found!`);
+    const build = await Purpur.getLatestBuild(version);
 
-    let index = versions.length - 1;
-    while (index >= 0) {
-      const versionIndex = versions[index];
-      // eslint-disable-next-line no-await-in-loop
-      const latestStableBuild = await Purpur.getLatestStableBuild(versionIndex);
-      if (latestStableBuild) return { version: versionIndex, build: latestStableBuild };
-
-      index -= 1;
-    }
-
-    return { version: latestVersion, build: latestBuild };
+    return `https://api.purpurmc.org/v2/purpur/${version}/${build}/download`;
   }
 
-  static async getDownloadUrl(version = null) {
-    if (version) {
-      const versions = await Purpur.getVersions();
-      if (!versions.includes(version)) throw new BadRequest(`version ${version} not found!`);
-      const build = await Purpur.getLatestBuild();
+  static async getLatestDownloadUrl() {
+    const { version, build } = await Purpur.getStable();
 
-      return `https://api.papermc.io/v2/projects/paper/versions/${version}/builds/${build}/downloads/paper-${version}-${build}.jar`;
-    }
-    const latest = await Purpur.getLatestStableVersionAndBuild();
-    return `https://api.papermc.io/v2/projects/paper/versions/${latest.version}/builds/${latest.build}/downloads/paper-${latest.version}-${latest.build}.jar`;
+    return `https://api.purpurmc.org/v2/purpur/${version}/${build}/download`;
+  }
+
+  static async getDownloadUrl(version) {
+    if (version) return Purpur.getSpecifDownloadUrl(version);
+    return Purpur.getLatestDownloadUrl();
   }
 
   static async install(path, version) {
     const downloadUrl = await Purpur.getDownloadUrl(version);
-    const downloadFile = 'server.jar';
-    // Download server.jar
-    shell.exec(`${curl()} -o ${path}/${downloadFile} ${downloadUrl}`, { silent: true });
+    await download(`${path}/server.jar`, downloadUrl);
   }
 }
 
