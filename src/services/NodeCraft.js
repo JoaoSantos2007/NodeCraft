@@ -1,6 +1,7 @@
-import { writeFileSync } from 'fs';
+import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { INSTANCES_PATH } from '../utils/env.js';
 import Propreties from './Properties.js';
+import { BadRequest } from '../errors/index.js';
 
 class NodeCraft {
   static get(id, version, type) {
@@ -15,10 +16,21 @@ class NodeCraft {
       version,
       software: 'vanilla',
       disableUpdate: false,
+      friendZone: {},
       properties,
     };
 
     return settings;
+  }
+
+  static read(id) {
+    const filePath = `${INSTANCES_PATH}/${id}/nodecraft.json`;
+    if (!existsSync(filePath)) throw new BadRequest('Instance not found!');
+
+    const rawData = readFileSync(filePath, 'utf-8');
+    const instance = JSON.parse(rawData);
+
+    return instance;
   }
 
   static create(id, version, type) {

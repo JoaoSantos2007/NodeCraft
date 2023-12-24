@@ -1,6 +1,4 @@
-import {
-  existsSync, readdirSync, readFileSync, rmSync,
-} from 'fs';
+import { readdirSync, rmSync } from 'fs';
 import { randomUUID } from 'crypto';
 import instancesList from '../utils/instancesList.js';
 import BedrockScript from '../scripts/Bedrock.js';
@@ -34,23 +32,13 @@ class Instance {
     const instanceList = readdirSync(INSTANCES_PATH);
 
     const instances = [];
-    instanceList.map((id) => {
-      const rawData = readFileSync(`${INSTANCES_PATH}/${id}/nodecraft.json`, 'utf-8');
-      const data = JSON.parse(rawData);
-      return instances.push(data);
-    });
+    instanceList.map((id) => instances.push(NodeCraft.read(id)));
 
     return instances;
   }
 
-  static async readOne(id) {
-    const filePath = `${INSTANCES_PATH}/${id}/nodecraft.json`;
-    if (!existsSync(filePath)) throw new BadRequest('Instance not found!');
-
-    const rawData = readFileSync(filePath, 'utf-8');
-    const instance = JSON.parse(rawData);
-
-    return instance;
+  static readOne(id) {
+    return NodeCraft.read(id);
   }
 
   static async update(id, data) {

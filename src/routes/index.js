@@ -3,6 +3,7 @@ import cookieParser from 'cookie-parser';
 import user from './user.js';
 import auth from './auth.js';
 import instance from './instance.js';
+import friendZone from './friendZone.js';
 
 const routes = (app) => {
   app.get('/', (req, res) => {
@@ -15,6 +16,7 @@ const routes = (app) => {
     user,
     auth,
     instance,
+    friendZone,
   );
 };
 
