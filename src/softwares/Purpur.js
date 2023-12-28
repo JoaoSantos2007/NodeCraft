@@ -1,34 +1,36 @@
 import * as cheerio from 'cheerio';
-import fs from 'fs';
-import axios from 'axios';
+import { readFileSync } from 'fs';
 import { BadRequest } from '../errors/index.js';
-import Temp from './Temp.js';
+import Temp from '../services/Temp.js';
 import download from '../utils/download.js';
 
 class Purpur {
   static async getVersions() {
-    const response = await axios.get('https://api.purpurmc.org/v2/purpur/');
+    const response = await fetch('https://api.purpurmc.org/v2/purpur/');
+    const data = await response.json();
 
-    return response.data.versions;
+    return data.versions;
   }
 
   static async getBuilds(version) {
-    const response = await axios.get(`https://api.purpurmc.org/v2/purpur/${version}`);
+    const response = await fetch(`https://api.purpurmc.org/v2/purpur/${version}`);
+    const data = await response.json();
 
-    return response.data.builds.all;
+    return data.builds.all;
   }
 
   static async analizeBuild(version, build) {
-    const response = await axios.get(`https://api.purpurmc.org/v2/purpur/${version}/${build}`);
+    const response = await fetch(`https://api.purpurmc.org/v2/purpur/${version}/${build}`);
+    const data = await response.json();
 
-    return response.data;
+    return data;
   }
 
   static async getStableVersion() {
     const tempPath = Temp.create();
 
     await download(`${tempPath}/index.html`, 'https://purpurmc.org/downloads');
-    const html = fs.readFileSync(`${tempPath}/index.html`, 'utf8');
+    const html = readFileSync(`${tempPath}/index.html`, 'utf8');
     const $ = cheerio.load(html);
 
     const dropdown = $('#dropdown');
@@ -40,9 +42,10 @@ class Purpur {
   }
 
   static async getLatestBuild(version) {
-    const response = await axios.get(`https://api.purpurmc.org/v2/purpur/${version}`);
+    const response = await fetch(`https://api.purpurmc.org/v2/purpur/${version}`);
+    const data = await response.json();
 
-    return response.data.builds.latest;
+    return data.builds.latest;
   }
 
   static async getStable() {

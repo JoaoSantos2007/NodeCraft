@@ -1,34 +1,33 @@
 import * as cheerio from 'cheerio';
-import fs from 'fs';
-import axios from 'axios';
+import { readFileSync } from 'fs';
 import { BadRequest } from '../errors/index.js';
-import Temp from './Temp.js';
+import Temp from '../services/Temp.js';
 import download from '../utils/download.js';
 
 class Paper {
   static async getVersions() {
-    const response = await axios.get('https://papermc.io/api/v2/projects/paper');
+    const response = await fetch('https://papermc.io/api/v2/projects/paper');
+    const data = await response.json();
 
-    return response.data.versions;
+    return data.versions;
   }
 
   static async getBuilds(version) {
-    const response = await axios.get(`https://papermc.io/api/v2/projects/paper/versions/${version}`);
+    const response = await fetch(`https://papermc.io/api/v2/projects/paper/versions/${version}`);
+    const data = await response.json();
 
-    return response.data.builds;
+    return data.builds;
   }
 
   static async analizeBuild(version, build) {
-    const response = await axios.get(`https://papermc.io/api/v2/projects/paper/versions/${version}/builds/${build}`);
-
-    return response.data;
+    const response = await fetch(`https://papermc.io/api/v2/projects/paper/versions/${version}/builds/${build}`);
+    return response.json();
   }
 
   static async getStableVersion() {
     const tempPath = Temp.create();
-
     await download(`${tempPath}/index.html`, 'https://papermc.io/downloads/paper');
-    const html = fs.readFileSync(`${tempPath}/index.html`, 'utf8');
+    const html = readFileSync(`${tempPath}/index.html`, 'utf8');
     const $ = cheerio.load(html);
 
     const rawObj = $('#__NEXT_DATA__').html();
@@ -81,9 +80,18 @@ class Paper {
     return Paper.getLatestDownloadUrl();
   }
 
+  static extractBuildAndVersion(url) {
+    const info = url.split('paper-')[1].split('.jar')[0].split('-');
+
+    return { version: info[0], build: info[1] };
+  }
+
   static async install(path, version) {
     const downloadUrl = await Paper.getDownloadUrl(version);
+    const info = Paper.extractBuildAndVersion(downloadUrl);
     await download(`${path}/server.jar`, downloadUrl);
+
+    return info;
   }
 }
 

@@ -4,7 +4,7 @@ import Propreties from './Properties.js';
 import { BadRequest } from '../errors/index.js';
 
 class NodeCraft {
-  static get(id, version, type) {
+  static get(id, version, type, build = null) {
     const instancePath = `${INSTANCES_PATH}/${id}`;
     const properties = Propreties.getPropertiesListLocal(instancePath);
     properties['level-name'] = 'world';
@@ -13,8 +13,9 @@ class NodeCraft {
       id,
       name: 'A Minecraft Server',
       type,
-      version,
       software: 'vanilla',
+      version,
+      build,
       disableUpdate: false,
       friendZone: {},
       properties,
@@ -33,8 +34,8 @@ class NodeCraft {
     return instance;
   }
 
-  static create(id, version, type) {
-    const settings = NodeCraft.get(id, version, type);
+  static create(id, version, type, build = null) {
+    const settings = NodeCraft.get(id, version, type, build);
     NodeCraft.save(settings);
 
     return settings;

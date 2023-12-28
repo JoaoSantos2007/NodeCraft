@@ -1,16 +1,14 @@
-import fs from 'fs';
-import axios from 'axios';
+import { writeFileSync } from 'fs';
 
 const download = async (path, url) => {
-  const response = await axios.get(url, { responseType: 'stream' });
+  const response = await fetch(url);
+  const blob = await response.blob();
 
-  const writer = fs.createWriteStream(path);
-  response.data.pipe(writer);
+  // Convert Blob in an Buffer before write file
+  const arrayBuffer = await blob.arrayBuffer();
+  const buffer = Buffer.from(arrayBuffer);
 
-  return new Promise((resolve, reject) => {
-    writer.on('finish', resolve);
-    writer.on('error', reject);
-  });
+  writeFileSync(path, buffer);
 };
 
 export default download;
