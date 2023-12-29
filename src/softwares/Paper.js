@@ -84,7 +84,7 @@ class Paper {
   static extractBuildAndVersion(url) {
     const info = url.split('paper-')[1].split('.jar')[0].split('-');
 
-    return { version: info[0], build: info[1] };
+    return { version: info[0], build: Number(info[1]) };
   }
 
   static async install(path, version) {
@@ -97,9 +97,14 @@ class Paper {
 
   static async update(instance) {
     const { version, build } = await Paper.getStable();
-    if (instance.version === version || instance.build === build) return { version, build };
+    if (instance.version === version && Number(instance.build) === Number(build)) {
+      return { version, build, updated: false };
+    }
 
-    return Paper.install(`${INSTANCES_PATH}/${instance.id}`);
+    const info = await Paper.install(`${INSTANCES_PATH}/${instance.id}`);
+    info.updated = true;
+
+    return info;
   }
 }
 

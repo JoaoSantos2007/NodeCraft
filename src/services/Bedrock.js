@@ -20,7 +20,7 @@ class Bedrock {
     return settings;
   }
 
-  static async updateVersion(instance) {
+  static async update(instance) {
     const instancePath = `${INSTANCES_PATH}/${instance.id}`;
 
     const downloadUrl = await Bedrock.getDownloadUrl();

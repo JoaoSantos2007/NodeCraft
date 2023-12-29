@@ -102,10 +102,11 @@ class Instance {
     if (instance.disableUpdate) throw new InvalidRequest('Updates are disabled for this instance!');
 
     const { type } = instance;
-    if (type === 'bedrock') await BedrockService.updateVersion(instance);
-    else if (type === 'java') await JavaService.update(instance);
+    let info = { version: instance.version, build: instance.build, updated: false };
+    if (type === 'bedrock') info = await BedrockService.update(instance);
+    else if (type === 'java') info = await JavaService.update(instance);
 
-    return instance;
+    return info;
   }
 
   // Revisar

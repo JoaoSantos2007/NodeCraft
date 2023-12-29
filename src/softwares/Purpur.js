@@ -78,7 +78,7 @@ class Purpur {
   static async extractBuildAndVersion(url) {
     const info = url.split('purpur/')[1].split('/download')[0].split('/');
 
-    return { version: info[0], build: info[1] };
+    return { version: info[0], build: Number(info[1]) };
   }
 
   static async install(path, version) {
@@ -91,9 +91,14 @@ class Purpur {
 
   static async update(instance) {
     const { version, build } = await Purpur.getStable();
-    if (instance.version === version || instance.build === build) return { version, build };
+    if (instance.version === version && Number(instance.build) === Number(build)) {
+      return { version, build, updated: false };
+    }
 
-    return Purpur.install(`${INSTANCES_PATH}/${instance.id}`);
+    const info = await Purpur.install(`${INSTANCES_PATH}/${instance.id}`);
+    info.updated = true;
+
+    return info;
   }
 }
 

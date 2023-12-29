@@ -45,10 +45,13 @@ class Vanilla {
   static async update(instance) {
     const latestVersion = await Vanilla.getLatestVersion();
     if (latestVersion === instance.version) {
-      return { version: instance.version, build: instance.build };
+      return { version: instance.version, build: instance.build, updated: false };
     }
 
-    return Vanilla.install(`${INSTANCES_PATH}/${instance.id}`);
+    const info = await Vanilla.install(`${INSTANCES_PATH}/${instance.id}`);
+    info.updated = true;
+
+    return info;
   }
 }
 

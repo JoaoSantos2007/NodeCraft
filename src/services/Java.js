@@ -38,7 +38,7 @@ class Java {
   }
 
   static async update(instance) {
-    let info = { version: instance.version, build: instance.build };
+    let info = { version: instance.version, build: instance.build, updated: false };
 
     switch (instance.software) {
       case 'paper':
@@ -57,8 +57,9 @@ class Java {
     const instanceUpdated = instance;
     instanceUpdated.version = info.version;
     instanceUpdated.build = info.build;
+    NodeCraft.save(instanceUpdated);
 
-    return NodeCraft.save(instanceUpdated);
+    return info;
   }
 
   static async downloadWorld(instance) {

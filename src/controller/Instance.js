@@ -61,10 +61,16 @@ class Instance {
   static async updateVersion(req, res, next) {
     try {
       const { id } = req.params;
-      const updated = await InstanceService.updateVersion(id);
-      const msg = updated ? 'Instance Updated!' : 'No Update Available!';
+      const info = await InstanceService.updateVersion(id);
+      const msg = info.updated ? 'Instance Updated!' : 'No Update Available!';
 
-      return res.status(200).json({ success: true, updated, msg });
+      return res.status(200).json({
+        success: true,
+        updated: !!info.updated,
+        version: info.version,
+        build: info.build,
+        msg,
+      });
     } catch (err) {
       return next(err);
     }
