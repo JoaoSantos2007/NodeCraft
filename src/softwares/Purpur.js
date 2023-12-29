@@ -3,6 +3,7 @@ import { readFileSync } from 'fs';
 import { BadRequest } from '../errors/index.js';
 import Temp from '../services/Temp.js';
 import download from '../utils/download.js';
+import { INSTANCES_PATH } from '../utils/env.js';
 
 class Purpur {
   static async getVersions() {
@@ -74,9 +75,25 @@ class Purpur {
     return Purpur.getLatestDownloadUrl();
   }
 
+  static async extractBuildAndVersion(url) {
+    const info = url.split('purpur/')[1].split('/download')[0].split('/');
+
+    return { version: info[0], build: info[1] };
+  }
+
   static async install(path, version) {
     const downloadUrl = await Purpur.getDownloadUrl(version);
+    const info = Purpur.extractBuildAndVersion(downloadUrl);
     await download(`${path}/server.jar`, downloadUrl);
+
+    return info;
+  }
+
+  static async update(instance) {
+    const { version, build } = await Purpur.getStable();
+    if (instance.version === version || instance.build === build) return { version, build };
+
+    return Purpur.install(`${INSTANCES_PATH}/${instance.id}`);
   }
 }
 

@@ -37,18 +37,28 @@ class Java {
     return NodeCraft.create(id, info.version, 'java', info.build);
   }
 
-  static async updateVersion(instance) {
-    const instancePath = `${INSTANCES_PATH}/${instance.id}`;
-    const latestVersion = await Vanilla.getLatestVersion();
-    if (latestVersion === instance.version) return false;
+  static async update(instance) {
+    let info = { version: instance.version, build: instance.build };
 
-    await Vanilla.install(instancePath);
+    switch (instance.software) {
+      case 'paper':
+        info = await Paper.update(instance);
+        break;
+      case 'purpur':
+        info = await Purpur.update(instance);
+        break;
+      case 'forge':
+        info = await Forge.update(instance);
+        break;
+      default:
+        info = await Vanilla.update(instance);
+    }
 
-    // eslint-disable-next-line no-param-reassign
-    instance.version = latestVersion;
-    NodeCraft.save(instance);
+    const instanceUpdated = instance;
+    instanceUpdated.version = info.version;
+    instanceUpdated.build = info.build;
 
-    return true;
+    return NodeCraft.save(instanceUpdated);
   }
 
   static async downloadWorld(instance) {

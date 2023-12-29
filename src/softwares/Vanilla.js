@@ -2,6 +2,7 @@ import * as cheerio from 'cheerio';
 import { readFileSync } from 'fs';
 import Temp from '../services/Temp.js';
 import download from '../utils/download.js';
+import { INSTANCES_PATH } from '../utils/env.js';
 
 class Vanilla {
   static async getDownloadUrl() {
@@ -39,6 +40,15 @@ class Vanilla {
     await download(`${path}/server.jar`, downloadUrl);
 
     return { version, build: null };
+  }
+
+  static async update(instance) {
+    const latestVersion = await Vanilla.getLatestVersion();
+    if (latestVersion === instance.version) {
+      return { version: instance.version, build: instance.build };
+    }
+
+    return Vanilla.install(`${INSTANCES_PATH}/${instance.id}`);
   }
 }
 

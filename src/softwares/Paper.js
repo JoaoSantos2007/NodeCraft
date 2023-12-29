@@ -3,6 +3,7 @@ import { readFileSync } from 'fs';
 import { BadRequest } from '../errors/index.js';
 import Temp from '../services/Temp.js';
 import download from '../utils/download.js';
+import { INSTANCES_PATH } from '../utils/env.js';
 
 class Paper {
   static async getVersions() {
@@ -92,6 +93,13 @@ class Paper {
     await download(`${path}/server.jar`, downloadUrl);
 
     return info;
+  }
+
+  static async update(instance) {
+    const { version, build } = await Paper.getStable();
+    if (instance.version === version || instance.build === build) return { version, build };
+
+    return Paper.install(`${INSTANCES_PATH}/${instance.id}`);
   }
 }
 
