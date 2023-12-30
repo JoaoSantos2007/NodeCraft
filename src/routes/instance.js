@@ -3,6 +3,7 @@ import InstanceController from '../controller/Instance.js';
 import InstanceMiddleware from '../middlewares/Instance.js';
 import worldUploader from '../middlewares/World.js';
 import player from './player.js';
+import properties from './properties.js';
 
 const router = Router();
 
@@ -18,6 +19,7 @@ router
   .get('/instance/world/:id', InstanceMiddleware.verifyInProgress, InstanceController.downloadWorld)
   .post('/instance/world/:id', InstanceMiddleware.verifyInProgress, worldUploader.single('world'), InstanceController.uploadWorld)
   .post('/instance/update/:id', InstanceMiddleware.verifyInProgress, InstanceController.updateVersion)
+  .use('/instance', properties)
   .use('/instance', player);
 
 export default router;

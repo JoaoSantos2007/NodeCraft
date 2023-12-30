@@ -30,6 +30,7 @@ const Instance = {
   },
   properties: {
     type: 'object',
+    internal: true,
   },
   players: {
     type: 'object',

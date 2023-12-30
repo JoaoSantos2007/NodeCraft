@@ -46,20 +46,9 @@ class Instance {
     instanceValidator(data, instance);
 
     // eslint-disable-next-line no-restricted-syntax
-    for (const [key, value] of Object.entries(data)) {
-      if (typeof value === 'object' && key === 'properties') {
-        const { properties } = data;
-
-        // eslint-disable-next-line no-restricted-syntax
-        for (const [propertieKey, propertieValue] of Object.entries(properties)) {
-          instance[key][propertieKey] = propertieValue;
-        }
-      } else {
-        instance[key] = value;
-      }
-    }
-
+    for (const [key, value] of Object.entries(data)) instance[key] = value;
     NodeCraft.save(instance);
+
     return instance;
   }
 

@@ -32,15 +32,13 @@ class Player {
   }
 
   static async update(instanceId, playerId, data) {
-    const player = await Player.readOne(instanceId, playerId);
+    const instance = await Instance.readOne(instanceId);
+    const player = instance.players[playerId];
+    if (!player) throw new BadRequest('Player not found!');
     playerValidator(data, player);
 
     // eslint-disable-next-line no-restricted-syntax
-    for (const [key, value] of Object.entries(data)) {
-      player[key] = value;
-    }
-
-    const instance = await Instance.readOne(instanceId);
+    for (const [key, value] of Object.entries(data)) player[key] = value;
     instance.players[playerId] = player;
     NodeCraft.save(instance);
 

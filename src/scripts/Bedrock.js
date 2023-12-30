@@ -1,6 +1,6 @@
 import shell from 'shelljs';
 import { INSTANCES_PATH } from '../utils/env.js';
-import Propreties from '../services/Properties.js';
+import { syncPropertiesLists } from '../utils/Properties.js';
 
 class Bedrock {
   constructor(settings) {
@@ -13,7 +13,7 @@ class Bedrock {
   }
 
   setup() {
-    Propreties.syncPropertiesLists(this.path, this.settings);
+    syncPropertiesLists(this.path, this.settings);
     this.run();
     this.handleServerEvents();
   }

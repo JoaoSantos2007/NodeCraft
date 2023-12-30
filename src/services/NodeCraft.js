@@ -1,12 +1,12 @@
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { INSTANCES_PATH } from '../utils/env.js';
-import Propreties from './Properties.js';
+import { getPropertiesListLocal } from '../utils/Properties.js';
 import { BadRequest } from '../errors/index.js';
 
 class NodeCraft {
   static get(id, version, type, build = null) {
     const instancePath = `${INSTANCES_PATH}/${id}`;
-    const properties = Propreties.getPropertiesListLocal(instancePath);
+    const properties = getPropertiesListLocal(instancePath);
     properties['level-name'] = 'world';
 
     const settings = {
