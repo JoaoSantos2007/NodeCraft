@@ -1,10 +1,11 @@
-const PlayerZone = {
-  accountId: {
-    type: 'string',
-  },
+const Player = {
   gamertag: {
     type: 'string',
+    required: true,
     max: 50,
+  },
+  accountId: {
+    type: 'string',
   },
   ip: {
     type: 'string',
@@ -26,4 +27,4 @@ const PlayerZone = {
   },
 };
 
-export default PlayerZone;
+export default Player;

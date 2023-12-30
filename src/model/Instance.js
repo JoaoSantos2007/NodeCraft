@@ -31,6 +31,10 @@ const Instance = {
   properties: {
     type: 'object',
   },
+  players: {
+    type: 'object',
+    internal: true,
+  },
 };
 
 export default Instance;

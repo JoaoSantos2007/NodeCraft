@@ -5,14 +5,14 @@ import BedrockScript from '../scripts/Bedrock.js';
 import JavaScript from '../scripts/Java.js';
 import { INSTANCES_PATH } from '../utils/env.js';
 import { BadRequest, InvalidRequest } from '../errors/index.js';
-import validate from '../validator/Instance.js';
+import instanceValidator from '../validators/instance.js';
 import BedrockService from './Bedrock.js';
 import JavaService from './Java.js';
 import NodeCraft from './NodeCraft.js';
 
 class Instance {
   static async create(data, version) {
-    validate(data);
+    instanceValidator(data);
 
     const { type } = data;
     const id = randomUUID();
@@ -43,7 +43,7 @@ class Instance {
 
   static async update(id, data) {
     const instance = await Instance.readOne(id);
-    validate(data, instance);
+    instanceValidator(data, instance);
 
     // eslint-disable-next-line no-restricted-syntax
     for (const [key, value] of Object.entries(data)) {

@@ -17,7 +17,7 @@ class NodeCraft {
       version,
       build,
       disableUpdate: false,
-      friendZone: {},
+      players: {},
       properties,
     };
 
