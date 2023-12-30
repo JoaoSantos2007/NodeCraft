@@ -1,4 +1,4 @@
-const NodeCraft = {
+const Instance = {
   name: {
     type: 'string',
     required: true,
@@ -9,10 +9,21 @@ const NodeCraft = {
     type: 'string',
     required: true,
     values: ['bedrock', 'java'],
+    internal: true,
   },
   software: {
     type: 'string',
     values: ['vanilla', 'paper', 'purpur', 'forge', 'fabric'],
+    internal: true,
+  },
+  version: {
+    type: 'string',
+    internal: true,
+  },
+  build: {
+    type: 'number',
+    int: true,
+    internal: true,
   },
   disableUpdate: {
     type: 'boolean',
@@ -20,9 +31,6 @@ const NodeCraft = {
   properties: {
     type: 'object',
   },
-  friedZone: {
-    type: 'object',
-  },
 };
 
-export default NodeCraft;
+export default Instance;

@@ -1,39 +1,63 @@
 import shell from 'shelljs';
-import { existsSync, mkdirSync, rmSync } from 'fs';
+import {
+  existsSync, mkdirSync, readFileSync, rmSync,
+} from 'fs';
+import * as cheerio from 'cheerio';
 import { BadRequest } from '../errors/index.js';
 import { INSTANCES_PATH } from '../utils/env.js';
-import curl from '../utils/curl.js';
 import NodeCraft from './NodeCraft.js';
 import Temp from './Temp.js';
+import download from '../utils/download.js';
 
 class Bedrock {
   static async create(id) {
     const newInstancePath = `${INSTANCES_PATH}/${id}`;
     mkdirSync(newInstancePath);
 
-    const downloadUrl = await Bedrock.getDownloadUrl();
-    await Bedrock.install(newInstancePath, downloadUrl);
-
-    const version = await Bedrock.getLatestVersion(downloadUrl);
-    const settings = NodeCraft.create(id, version, 'bedrock');
-
-    return settings;
+    const version = await Bedrock.install(newInstancePath);
+    return NodeCraft.create(id, version, 'bedrock');
   }
 
   static async update(instance) {
     const instancePath = `${INSTANCES_PATH}/${instance.id}`;
 
     const downloadUrl = await Bedrock.getDownloadUrl();
-    const latestVersion = await Bedrock.getLatestVersion(downloadUrl);
+    const latestVersion = Bedrock.extractVersion(downloadUrl);
+    if (latestVersion === instance.version) return { updated: false, version: instance.version };
 
-    if (latestVersion === instance.version) return false;
     await Bedrock.install(instancePath, downloadUrl);
+    const instanceUpdated = instance;
+    instanceUpdated.version = latestVersion;
+    NodeCraft.save(instanceUpdated);
 
-    // eslint-disable-next-line no-param-reassign
-    instance.version = latestVersion;
-    NodeCraft.save(instance);
+    return { updated: true, version: latestVersion };
+  }
 
-    return true;
+  static async getDownloadUrl() {
+    const tempPath = Temp.create();
+    await download(`${tempPath}/index.html`, 'https://minecraft.net/en-us/download/server/bedrock');
+    const html = readFileSync(`${tempPath}/index.html`, 'utf8');
+    const $ = cheerio.load(html);
+
+    const downloadUrl = $('a[data-platform="serverBedrockLinux"]').attr('href');
+    Temp.delete(tempPath);
+    return downloadUrl;
+  }
+
+  static extractVersion(url) {
+    return url.split('bedrock-server-')[1].split('.zip')[0];
+  }
+
+  static async install(path, url = null) {
+    const tempPath = Temp.create();
+    const downloadUrl = url || await Bedrock.getDownloadUrl();
+
+    // Install and unzip
+    await download(`${tempPath}/bedrock.zip`, downloadUrl);
+    shell.exec(`unzip -o ${tempPath}/bedrock.zip -d ${path}`, { silent: true });
+
+    Temp.delete(tempPath);
+    return Bedrock.extractVersion(downloadUrl);
   }
 
   static async downloadWorld(instance) {
@@ -63,44 +87,6 @@ class Bedrock {
     Temp.delete(uploadPath);
 
     return instance;
-  }
-
-  static async getDownloadUrl() {
-    const tempPath = Temp.create();
-
-    // Get Minecraft Site Html
-    shell.exec(`${curl()} -o ${tempPath}/version.html https://minecraft.net/en-us/download/server/bedrock/`, { silent: true });
-    // Extract Version from Html
-    const downloadUrl = shell.exec(`grep -o 'https://minecraft.azureedge.net/bin-linux/[^"]*' ${tempPath}/version.html`, { silent: true }).stdout;
-
-    Temp.delete(tempPath);
-
-    return downloadUrl;
-  }
-
-  static async getLatestVersion(url = null) {
-    const latestUrl = url || await Bedrock.getDownloadUrl();
-
-    const partsOfUrl = latestUrl.split('/');
-    const lastPart = partsOfUrl[partsOfUrl.length - 1];
-    const archiveName = lastPart.split('.zip')[0];
-    const partsOfName = archiveName.split('-');
-    const version = partsOfName[partsOfName.length - 1];
-
-    return version;
-  }
-
-  static async install(path, url = null) {
-    const tempPath = Temp.create();
-    const latestUrl = url || await Bedrock.getDownloadUrl();
-
-    const downloadFile = 'bedrock.zip';
-    // Download file
-    shell.exec(`${curl()} -o ${tempPath}/${downloadFile} ${latestUrl}`, { silent: true });
-    // Install update
-    shell.exec(`unzip -o ${tempPath}/${downloadFile} -d ${path}`, { silent: true });
-
-    Temp.delete(tempPath);
   }
 }
 
