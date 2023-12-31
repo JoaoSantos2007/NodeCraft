@@ -57,69 +57,6 @@ class Instance {
       return next(err);
     }
   }
-
-  static async updateVersion(req, res, next) {
-    try {
-      const { id } = req.params;
-      const info = await InstanceService.updateVersion(id);
-      const msg = info.updated ? 'Instance Updated!' : 'No Update Available!';
-
-      return res.status(200).json({
-        success: true,
-        updated: !!info.updated,
-        version: info.version,
-        build: info.build,
-        msg,
-      });
-    } catch (err) {
-      return next(err);
-    }
-  }
-
-  static async run(req, res, next) {
-    try {
-      const { id } = req.params;
-      const instance = await InstanceService.run(id);
-
-      return res.status(200).json({ success: true, running: true, instance });
-    } catch (err) {
-      return next(err);
-    }
-  }
-
-  static async stop(req, res, next) {
-    try {
-      const { id } = req.params;
-      const instance = await InstanceService.stop(id);
-
-      return res.status(200).json({ success: true, stopped: true, instance });
-    } catch (err) {
-      return next(err);
-    }
-  }
-
-  static async downloadWorld(req, res, next) {
-    try {
-      const { id } = req.params;
-      const path = await InstanceService.downloadWorld(id);
-
-      return res.download(path);
-    } catch (err) {
-      return next(err);
-    }
-  }
-
-  static async uploadWorld(req, res, next) {
-    try {
-      const { id } = req.params;
-      const { upload } = req;
-      const instance = await InstanceService.uploadWorld(id, upload);
-
-      return res.status(200).json({ success: true, uploaded: true, instance });
-    } catch (err) {
-      return next(err);
-    }
-  }
 }
 
 export default Instance;

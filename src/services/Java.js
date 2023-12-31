@@ -84,6 +84,11 @@ class Java {
 
     return instance;
   }
+
+  static async deleteWorld(instance) {
+    const world = `${INSTANCES_PATH}/${instance.id}/world`;
+    if (existsSync(world)) rmSync(world, { recursive: true });
+  }
 }
 
 export default Java;

@@ -88,6 +88,15 @@ class Bedrock {
 
     return instance;
   }
+
+  static async deleteWorld(instance) {
+    const worldsPath = `${INSTANCES_PATH}/${instance.id}/worlds`;
+    if (!existsSync(worldsPath)) return;
+
+    const worldName = instance.properties['level-name'];
+    const world = `${worldsPath}/${worldName}`;
+    if (existsSync(world)) rmSync(world, { recursive: true });
+  }
 }
 
 export default Bedrock;
