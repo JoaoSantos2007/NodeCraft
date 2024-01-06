@@ -37,19 +37,24 @@ class Bedrock {
     });
   }
 
+  readPlayers() {
+    const playersQueries = this.settings.players;
+    playersQueries
+  }
+
   verifyPlayerConnected(output) {
     if (output.includes('Player connected')) {
-      // Player Connected
-      this.online += 1;
       const gamertag = (output.split('] Player connected: ')[1]).split(',')[0];
+      this.online += 1;
+      this.players.push(gamertag);
     }
   }
 
   verifyPlayerDisconnected(output) {
     if (output.includes('Player disconnected')) {
-      // Player Disconnected
-      this.online -= 1;
       const gamertag = (output.split('] Player disconnected: ')[1]).split(',')[0];
+      this.online -= 1;
+      this.players.splice(this.players.indexOf(gamertag), 1);
     }
   }
 }
