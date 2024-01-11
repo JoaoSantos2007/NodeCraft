@@ -3,8 +3,8 @@ import { randomUUID } from 'crypto';
 import { INSTANCES_PATH } from '../utils/env.js';
 import { InvalidRequest } from '../errors/index.js';
 import instanceValidator from '../validators/instance.js';
-import BedrockService from './Bedrock.js';
-import JavaService from './Java.js';
+import Bedrock from './Bedrock.js';
+import Java from './Java.js';
 import NodeCraft from './NodeCraft.js';
 
 class Instance {
@@ -17,8 +17,8 @@ class Instance {
     const software = data.software || 'vanilla';
 
     if (type === 'bedrock' && (software !== 'vanilla' || version)) throw new InvalidRequest("Bedrock doesn't support unnoficial softwares");
-    if (type === 'bedrock') instance = await BedrockService.create(id);
-    else if (type === 'java') instance = await JavaService.create(id, software, version);
+    if (type === 'bedrock') instance = await Bedrock.create(id);
+    else if (type === 'java') instance = await Java.create(id, software, version);
 
     instance = await Instance.update(id, data);
 

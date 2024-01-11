@@ -1,27 +1,19 @@
 const Player = {
+  accountId: {
+    type: 'string',
+  },
   gamertag: {
     type: 'string',
     required: true,
     max: 50,
   },
-  accountId: {
-    type: 'string',
-  },
-  ip: {
-    type: 'string',
-    max: 50,
-  },
-  role: {
-    type: 'string',
-    values: ['visitor', 'member', 'operator'],
-  },
-  banned: {
+  operator: {
     type: 'boolean',
   },
   admin: {
     type: 'boolean',
   },
-  authorization: {
+  access: {
     type: 'string',
     values: ['always', 'monitored', 'never'],
   },

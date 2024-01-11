@@ -25,6 +25,12 @@ const Instance = {
     int: true,
     internal: true,
   },
+  maxHistoryLines: {
+    type: 'number',
+    int: true,
+    min: 10,
+    max: 10000,
+  },
   disableUpdate: {
     type: 'boolean',
   },
@@ -34,6 +40,10 @@ const Instance = {
   },
   players: {
     type: 'object',
+    internal: true,
+  },
+  history: {
+    type: 'array',
     internal: true,
   },
 };

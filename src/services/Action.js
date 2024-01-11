@@ -1,10 +1,8 @@
 import { BadRequest, InvalidRequest } from '../errors/index.js';
 import instancesList from '../utils/instancesList.js';
 import Instance from './Instance.js';
-import BedrockScript from '../scripts/Bedrock.js';
-import JavaScript from '../scripts/Java.js';
-import BedrockService from './Bedrock.js';
-import JavaService from './Java.js';
+import Java from './Java.js';
+import Bedrock from './Bedrock.js';
 
 class Action {
   static async readStatus(id) {
@@ -21,8 +19,8 @@ class Action {
     const { type } = instance;
     let newInstance = null;
 
-    if (type === 'bedrock') newInstance = new BedrockScript(instance);
-    else if (type === 'java') newInstance = new JavaScript(instance);
+    if (type === 'bedrock') newInstance = new Bedrock(instance);
+    else if (type === 'java') newInstance = new Java(instance);
     else throw new Error();
 
     instancesList[id] = newInstance;
@@ -40,8 +38,8 @@ class Action {
 
     const { type } = instance;
     let info = { version: instance.version, build: instance.build, updated: false };
-    if (type === 'bedrock') info = await BedrockService.update(instance);
-    else if (type === 'java') info = await JavaService.update(instance);
+    if (type === 'bedrock') info = await Bedrock.update(instance);
+    else if (type === 'java') info = await Java.update(instance);
 
     return info;
   }
