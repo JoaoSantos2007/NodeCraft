@@ -1,8 +1,10 @@
-import dotenv from "dotenv"
-dotenv.config()
-import BedrockServer from "./src/BedrockServer.js"
+import { existsSync, mkdirSync } from 'fs';
+import app from './src/app.js';
+import { PORT, ABSOLUTE_PATH } from './src/utils/env.js';
 
-const bedrock = new BedrockServer(process.env.SERVER_PATH)
-bedrock.setup()
+if (!existsSync(`${ABSOLUTE_PATH}/instances`)) mkdirSync(`${ABSOLUTE_PATH}/instances`);
+if (!existsSync(`${ABSOLUTE_PATH}/temp`)) mkdirSync(`${ABSOLUTE_PATH}/temp`);
 
-export { bedrock }
+app.listen(PORT, () => {
+  console.log(`Server is running in port ${PORT}`);
+});
