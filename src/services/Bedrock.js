@@ -9,22 +9,16 @@ import NodeCraft from './NodeCraft.js';
 import Temp from './Temp.js';
 import download from '../utils/download.js';
 import { syncPropertiesLists } from '../utils/Properties.js';
+import Instance from './Instance.js';
 
-class Bedrock {
+class Bedrock extends Instance {
   constructor(settings) {
-    this.settings = settings;
-    this.path = `${INSTANCES_PATH}/${settings.id}`;
-    this.online = 0;
-    this.admins = 0;
-    this.players = [];
+    super(settings);
     this.setup();
   }
 
   static async create(id) {
-    const newInstancePath = `${INSTANCES_PATH}/${id}`;
-    mkdirSync(newInstancePath);
-
-    const version = await Bedrock.install(newInstancePath);
+    const version = await Bedrock.install(`${INSTANCES_PATH}/${id}`);
     return NodeCraft.create(id, version, 'bedrock');
   }
 
@@ -148,22 +142,6 @@ class Bedrock {
     });
   }
 
-  readPlayers() {
-    const playersValues = this.settings.players;
-    return Object.values(playersValues);
-  }
-
-  verifyPlayerIsAdmin(gamertag) {
-    const players = this.readPlayers();
-    let isAdmin = false;
-
-    players.forEach((player) => {
-      if (player.gamertag === gamertag && player.admin) isAdmin = true;
-    });
-
-    return isAdmin;
-  }
-
   verifyPlayerConnected(output) {
     if (output.includes('Player connected')) {
       const gamertag = (output.split('] Player connected: ')[1]).split(',')[0];
@@ -214,18 +192,6 @@ class Bedrock {
         }
       }
     });
-  }
-
-  updateHistory(output) {
-    const instance = NodeCraft.read(this.settings.id);
-    const { history, maxHistoryLines } = instance;
-
-    history.push(output);
-    if (history.length > maxHistoryLines) {
-      instance.history = history.slice(Number(history.length - maxHistoryLines));
-    }
-
-    NodeCraft.save(instance);
   }
 }
 

@@ -6,8 +6,10 @@ import Bedrock from './Bedrock.js';
 
 class Action {
   static async readStatus(id) {
-    const status = Action.verifyInstanceInProgess(id);
-    if (!status) throw new BadRequest('Instance is not in progress!');
+    const instance = Action.verifyInstanceInProgess(id);
+    if (!instance) throw new BadRequest('Instance is not in progress!');
+
+    const status = { ...instance };
 
     status.terminal = undefined;
     status.settings = undefined;

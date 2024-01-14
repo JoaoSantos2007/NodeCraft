@@ -1,5 +1,5 @@
 import {
-  existsSync, mkdirSync, rmSync, writeFileSync,
+  existsSync, rmSync, writeFileSync,
 } from 'fs';
 import shell from 'shelljs';
 import { INSTANCES_PATH } from '../utils/env.js';
@@ -10,39 +10,35 @@ import {
   Paper, Purpur, Vanilla, Forge,
 } from '../softwares/index.js';
 import { syncPropertiesLists } from '../utils/Properties.js';
+import Instance from './Instance.js';
 
-class Java {
+class Java extends Instance {
   constructor(settings) {
-    this.settings = settings;
-    this.path = `${INSTANCES_PATH}/${settings.id}`;
-    this.online = 0;
-    this.admins = [];
-    this.players = [];
+    super(settings);
     this.setup();
   }
 
   static async create(id, software, version) {
-    const newInstancePath = `${INSTANCES_PATH}/${id}`;
+    const instancePath = `${INSTANCES_PATH}/${id}`;
     let info = { version, build: null };
-    mkdirSync(newInstancePath);
 
     switch (software) {
       case 'paper':
-        info = await Paper.install(newInstancePath, version);
+        info = await Paper.install(instancePath, version);
         break;
       case 'purpur':
-        info = await Purpur.install(newInstancePath, version);
+        info = await Purpur.install(instancePath, version);
         break;
       case 'forge':
-        info = await Forge.install(newInstancePath, version);
+        info = await Forge.install(instancePath, version);
         break;
       default:
-        info = await Vanilla.install(newInstancePath);
+        info = await Vanilla.install(instancePath);
     }
 
     // First Run and Agree With eula.txt
-    shell.exec(`cd ${newInstancePath} && java -jar server.jar nogui`, { silent: true });
-    writeFileSync(`${newInstancePath}/eula.txt`, 'eula=true');
+    shell.exec(`cd ${instancePath} && java -jar server.jar nogui`, { silent: true });
+    writeFileSync(`${instancePath}/eula.txt`, 'eula=true');
 
     return NodeCraft.create(id, info.version, 'java', info.build);
   }

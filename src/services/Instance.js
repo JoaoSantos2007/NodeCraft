@@ -1,31 +1,29 @@
-import { readdirSync, rmSync } from 'fs';
+import { mkdirSync, readdirSync, rmSync } from 'fs';
 import { randomUUID } from 'crypto';
 import { INSTANCES_PATH } from '../utils/env.js';
-import { InvalidRequest } from '../errors/index.js';
 import instanceValidator from '../validators/instance.js';
-import Bedrock from './Bedrock.js';
-import Java from './Java.js';
 import NodeCraft from './NodeCraft.js';
 
 class Instance {
-  static async create(data, version) {
-    instanceValidator(data);
-
-    const { type } = data;
-    const id = randomUUID();
-    let instance = null;
-    const software = data.software || 'vanilla';
-
-    if (type === 'bedrock' && (software !== 'vanilla' || version)) throw new InvalidRequest("Bedrock doesn't support unnoficial softwares");
-    if (type === 'bedrock') instance = await Bedrock.create(id);
-    else if (type === 'java') instance = await Java.create(id, software, version);
-
-    instance = await Instance.update(id, data);
-
-    return instance;
+  constructor(settings) {
+    this.settings = settings;
+    this.type = settings.type;
+    this.path = `${INSTANCES_PATH}/${settings.id}`;
+    this.online = 0;
+    this.admins = 0;
+    this.players = [];
   }
 
-  static async readAll() {
+  static create(data) {
+    instanceValidator(data);
+
+    const id = randomUUID();
+    mkdirSync(`${INSTANCES_PATH}/${id}`);
+
+    return { id };
+  }
+
+  static readAll() {
     const instanceList = readdirSync(INSTANCES_PATH);
 
     const instances = [];
@@ -38,8 +36,8 @@ class Instance {
     return NodeCraft.read(id);
   }
 
-  static async update(id, data) {
-    const instance = await Instance.readOne(id);
+  static update(id, data) {
+    const instance = Instance.readOne(id);
     instanceValidator(data, instance);
 
     // eslint-disable-next-line no-restricted-syntax
@@ -49,11 +47,39 @@ class Instance {
     return instance;
   }
 
-  static async delete(id) {
-    const instance = await Instance.readOne(id);
+  static delete(id) {
+    const instance = Instance.readOne(id);
     rmSync(`${INSTANCES_PATH}/${id}`, { recursive: true });
 
     return instance;
+  }
+
+  readPlayers() {
+    const playersValues = this.settings.players;
+    return Object.values(playersValues);
+  }
+
+  verifyPlayerIsAdmin(gamertag) {
+    const players = this.readPlayers();
+    let isAdmin = false;
+
+    players.forEach((player) => {
+      if (player.gamertag === gamertag && player.admin) isAdmin = true;
+    });
+
+    return isAdmin;
+  }
+
+  updateHistory(output) {
+    const instance = NodeCraft.read(this.settings.id);
+    const { history, maxHistoryLines } = instance;
+
+    history.push(output);
+    if (history.length > maxHistoryLines) {
+      instance.history = history.slice(Number(history.length - maxHistoryLines));
+    }
+
+    NodeCraft.save(instance);
   }
 }
 

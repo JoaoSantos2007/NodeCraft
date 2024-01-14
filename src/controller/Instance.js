@@ -1,4 +1,6 @@
+import Bedrock from '../services/Bedrock.js';
 import InstanceService from '../services/Instance.js';
+import Java from '../services/Java.js';
 
 class Instance {
   static async create(req, res, next) {
@@ -6,7 +8,12 @@ class Instance {
       // eslint-disable-next-line prefer-destructuring
       const version = req.params.version;
       const { body } = req;
-      const instance = await InstanceService.create(body, version);
+      const { id } = InstanceService.create(body);
+
+      let instance = null;
+      if (body.type === 'java') instance = await Java.create(id, body.software, version);
+      else instance = await Bedrock.create(id);
+      instance = await InstanceService.update(id, body);
 
       return res.status(201).json({ success: true, created: true, instance });
     } catch (err) {
@@ -14,9 +21,9 @@ class Instance {
     }
   }
 
-  static async readAll(req, res, next) {
+  static readAll(req, res, next) {
     try {
-      const instances = await InstanceService.readAll();
+      const instances = InstanceService.readAll();
 
       return res.status(200).json({ success: true, instances });
     } catch (err) {
@@ -24,10 +31,10 @@ class Instance {
     }
   }
 
-  static async readOne(req, res, next) {
+  static readOne(req, res, next) {
     try {
       const { id } = req.params;
-      const instance = await InstanceService.readOne(id);
+      const instance = InstanceService.readOne(id);
 
       return res.status(200).json({ success: true, instance });
     } catch (err) {
@@ -39,7 +46,7 @@ class Instance {
     try {
       const { id } = req.params;
       const { body } = req;
-      const instance = await InstanceService.update(id, body);
+      const instance = InstanceService.update(id, body);
 
       return res.status(200).json({ success: true, updated: true, instance });
     } catch (err) {
@@ -50,7 +57,7 @@ class Instance {
   static async delete(req, res, next) {
     try {
       const { id } = req.params;
-      const instance = await InstanceService.delete(id);
+      const instance = InstanceService.delete(id);
 
       return res.status(200).json({ success: true, deleted: true, instance });
     } catch (err) {
