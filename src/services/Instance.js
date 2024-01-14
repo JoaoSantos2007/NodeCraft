@@ -1,13 +1,14 @@
 import { mkdirSync, readdirSync, rmSync } from 'fs';
 import { randomUUID } from 'crypto';
+import shell from 'shelljs';
 import { INSTANCES_PATH } from '../utils/env.js';
 import instanceValidator from '../validators/instance.js';
 import NodeCraft from './NodeCraft.js';
 
 class Instance {
-  constructor(settings) {
+  constructor(settings, type = null) {
     this.settings = settings;
-    this.type = settings.type;
+    this.type = type || settings.type;
     this.path = `${INSTANCES_PATH}/${settings.id}`;
     this.online = 0;
     this.admins = 0;
@@ -52,6 +53,20 @@ class Instance {
     rmSync(`${INSTANCES_PATH}/${id}`, { recursive: true });
 
     return instance;
+  }
+
+  run() {
+    if (this.type === 'java') this.terminal = shell.exec(`cd ${this.path} && java -jar server.jar nogui`, { silent: false, async: true });
+    else this.terminal = shell.exec(`cd ${this.path} && ./bedrock_server`, { silent: false, async: true });
+  }
+
+  stop() {
+    this.emitEvent('stop');
+    this.emitEvent('/stop');
+  }
+
+  emitEvent(cmd) {
+    if (this.terminal) this.terminal.stdin.write(`${cmd}\n`);
   }
 
   readPlayers() {

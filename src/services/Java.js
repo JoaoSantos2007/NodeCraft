@@ -14,7 +14,7 @@ import Instance from './Instance.js';
 
 class Java extends Instance {
   constructor(settings) {
-    super(settings);
+    super(settings, 'java');
     this.setup();
   }
 
@@ -102,21 +102,9 @@ class Java extends Instance {
     this.handleServerEvents();
   }
 
-  run() {
-    this.terminal = shell.exec(`cd ${this.path} && java -Xmx1024M -Xms1024M -jar server.jar nogui`, { silent: false, async: true });
-  }
-
-  stop() {
-    this.emitEvent('/stop');
-    this.emitEvent('stop');
-  }
-
-  emitEvent(cmd) {
-    if (this.terminal) this.terminal.stdin.write(`${cmd}\n`);
-  }
-
   handleServerEvents() {
     this.terminal.stdout.on('data', (data) => {
+      this.updateHistory(data);
       // this.verifyPlayerConnected(data);
       // this.verifyPlayerDisconnected(data);
     });

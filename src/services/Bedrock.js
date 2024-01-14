@@ -13,7 +13,7 @@ import Instance from './Instance.js';
 
 class Bedrock extends Instance {
   constructor(settings) {
-    super(settings);
+    super(settings, 'bedrock');
     this.setup();
   }
 
@@ -103,11 +103,19 @@ class Bedrock extends Instance {
   }
 
   setup() {
+    syncPropertiesLists(this.path, this.settings);
     this.wipePrivileges();
     this.updateAccess();
-    syncPropertiesLists(this.path, this.settings);
     this.run();
     this.handleServerEvents();
+  }
+
+  handleServerEvents() {
+    this.terminal.stdout.on('data', (data) => {
+      this.updateHistory(data);
+      this.verifyPlayerConnected(data);
+      this.verifyPlayerDisconnected(data);
+    });
   }
 
   updateAccess() {
@@ -117,29 +125,10 @@ class Bedrock extends Instance {
       if (player.access === 'always' && !player.admin) allowlist.push({ ignoresPlayerLimit: false, name: player.gamertag });
       if (player.admin) allowlist.push({ ignoresPlayerLimit: true, name: player.gamertag });
       if (player.access === 'monitored' && this.admins > 0) allowlist.push({ ignoresPlayerLimit: false, name: player.gamertag });
+      if (player.access === 'monitored' && this.admins < 0 && this.players.includes(player.gamertag)) this.emitEvent(`kick ${player.gamertag}`);
     });
 
     writeFileSync(`${this.path}/allowlist.json`, JSON.stringify(allowlist), 'utf8');
-  }
-
-  run() {
-    this.terminal = shell.exec(`cd ${this.path} && ./bedrock_server`, { silent: false, async: true });
-  }
-
-  stop() {
-    this.emitEvent('stop');
-  }
-
-  emitEvent(cmd) {
-    if (this.terminal) this.terminal.stdin.write(`${cmd} \n`);
-  }
-
-  handleServerEvents() {
-    this.terminal.stdout.on('data', (data) => {
-      this.updateHistory(data);
-      this.verifyPlayerConnected(data);
-      this.verifyPlayerDisconnected(data);
-    });
   }
 
   verifyPlayerConnected(output) {

@@ -16,9 +16,11 @@ class NodeCraft {
       software: 'vanilla',
       version,
       build,
+      maxHistoryLines: 100,
       disableUpdate: false,
       players: {},
       properties,
+      history: [],
     };
 
     return settings;
