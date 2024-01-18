@@ -11,6 +11,8 @@ import {
 } from '../softwares/index.js';
 import { syncPropertiesLists } from '../utils/Properties.js';
 import Instance from './Instance.js';
+import findPlayer from '../utils/findPlayer.js';
+import formatUUID from '../utils/formatUUID.js';
 
 class Java extends Instance {
   constructor(settings) {
@@ -96,8 +98,9 @@ class Java extends Instance {
     if (existsSync(world)) rmSync(world, { recursive: true });
   }
 
-  setup() {
+  async setup() {
     syncPropertiesLists(this.path, this.settings);
+    this.updateAccess();
     this.run();
     this.handleServerEvents();
   }
@@ -105,9 +108,60 @@ class Java extends Instance {
   handleServerEvents() {
     this.terminal.stdout.on('data', (data) => {
       this.updateHistory(data);
-      // this.verifyPlayerConnected(data);
-      // this.verifyPlayerDisconnected(data);
+      this.verifyPlayerConnected(data);
+      this.verifyPlayerDisconnected(data);
     });
+  }
+
+  async updateAccess() {
+    const playersValues = this.readPlayers();
+    const allowlist = [];
+
+    // eslint-disable-next-line no-restricted-syntax
+    for (const player of playersValues) {
+      const { gamertag, access } = player;
+
+      if (access === 'always' || player.admin || (access === 'monitored' && this.admins > 0)) {
+        // eslint-disable-next-line no-await-in-loop
+        const id = await findPlayer(gamertag);
+        const uuid = formatUUID(id);
+        if (uuid) allowlist.push({ uuid, name: gamertag });
+      }
+
+      if (access === 'monitored' && this.admins < 0 && this.players.includes(gamertag)) {
+        this.emitEvent(`kick ${gamertag}`);
+      }
+    }
+
+    writeFileSync(`${this.path}/whitelist.json`, JSON.stringify(allowlist), 'utf8');
+  }
+
+  verifyPlayerConnected(output) {
+    if (output.includes('joined the game')) {
+      const gamertag = output.split(' joined the game')[0].split(' ').slice(-1)[0];
+      this.online += 1;
+      this.players.push(gamertag);
+
+      if (this.verifyPlayerIsAdmin(gamertag)) {
+        this.admins += 1;
+        this.updateAccess();
+      }
+
+      // this.verifyPrivileges(gamertag, xuid);
+    }
+  }
+
+  verifyPlayerDisconnected(output) {
+    if (output.includes('left the game')) {
+      const gamertag = output.split(' left the game')[0].split(' ').slice(-1)[0];
+      this.online -= 1;
+      this.players.splice(this.players.indexOf(gamertag), 1);
+
+      if (this.verifyPlayerIsAdmin(gamertag)) {
+        this.admins -= 1;
+        this.updateAccess();
+      }
+    }
   }
 }
 
