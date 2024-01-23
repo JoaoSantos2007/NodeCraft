@@ -101,6 +101,7 @@ class Java extends Instance {
   async setup() {
     syncPropertiesLists(this.path, this.settings);
     this.updateAccess();
+    this.setupOps();
     this.run();
     this.handleServerEvents();
   }
@@ -111,6 +112,32 @@ class Java extends Instance {
       this.verifyPlayerConnected(data);
       this.verifyPlayerDisconnected(data);
     });
+  }
+
+  async setupOps() {
+    const playersValues = this.readPlayers();
+    const ops = [];
+
+    // eslint-disable-next-line no-restricted-syntax
+    for (const player of playersValues) {
+      const { gamertag, operator, admin } = player;
+
+      if (operator) {
+        // eslint-disable-next-line no-await-in-loop
+        const id = await findPlayer(gamertag);
+        const uuid = formatUUID(id);
+        if (uuid) {
+          ops.push({
+            uuid,
+            name: gamertag,
+            level: 4,
+            bypassesPlayerLimit: !!admin,
+          });
+        }
+      }
+    }
+
+    writeFileSync(`${this.path}/ops.json`, JSON.stringify(ops), 'utf8');
   }
 
   async updateAccess() {
@@ -146,8 +173,6 @@ class Java extends Instance {
         this.admins += 1;
         this.updateAccess();
       }
-
-      // this.verifyPrivileges(gamertag, xuid);
     }
   }
 
