@@ -20,7 +20,7 @@ class Java extends Instance {
     this.setup();
   }
 
-  static async create(id, software, version) {
+  static async create(id, software = 'vanilla', version = null) {
     const instancePath = `${INSTANCES_PATH}/${id}`;
     let info = { version, build: null };
 
@@ -42,7 +42,7 @@ class Java extends Instance {
     shell.exec(`cd ${instancePath} && java -jar server.jar nogui`, { silent: true });
     writeFileSync(`${instancePath}/eula.txt`, 'eula=true');
 
-    return NodeCraft.create(id, info.version, 'java', info.build);
+    return NodeCraft.create(id, info.version, 'java', software, info.build);
   }
 
   static async update(instance) {
@@ -70,20 +70,42 @@ class Java extends Instance {
     return info;
   }
 
-  static async downloadWorld(instance) {
-    const worldPath = `${INSTANCES_PATH}/${instance.id}/world`;
+  static async downloadWorld(instance, worldType = null) {
+    const instancePath = `${INSTANCES_PATH}/${instance.id}`;
+    let worldPath = `${instancePath}/world`;
+    let zipName = 'world';
+
+    if (worldType) {
+      if (worldType.toLowerCase() === 'nether') {
+        worldPath = `${instancePath}/world_nether`;
+        zipName = 'world_nether';
+      } else if (worldType.toLowerCase() === 'end') {
+        worldPath = `${instancePath}/world_the_end`;
+        zipName = 'world_the_end';
+      }
+    }
+
     if (!existsSync(worldPath)) throw new BadRequest('World path not found!');
 
-    const zipFile = `${worldPath}/world.zip`;
+    const zipFile = `${worldPath}/${zipName}.zip`;
     // Zip world path
     shell.exec(`cd ${worldPath} && zip -rFS ${zipFile} .`, { silent: true });
 
     return zipFile;
   }
 
-  static async uploadWorld(instance, uploadPath) {
+  static async uploadWorld(instance, uploadPath, worldType = null) {
+    const instancePath = `${INSTANCES_PATH}/${instance.id}`;
+    let world = `${instancePath}/world`;
     const uploadFile = `${uploadPath}/upload.zip`;
-    const world = `${INSTANCES_PATH}/${instance.id}/world`;
+
+    if (worldType) {
+      if (worldType.toLowerCase() === 'nether') {
+        world = `${instancePath}/world_nether`;
+      } else if (worldType.toLowerCase() === 'end') {
+        world = `${instancePath}/world_the_end`;
+      }
+    }
     if (existsSync(world)) rmSync(world, { recursive: true });
 
     // Unzip uploaded world
@@ -93,8 +115,18 @@ class Java extends Instance {
     return instance;
   }
 
-  static async deleteWorld(instance) {
-    const world = `${INSTANCES_PATH}/${instance.id}/world`;
+  static async deleteWorld(instance, worldType = null) {
+    const instancePath = `${INSTANCES_PATH}/${instance.id}`;
+    let world = `${instancePath}/world`;
+
+    if (worldType) {
+      if (worldType.toLowerCase() === 'nether') {
+        world = `${instancePath}/world_nether`;
+      } else if (worldType.toLowerCase() === 'end') {
+        world = `${instancePath}/world_the_end`;
+      }
+    }
+
     if (existsSync(world)) rmSync(world, { recursive: true });
   }
 
