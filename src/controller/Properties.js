@@ -4,11 +4,11 @@ class Properties {
   static async read(req, res, next) {
     try {
       const { id } = req.params;
-      const properties = await PropertiesService.read(id);
+      const properties = PropertiesService.read(id);
 
       return res.status(200).json({ success: true, properties });
     } catch (err) {
-      return next;
+      return next(err);
     }
   }
 
@@ -16,11 +16,11 @@ class Properties {
     try {
       const { id } = req.params;
       const data = req.body;
-      const properties = await PropertiesService.update(id, data);
+      const properties = PropertiesService.update(id, data);
 
       return res.status(200).json({ success: true, updated: true, properties });
     } catch (err) {
-      return next;
+      return next(err);
     }
   }
 }
