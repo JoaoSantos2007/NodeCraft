@@ -5,6 +5,7 @@ import player from './player.js';
 import properties from './properties.js';
 import world from './world.js';
 import action from './action.js';
+import file from './file.js';
 
 const router = Router();
 
@@ -18,6 +19,7 @@ router
   .use('/instance', action)
   .use('/instance', properties)
   .use('/instance', world)
-  .use('/instance', player);
+  .use('/instance', player)
+  .use('/instance', file);
 
 export default router;
