@@ -4,10 +4,6 @@ const File = {
     required: true,
     values: ['file', 'dir'],
   },
-  name: {
-    type: 'string',
-    required: true,
-  },
   content: {
     type: 'string',
   },

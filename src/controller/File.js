@@ -7,8 +7,8 @@ class File {
       let path = req?.params?.path ?? '';
       path += req.params[0] || '';
 
-      const files = Service.read(id, path || '/');
-      return res.status(200).json({ success: true, files });
+      const result = Service.read(id, path);
+      return res.status(200).json({ success: true, ...result });
     } catch (err) {
       return next(err);
     }
@@ -21,8 +21,8 @@ class File {
       let path = req?.params?.path ?? '';
       path += req.params[0] || '';
 
-      Service.create(id, path, body);
-      return res.status(201).json({ success: true, created: true });
+      const result = Service.create(id, path, body);
+      return res.status(201).json({ success: true, created: true, ...result });
     } catch (err) {
       return next(err);
     }
@@ -30,7 +30,13 @@ class File {
 
   static update(req, res, next) {
     try {
-      return res.status(200).json({ success: true });
+      const { id } = req.params;
+      const { body } = req;
+      let path = req?.params?.path ?? '';
+      path += req.params[0] || '';
+
+      const result = Service.update(id, path, body);
+      return res.status(200).json({ success: true, updated: true, ...result });
     } catch (err) {
       return next(err);
     }
@@ -38,7 +44,12 @@ class File {
 
   static delete(req, res, next) {
     try {
-      return res.status(200).json({ success: true });
+      const { id } = req.params;
+      let path = req?.params?.path ?? '';
+      path += req.params[0] || '';
+
+      const result = Service.delete(id, path);
+      return res.status(200).json({ success: true, deleted: true, ...result });
     } catch (err) {
       return next(err);
     }

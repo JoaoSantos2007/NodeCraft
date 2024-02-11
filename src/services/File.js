@@ -1,9 +1,8 @@
 import {
-  statSync, readdirSync, readFileSync, mkdirSync, writeFileSync, existsSync,
+  statSync, readdirSync, readFileSync, mkdirSync, writeFileSync, rmSync,
 } from 'fs';
 import { INSTANCES_PATH } from '../utils/env.js';
 import validator from '../validators/file.js';
-import { Base, InvalidRequest } from '../errors/index.js';
 
 class File {
   static verifyType(path) {
@@ -13,35 +12,66 @@ class File {
 
     if (isDir) return 'dir';
     if (isFile) return 'file';
-    throw new Base(`${path} is not file and not dir`);
+    throw new Error();
   }
 
-  static read(id, path = '') {
+  static read(id, path = '', info = '') {
     const absolutePath = `${INSTANCES_PATH}/${id}/${path}`;
-    const type = File.verifyType(absolutePath);
+    const type = info || File.verifyType(absolutePath);
+    let content;
 
-    if (type === 'file') return readFileSync(absolutePath, 'utf8');
-    const files = [];
-    const items = readdirSync(absolutePath);
-
-    items.forEach((item) => {
-      files.push({
-        name: item,
-        type: File.verifyType(`${absolutePath}/${item}`),
+    if (type === 'file') content = readFileSync(absolutePath, 'utf8');
+    else {
+      const items = readdirSync(absolutePath);
+      content = [];
+      items.forEach((item) => {
+        content.push({
+          name: item,
+          type: File.verifyType(`${absolutePath}/${item}`),
+        });
       });
-    });
+    }
 
-    return files;
+    return {
+      type,
+      content,
+    };
   }
 
   static create(id, path, data) {
     validator(data);
-    const { name, type } = data;
-    const absolutePath = `${INSTANCES_PATH}/${id}/${path}/${name}`;
-    if (existsSync(absolutePath)) throw new InvalidRequest(`${name} already exists`);
+    const { type } = data;
+    const absolutePath = `${INSTANCES_PATH}/${id}/${path}`;
+    let content = '';
 
-    if (type === 'dir') return mkdirSync(absolutePath);
-    return writeFileSync(absolutePath, data.content, 'utf8');
+    if (type === 'dir') {
+      mkdirSync(absolutePath);
+      content = [];
+    } else {
+      writeFileSync(absolutePath, data.content, 'utf8');
+      content = data.content;
+    }
+
+    return {
+      type,
+      content,
+    };
+  }
+
+  static update(id, path, data) {
+    validator(data);
+    const absolutePath = `${INSTANCES_PATH}/${id}/${path}`;
+    const type = File.verifyType(absolutePath);
+    if (type === 'file') writeFileSync(absolutePath, data.content, 'utf8');
+
+    return File.read(id, path, type);
+  }
+
+  static delete(id, path) {
+    const info = File.read(id, path);
+    rmSync(`${INSTANCES_PATH}/${id}/${path}`, { recursive: true });
+
+    return info;
   }
 }
 
