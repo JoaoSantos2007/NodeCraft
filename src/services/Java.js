@@ -39,7 +39,7 @@ class Java extends Instance {
     }
 
     // First Run and Agree With eula.txt
-    shell.exec(`cd ${instancePath} && java -jar server.jar nogui`, { silent: true });
+    shell.exec(`cd ${instancePath} && java -jar forge.jar --installServer nogui`, { silent: true });
     writeFileSync(`${instancePath}/eula.txt`, 'eula=true');
 
     return NodeCraft.create(id, info.version, 'java', software, info.build);
