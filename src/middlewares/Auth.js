@@ -10,7 +10,6 @@ class Auth {
       const accessToken = await verifyToken(req);
       const user = await verifyUser(accessToken);
       req.user = user;
-      req.userId = user.id;
 
       return next();
     } catch (err) {
