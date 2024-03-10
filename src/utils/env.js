@@ -5,8 +5,8 @@ dotenv.config();
 
 const PORT = process.env.PORT || 3000;
 const DEBUG = process.env.DEBUG || false;
-const SALT = process.env.SALT || null;
-const SECRET = process.env.SECRET || null;
+const SALT = process.env.SALT || '$2b$10$iXyVMT9A121GYTBibPIt6e';
+const SECRET = process.env.SECRET || '4246e8f9e71b0b086b3b194a4bcb5d07c94dd773dddb51752183f7e9c82c543f';
 const ACCESS_TOKEN_LIFETIME = process.env.ACCESS_TOKEN_LIFETIME ? `${process.env.ACCESS_TOKEN_LIFETIME}m` : '15m';
 const ABSOLUTE_PATH = process.env.ABSOLUTE_PATH || path.resolve();
 const INSTANCES_PATH = process.env.INSTANCES_PATH || `${ABSOLUTE_PATH}/instances`;
