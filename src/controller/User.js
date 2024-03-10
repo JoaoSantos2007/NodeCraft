@@ -3,9 +3,7 @@ import UserService from '../services/User.js';
 class User {
   static async read(req, res, next) {
     try {
-      const { userId } = req;
-      const user = await UserService.readUserById(userId);
-
+      const { user } = req;
       return res.status(200).json({ success: true, user });
     } catch (err) {
       return next(err);
@@ -47,10 +45,10 @@ class User {
   static async update(req, res, next) {
     try {
       const { name, gamertag } = req.body;
-      const { userId } = req;
-      const user = await UserService.updateUser(userId, { name, gamertag });
+      const { user } = req;
+      const userUpdated = await UserService.updateUser(user.id, { name, gamertag });
 
-      return res.status(200).json({ success: true, updated: true, user });
+      return res.status(200).json({ success: true, updated: true, user: userUpdated });
     } catch (err) {
       return next(err);
     }
@@ -73,8 +71,8 @@ class User {
 
   static async delete(req, res, next) {
     try {
-      const { userId } = req;
-      const user = await UserService.deleteUser(userId);
+      const { user } = req;
+      await UserService.deleteUser(user.id);
 
       return res.status(200).json({ success: true, deleted: true, user });
     } catch (err) {

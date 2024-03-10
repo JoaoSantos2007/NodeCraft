@@ -1,17 +1,15 @@
-import jwt from 'jsonwebtoken';
-import { SECRET } from '../utils/env.js';
 import errorHandler from '../utils/errorHandler.js';
-import UnathorizedError from '../errors/Unathorized.js';
+import {
+  verifyToken, verifyUser, verifyUserAdmin, verifyUserAccess,
+} from '../utils/auth.js';
+import Unathorized from '../errors/Unathorized.js';
 
 class Auth {
-  static async verifyAuthorization(req, res, next) {
+  static async verifyLogged(req, res, next) {
     try {
-      if (!req.cookies) throw new UnathorizedError('Invalid Access Token!');
-      const { accessToken } = req.cookies;
-      if (!accessToken) throw new UnathorizedError('Invalid Access Token!');
-
-      const { id } = jwt.verify(accessToken, SECRET);
-      req.userId = id;
+      const accessToken = await verifyToken(req);
+      const user = await verifyUser(accessToken);
+      req.user = user;
 
       return next();
     } catch (err) {
@@ -20,7 +18,30 @@ class Auth {
   }
 
   static async verifyAdmin(req, res, next) {
+    try {
+      const accessToken = await verifyToken(req);
+      const user = await verifyUser(accessToken);
+      if (!verifyUserAdmin(user)) throw new Unathorized('You need admin role!');
+      req.user = user;
 
+      return next();
+    } catch (err) {
+      return errorHandler(err, res);
+    }
+  }
+
+  static async verifyAccess(req, res, next) {
+    try {
+      const id = req.params?.id;
+      const accessToken = await verifyToken(req);
+      const user = await verifyUser(accessToken);
+      if (!await verifyUserAccess(id, user)) throw new Unathorized("You don't have access to this route!");
+      req.user = user;
+
+      return next();
+    } catch (err) {
+      return errorHandler(err, res);
+    }
   }
 }
 
