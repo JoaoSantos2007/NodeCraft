@@ -11,4 +11,5 @@ router
   .put('/:id/world', Auth.verifyAccess, worldValidator, Instance.verifyInProgress, worldUploader.single('world'), World.upload)
   .delete('/:id/world', Auth.verifyAccess, worldValidator, Instance.verifyInProgress, World.delete);
 
+
 export default router;
