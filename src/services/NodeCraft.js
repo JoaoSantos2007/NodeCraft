@@ -1,12 +1,14 @@
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { INSTANCES_PATH } from '../utils/env.js';
-import { getPropertiesListLocal } from '../utils/Properties.js';
+import { getList } from '../utils/Properties.js';
 import { BadRequest } from '../errors/index.js';
 
 class NodeCraft {
   static get(id, version, type, software = 'vanilla', build = null) {
     const instancePath = `${INSTANCES_PATH}/${id}`;
-    const properties = getPropertiesListLocal(instancePath);
+
+    /* Deve Mudar */
+    const properties = getList(instancePath);
     properties['level-name'] = 'world';
 
     const settings = {
@@ -37,7 +39,7 @@ class NodeCraft {
   }
 
   static create(id, version, type, software, build = null) {
-    const settings = NodeCraft.get(id, version, type, software, build);
+    const settings = NodeCraft.get(id, version, type, software, build); // Deve mudar
     NodeCraft.save(settings);
 
     return settings;

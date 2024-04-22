@@ -9,7 +9,7 @@ import Temp from './Temp.js';
 import {
   Paper, Purpur, Vanilla, Forge,
 } from '../softwares/index.js';
-import { syncPropertiesLists } from '../utils/Properties.js';
+import { syncLists } from '../utils/Properties.js';
 import Instance from './Instance.js';
 import findPlayer from '../utils/findPlayer.js';
 import formatUUID from '../utils/formatUUID.js';
@@ -131,7 +131,7 @@ class Java extends Instance {
   }
 
   async setup() {
-    syncPropertiesLists(this.path, this.settings);
+    syncLists(this.path, this.settings);
     this.updateAccess();
     this.setupOps();
     this.run();

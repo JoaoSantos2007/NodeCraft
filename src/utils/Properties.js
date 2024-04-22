@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync } from 'fs';
 
-function getPropertiesListLocal(path) {
+function getList(type) {
   const data = readFileSync(`${path}/server.properties`, 'utf8');
   const lines = data.split('\n');
   const properties = {};
@@ -46,23 +46,23 @@ function convertObjectToPropertiesString(list) {
   return propertiesInString;
 }
 
-function savePropertiesList(path, list) {
+function saveList(path, list) {
   const listInString = convertObjectToPropertiesString(list);
 
   writeFileSync(`${path}/server.properties`, listInString);
 }
 
-function syncPropertiesLists(path, settings) {
+function syncLists(path, settings) {
   const propertiesListDB = settings.properties;
-  const propertiesListLocal = getPropertiesListLocal(path);
+  const propertiesListLocal = getList(path);
   const mergedList = mergeLists(propertiesListDB, propertiesListLocal);
-  savePropertiesList(path, mergedList);
+  saveList(path, mergedList);
 }
 
 export {
-  syncPropertiesLists,
-  getPropertiesListLocal,
+  syncLists,
+  getList,
   mergeLists,
   convertObjectToPropertiesString,
-  savePropertiesList,
+  saveList,
 };

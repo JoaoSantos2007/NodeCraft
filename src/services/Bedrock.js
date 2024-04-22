@@ -8,7 +8,7 @@ import { INSTANCES_PATH } from '../utils/env.js';
 import NodeCraft from './NodeCraft.js';
 import Temp from './Temp.js';
 import download from '../utils/download.js';
-import { syncPropertiesLists } from '../utils/Properties.js';
+import { syncLists } from '../utils/Properties.js';
 import Instance from './Instance.js';
 
 class Bedrock extends Instance {
@@ -103,7 +103,7 @@ class Bedrock extends Instance {
   }
 
   setup() {
-    syncPropertiesLists(this.path, this.settings);
+    syncLists(this.path, this.settings);
     this.wipePrivileges();
     this.updateAccess();
     this.run();
