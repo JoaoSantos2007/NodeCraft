@@ -17,7 +17,7 @@ class Bedrock extends Instance {
     this.setup();
   }
 
-  static async create(id) {
+  static async install(id) {
     const version = await Bedrock.install(`${INSTANCES_PATH}/${id}`);
     return NodeCraft.create(id, version, 'bedrock');
   }

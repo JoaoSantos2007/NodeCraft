@@ -20,9 +20,9 @@ class Instance {
 
     const id = randomUUID();
     mkdirSync(`${INSTANCES_PATH}/${id}`);
-    // Criar aqui o nodecraft.json e devolver uma resposta
 
-    return { id };
+    const settings = NodeCraft.create({ ...data, id });
+    return settings;
   }
 
   static readAll() {

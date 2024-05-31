@@ -4,27 +4,18 @@ import { getList } from '../utils/Properties.js';
 import { BadRequest } from '../errors/index.js';
 
 class NodeCraft {
-  static get(id, version, type, software = 'vanilla', build = null) {
-    const instancePath = `${INSTANCES_PATH}/${id}`;
-
-    /* Deve Mudar */
-    const properties = getList(instancePath);
-    properties['level-name'] = 'world';
-
+  static create(info) {
     const settings = {
-      id,
-      name: 'A Minecraft Server',
-      type,
-      software,
-      version,
-      build,
+      ...info,
+      build: null,
       maxHistoryLines: 100,
       disableUpdate: false,
       players: {},
-      properties,
+      properties: getList(info.type),
       history: [],
     };
 
+    NodeCraft.save(settings);
     return settings;
   }
 
@@ -36,13 +27,6 @@ class NodeCraft {
     const instance = JSON.parse(rawData);
 
     return instance;
-  }
-
-  static create(id, version, type, software, build = null) {
-    const settings = NodeCraft.get(id, version, type, software, build); // Deve mudar
-    NodeCraft.save(settings);
-
-    return settings;
   }
 
   static save(settings) {

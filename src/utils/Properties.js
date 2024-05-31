@@ -1,7 +1,12 @@
 import { readFileSync, writeFileSync } from 'fs';
+import { ABSOLUTE_PATH } from './env.js';
 
 function getList(type) {
-  const data = readFileSync(`${path}/server.properties`, 'utf8');
+  let path = `${ABSOLUTE_PATH}/config/bedrock.properties`;
+  if (type !== 'bedrock') path = `${ABSOLUTE_PATH}/config/java.properties`;
+  const data = readFileSync(path, 'utf8');
+
+  // Extract properties
   const lines = data.split('\n');
   const properties = {};
 

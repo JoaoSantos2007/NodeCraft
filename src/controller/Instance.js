@@ -1,26 +1,20 @@
-import Bedrock from '../services/Bedrock.js';
 import Service from '../services/Instance.js';
+import Bedrock from '../services/Bedrock.js';
 import Java from '../services/Java.js';
 
 class Instance {
   static async create(req, res, next) {
     try {
-      // eslint-disable-next-line prefer-destructuring
-      const version = req.params.version;
+      const version = req.params.version || 'latest';
       const { body } = req;
 
-      // Este processo deverá já criar a variável da instância
-      const { instance } = Service.create(body, version);
+      const instance = Service.create({ ...body, version });
+      if (body.type === 'bedrock') Bedrock.install(instance);
+      else Java.install(instance);
 
-      if (instance.type === 'java') Java.create(instance);
-      else Bedrock.create(instance);
-
-      // let instance = null;
-      // if (body.type === 'java') instance = await Java.create(id, body.software, version);
-      // else instance = await Bedrock.create(id);
-      // instance = await Service.update(id, body);
-
-      return res.status(201).json({ success: true, building: true, instance });
+      return res.status(201).json({
+        success: true, id: instance.id, building: true, instance,
+      });
     } catch (err) {
       return next(err);
     }

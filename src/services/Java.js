@@ -20,29 +20,27 @@ class Java extends Instance {
     this.setup();
   }
 
-  static async create(id, software = 'vanilla', version = null) {
-    const instancePath = `${INSTANCES_PATH}/${id}`;
-    let info = { version, build: null };
+  // install method
+  static async install(instance) {
+    let info = { version: instance.version, build: null };
 
-    switch (software) {
+    switch (instance.software) {
       case 'paper':
-        info = await Paper.install(instancePath, version);
+        info = await Paper.install(instance);
         break;
       case 'purpur':
-        info = await Purpur.install(instancePath, version);
+        info = await Purpur.install(instance);
         break;
       case 'forge':
-        info = await Forge.install(instancePath, version);
+        info = await Forge.install(instance);
         break;
       default:
-        info = await Vanilla.install(instancePath);
+        info = await Vanilla.install(instance);
     }
 
     // First Run and Agree With eula.txt
     shell.exec(`cd ${instancePath} && java -jar server.jar nogui`, { silent: true });
     writeFileSync(`${instancePath}/eula.txt`, 'eula=true');
-
-    return NodeCraft.create(id, info.version, 'java', software, info.build);
   }
 
   static async update(instance) {
