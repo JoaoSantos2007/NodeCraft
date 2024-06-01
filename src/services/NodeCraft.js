@@ -7,6 +7,7 @@ class NodeCraft {
   static create(info) {
     const settings = {
       ...info,
+      installed: false,
       build: null,
       maxHistoryLines: 100,
       disableUpdate: false,
@@ -32,6 +33,13 @@ class NodeCraft {
   static save(settings) {
     const json = JSON.stringify(settings);
     writeFileSync(`${INSTANCES_PATH}/${settings.id}/nodecraft.json`, json, 'utf-8');
+  }
+
+  static update(id, settings) {
+    const instance = NodeCraft.read(id);
+    Object.assign(instance, settings);
+
+    NodeCraft.save(instance);
   }
 }
 

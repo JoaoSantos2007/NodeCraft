@@ -16,6 +16,10 @@ const Instance = {
     values: ['vanilla', 'paper', 'purpur', 'forge', 'fabric'],
     internal: true,
   },
+  installed: {
+    type: 'boolean',
+    internal: true,
+  },
   version: {
     type: 'string',
     internal: true,

@@ -1,7 +1,4 @@
-import * as cheerio from 'cheerio';
-import { readFileSync } from 'fs';
 import { BadRequest } from '../errors/index.js';
-import Temp from '../services/Temp.js';
 import download from '../utils/download.js';
 import { INSTANCES_PATH } from '../utils/env.js';
 
@@ -20,90 +17,33 @@ class Paper {
     return data.builds;
   }
 
-  static async analizeBuild(version, build) {
-    const response = await fetch(`https://papermc.io/api/v2/projects/paper/versions/${version}/builds/${build}`);
-    return response.json();
-  }
-
-  static async getStableVersion() {
-    const tempPath = Temp.create();
-    await download(`${tempPath}/index.html`, 'https://papermc.io/downloads/paper');
-    const html = readFileSync(`${tempPath}/index.html`, 'utf8');
-    const $ = cheerio.load(html);
-
-    const rawObj = $('#__NEXT_DATA__').html();
-    const obj = JSON.parse(rawObj);
-
-    const version = obj.props.pageProps.project.latestStableVersion;
-    Temp.delete(tempPath);
-    return version;
-  }
-
-  static async getStableBuild(version) {
-    const builds = await Paper.getBuilds(version);
-
-    let index = builds.length - 1;
-    while (index >= 0) {
-      const buildIndex = builds[index];
-
-      // eslint-disable-next-line no-await-in-loop
-      const buildData = await Paper.analizeBuild(version, buildIndex);
-      if (buildData.channel === 'default') return buildIndex;
-      index -= 1;
-    }
-
-    return builds[builds.length - 1];
-  }
-
-  static async getStable() {
-    const version = await Paper.getStableVersion();
-    const build = await Paper.getStableBuild(version);
-
-    return { version, build };
-  }
-
-  static async getSpecifDownloadUrl(version = null) {
+  static async getLatest(version = null) {
     const versions = await Paper.getVersions();
-    if (!versions.includes(version)) throw new BadRequest(`version ${version} not found!`);
-    const build = await Paper.getStableBuild(version);
+    if (version !== 'latest' && version && !versions.includes(version)) throw new BadRequest(`version ${version} not found!`);
 
-    return `https://api.papermc.io/v2/projects/paper/versions/${version}/builds/${build}/downloads/paper-${version}-${build}.jar`;
+    const validVersion = versions.pop();
+    const build = (await Paper.getBuilds(validVersion)).pop();
+
+    return { version: validVersion, build };
   }
 
-  static async getLatestDownloadUrl() {
-    const { version, build } = await Paper.getStable();
+  static verifyNeedUpdate(instance, latest) {
+    const {
+      installed, version, build, disableUpdate,
+    } = instance;
 
-    return `https://api.papermc.io/v2/projects/paper/versions/${version}/builds/${build}/downloads/paper-${version}-${build}.jar`;
+    if (!installed) return true;
+
+    return (!disableUpdate
+      && (version !== latest.version || Number(build) !== Number(latest.build)));
   }
 
-  static async getDownloadUrl(version) {
-    if (version) return Paper.getSpecifDownloadUrl(version);
-    return Paper.getLatestDownloadUrl();
-  }
+  static async install(instance) {
+    const info = await Paper.getLatest(instance.version);
+    if (!Paper.verifyNeedUpdate(instance, info)) return { ...info, updated: false };
 
-  static extractBuildAndVersion(url) {
-    const info = url.split('paper-')[1].split('.jar')[0].split('-');
-
-    return { version: info[0], build: Number(info[1]) };
-  }
-
-  static async install(path, version) {
-    const downloadUrl = await Paper.getDownloadUrl(version);
-    const info = Paper.extractBuildAndVersion(downloadUrl);
-    await download(`${path}/server.jar`, downloadUrl);
-
-    return info;
-  }
-
-  static async update(instance) {
-    const { version, build } = await Paper.getStable();
-    if (instance.version === version && Number(instance.build) === Number(build)) {
-      return { version, build, updated: false };
-    }
-
-    const info = await Paper.install(`${INSTANCES_PATH}/${instance.id}`);
-    info.updated = true;
-
+    const downloadUrl = `https://api.papermc.io/v2/projects/paper/versions/${info.version}/builds/${info.build}/downloads/paper-${info.version}-${info.build}.jar`;
+    await download(`${INSTANCES_PATH}/${instance.id}/server.jar`, downloadUrl);
     return info;
   }
 }

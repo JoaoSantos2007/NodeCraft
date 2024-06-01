@@ -34,23 +34,20 @@ class Vanilla {
     return 0;
   }
 
-  static async install(path, url = null) {
-    const downloadUrl = url || await Vanilla.getDownloadUrl();
-    const version = await Vanilla.getLatestVersion();
-    await download(`${path}/server.jar`, downloadUrl);
+  static verifyNeedUpdate(instance, version) {
+    const { installed, disableUpdate } = instance;
 
-    return { version, build: null };
+    if (!installed) return true;
+    return (!disableUpdate && (instance.version !== version));
   }
 
-  static async update(instance) {
-    const latestVersion = await Vanilla.getLatestVersion();
-    if (latestVersion === instance.version) {
-      return { version: instance.version, build: instance.build, updated: false };
-    }
+  static async install(instance) {
+    const version = await Vanilla.getLatestVersion();
+    const info = { version, build: null };
+    if (!Vanilla.verifyNeedUpdate(instance, version)) return { ...info, updated: false };
 
-    const info = await Vanilla.install(`${INSTANCES_PATH}/${instance.id}`);
-    info.updated = true;
-
+    const downloadUrl = await Vanilla.getDownloadUrl();
+    await download(`${INSTANCES_PATH}/${instance.id}/server.jar`, downloadUrl);
     return info;
   }
 }
