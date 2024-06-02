@@ -1,11 +1,6 @@
-import {
-  existsSync, rmSync, writeFileSync,
-} from 'fs';
-import shell from 'shelljs';
+import { writeFileSync } from 'fs';
 import { INSTANCES_PATH } from '../utils/env.js';
-import { BadRequest } from '../errors/index.js';
 import NodeCraft from './NodeCraft.js';
-import Temp from './Temp.js';
 import {
   Paper, Purpur, Vanilla, Forge,
 } from '../softwares/index.js';
@@ -41,66 +36,6 @@ class Java extends Instance {
     NodeCraft.update(instance.id, { version: info.version, build: info.build, installed: true });
 
     return info;
-  }
-
-  static async downloadWorld(instance, worldType = null) {
-    const instancePath = `${INSTANCES_PATH}/${instance.id}`;
-    let worldPath = `${instancePath}/world`;
-    let zipName = 'world';
-
-    if (worldType) {
-      if (worldType.toLowerCase() === 'nether') {
-        worldPath = `${instancePath}/world_nether`;
-        zipName = 'world_nether';
-      } else if (worldType.toLowerCase() === 'end') {
-        worldPath = `${instancePath}/world_the_end`;
-        zipName = 'world_the_end';
-      }
-    }
-
-    if (!existsSync(worldPath)) throw new BadRequest('World path not found!');
-
-    const zipFile = `${worldPath}/${zipName}.zip`;
-    // Zip world path
-    shell.exec(`cd ${worldPath} && zip -rFS ${zipFile} .`, { silent: true });
-
-    return zipFile;
-  }
-
-  static async uploadWorld(instance, uploadPath, worldType = null) {
-    const instancePath = `${INSTANCES_PATH}/${instance.id}`;
-    let world = `${instancePath}/world`;
-    const uploadFile = `${uploadPath}/upload.zip`;
-
-    if (worldType) {
-      if (worldType.toLowerCase() === 'nether') {
-        world = `${instancePath}/world_nether`;
-      } else if (worldType.toLowerCase() === 'end') {
-        world = `${instancePath}/world_the_end`;
-      }
-    }
-    if (existsSync(world)) rmSync(world, { recursive: true });
-
-    // Unzip uploaded world
-    shell.exec(`unzip -o ${uploadFile} -d ${world}`, { silent: true });
-    Temp.delete(uploadPath);
-
-    return instance;
-  }
-
-  static async deleteWorld(instance, worldType = null) {
-    const instancePath = `${INSTANCES_PATH}/${instance.id}`;
-    let world = `${instancePath}/world`;
-
-    if (worldType) {
-      if (worldType.toLowerCase() === 'nether') {
-        world = `${instancePath}/world_nether`;
-      } else if (worldType.toLowerCase() === 'end') {
-        world = `${instancePath}/world_the_end`;
-      }
-    }
-
-    if (existsSync(world)) rmSync(world, { recursive: true });
   }
 
   async setup() {

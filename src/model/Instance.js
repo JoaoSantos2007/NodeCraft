@@ -50,6 +50,25 @@ const Instance = {
     type: 'array',
     internal: true,
   },
+  startCMD: {
+    type: 'string',
+  },
+  worldPath: {
+    type: 'string',
+    max: 50,
+  },
+  worldNetherPath: {
+    type: 'string',
+    max: 50,
+  },
+  worldEndPath: {
+    type: 'string',
+    max: 50,
+  },
+  pluginsPath: {
+    type: 'string',
+    max: 50,
+  },
 };
 
 export default Instance;

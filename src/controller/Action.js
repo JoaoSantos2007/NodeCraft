@@ -1,10 +1,10 @@
-import ActionService from '../services/Action.js';
+import Service from '../services/Action.js';
 
 class Action {
   static async status(req, res, next) {
     try {
       const { id } = req.params;
-      const status = await ActionService.readStatus(id);
+      const status = await Service.readStatus(id);
 
       return res.status(200).json({ success: true, status });
     } catch (err) {
@@ -15,7 +15,7 @@ class Action {
   static async run(req, res, next) {
     try {
       const { id } = req.params;
-      const instance = await ActionService.runInstance(id);
+      const instance = await Service.runInstance(id);
 
       return res.status(200).json({ success: true, running: true, instance });
     } catch (err) {
@@ -26,7 +26,7 @@ class Action {
   static async update(req, res, next) {
     try {
       const { id } = req.params;
-      const info = await ActionService.updateInstance(id);
+      const info = await Service.updateInstance(id);
       const msg = info.updated ? 'Instance Updated!' : 'No Update Available!';
 
       return res.status(200).json({
@@ -44,7 +44,7 @@ class Action {
   static async stop(req, res, next) {
     try {
       const { id } = req.params;
-      const instance = await ActionService.stopInstance(id);
+      const instance = await Service.stopInstance(id);
 
       return res.status(200).json({ success: true, stopped: true, instance });
     } catch (err) {

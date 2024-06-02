@@ -13,6 +13,7 @@ class Instance {
     this.online = 0;
     this.admins = 0;
     this.players = [];
+    this.startCMD = settings.startCMD;
   }
 
   static create(data) {
@@ -57,8 +58,7 @@ class Instance {
   }
 
   run() {
-    if (this.type === 'java') this.terminal = shell.exec(`cd ${this.path} && java -jar server.jar nogui`, { silent: false, async: true });
-    else this.terminal = shell.exec(`cd ${this.path} && ./bedrock_server`, { silent: false, async: true });
+    this.terminal = shell.exec(`cd ${this.path} && ${this.startCMD}`, { silent: false, async: true });
   }
 
   stop() {

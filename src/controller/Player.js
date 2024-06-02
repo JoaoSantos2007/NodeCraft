@@ -1,11 +1,11 @@
-import PlayerService from '../services/Player.js';
+import Service from '../services/Player.js';
 
 class Player {
   static async add(req, res, next) {
     try {
       const { instanceId } = req.params;
       const data = req.body;
-      const player = await PlayerService.add(instanceId, data);
+      const player = await Service.add(instanceId, data);
 
       return res.status(201).json({ success: true, created: true, player });
     } catch (err) {
@@ -16,7 +16,7 @@ class Player {
   static async readAll(req, res, next) {
     try {
       const { instanceId } = req.params;
-      const players = await PlayerService.readAll(instanceId);
+      const players = await Service.readAll(instanceId);
 
       return res.status(200).json({ success: true, players });
     } catch (err) {
@@ -27,7 +27,7 @@ class Player {
   static async readOne(req, res, next) {
     try {
       const { instanceId, playerId } = req.params;
-      const player = await PlayerService.readOne(instanceId, playerId);
+      const player = await Service.readOne(instanceId, playerId);
 
       return res.status(200).json({ success: true, player });
     } catch (err) {
@@ -39,7 +39,7 @@ class Player {
     try {
       const { instanceId, playerId } = req.params;
       const data = req.body;
-      const player = await PlayerService.update(instanceId, playerId, data);
+      const player = await Service.update(instanceId, playerId, data);
 
       return res.status(200).json({ success: true, updated: true, player });
     } catch (err) {
@@ -50,7 +50,7 @@ class Player {
   static async delete(req, res, next) {
     try {
       const { instanceId, playerId } = req.params;
-      const player = await PlayerService.delete(instanceId, playerId);
+      const player = await Service.delete(instanceId, playerId);
 
       return res.status(200).json({ success: true, deleted: true, player });
     } catch (err) {

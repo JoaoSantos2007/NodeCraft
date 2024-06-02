@@ -14,6 +14,11 @@ class NodeCraft {
       players: {},
       properties: getList(info.type),
       history: [],
+      startCMD: info.type === 'bedrock' ? './bedrock_server' : 'java -jar server.jar nogui',
+      worldPath: 'world',
+      worldNetherPath: 'world_nether',
+      worldEndPath: 'world_the_end',
+      pluginsPath: 'plugins',
     };
 
     NodeCraft.save(settings);
@@ -30,16 +35,16 @@ class NodeCraft {
     return instance;
   }
 
-  static save(settings) {
-    const json = JSON.stringify(settings);
-    writeFileSync(`${INSTANCES_PATH}/${settings.id}/nodecraft.json`, json, 'utf-8');
-  }
-
   static update(id, settings) {
     const instance = NodeCraft.read(id);
     Object.assign(instance, settings);
 
     NodeCraft.save(instance);
+  }
+
+  static save(settings) {
+    const json = JSON.stringify(settings);
+    writeFileSync(`${INSTANCES_PATH}/${settings.id}/nodecraft.json`, json, 'utf-8');
   }
 }
 
