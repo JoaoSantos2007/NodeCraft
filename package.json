@@ -12,6 +12,7 @@
   "author": "João Pedro Tomaz dos Santos",
   "license": "ISC",
   "dependencies": {
+    "adm-zip": "^0.5.14",
     "bcrypt": "^5.1.1",
     "cheerio": "^1.0.0-rc.12",
     "cookie-parser": "^1.4.6",
