@@ -15,7 +15,6 @@ router
   .delete('/:id/file/:path*', Auth.verifyAccess, Instance.verifyInProgress, Middleware.veryPath, Controller.delete)
   .get('/:id/download/file/', Auth.verifyAccess, Middleware.veryPath, Controller.download)
   .get('/:id/download/file/:path*', Auth.verifyAccess, Middleware.veryPath, Controller.download)
-  .post('/:id/upload/file/', Auth.verifyAccess, Middleware.veryPath, uploader.single('path'), Controller.upload)
-  .post('/:id/upload/file/:path*', Auth.verifyAccess, Middleware.veryPath, uploader.single('path'), Controller.upload);
+  .post('/:id/upload/file/:path*', Auth.verifyAccess, Middleware.veryNewPath, uploader.single('file'), Controller.upload);
 
 export default router;

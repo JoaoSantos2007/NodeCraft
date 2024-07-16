@@ -70,7 +70,9 @@ class File {
 
   static upload(req, res, next) {
     try {
-      return res.status(200).json({ success: true });
+      const { location, filename } = req;
+
+      return res.status(200).json({ success: true, location, filename });
     } catch (err) {
       return next(err);
     }
