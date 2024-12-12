@@ -1,7 +1,7 @@
 {
   "name": "nodecraft",
   "version": "2.0.0",
-  "description": "A node application to control a minecraft bedrock and java edition server for linux",
+  "description": "A node a application to control a minecraft bedrock and java edition server for linux",
   "main": "server.js",
   "type": "module",
   "scripts": {
