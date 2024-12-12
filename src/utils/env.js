@@ -4,6 +4,7 @@ import path from 'path';
 dotenv.config();
 
 const PORT = process.env.PORT || 3000;
+const HOST = process.env.HOST || '127.0.0.1';
 const DEBUG = process.env.DEBUG || false;
 const SALT = process.env.SALT || '$2b$10$iXyVMT9A121GYTBibPIt6e';
 const SECRET = process.env.SECRET || '4246e8f9e71b0b086b3b194a4bcb5d07c94dd773dddb51752183f7e9c82c543f';
@@ -17,5 +18,13 @@ if (!SALT || !SECRET) {
 }
 
 export {
-  PORT, DEBUG, SALT, SECRET, ACCESS_TOKEN_LIFETIME, ABSOLUTE_PATH, INSTANCES_PATH, TEMPORARY_PATH,
+  PORT,
+  HOST,
+  DEBUG,
+  SALT,
+  SECRET,
+  ACCESS_TOKEN_LIFETIME,
+  ABSOLUTE_PATH,
+  INSTANCES_PATH,
+  TEMPORARY_PATH,
 };

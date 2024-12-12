@@ -23,14 +23,17 @@ User.init({
   },
   gamertag: {
     type: DataTypes.STRING,
-    allowNull: false,
+    allowNull: true,
   },
-  role: {
-    type: DataTypes.STRING,
+  admin: {
+    type: DataTypes.BOOLEAN,
     allowNull: false,
-    validate: {
-      isIn: [['admin', 'member', 'analize']],
-    },
+    defaultValue: false,
+  },
+  quota: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0,
   },
 }, {
   tableName: 'User',
