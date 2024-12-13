@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
 import { SECRET } from './env.js';
 import UnathorizedError from '../errors/Unathorized.js';
-import User from '../model/User.js';
+import User from '../models/User.js';
 import Player from '../services/Player.js';
 
 async function verifyToken(req) {

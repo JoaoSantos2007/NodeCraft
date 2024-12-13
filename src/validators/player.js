@@ -1,4 +1,4 @@
-import Player from '../model/Player.js';
+import Player from '../models/Player.js';
 import validator from './validator.js';
 
 const playerValidator = (data, player = null) => {

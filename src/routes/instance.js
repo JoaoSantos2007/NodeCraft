@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import Controller from '../controller/Instance.js';
+import Controller from '../controllers/Instance.js';
 import Middleware from '../middlewares/Instance.js';
 import player from './player.js';
 import properties from './properties.js';

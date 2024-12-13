@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import User from '../model/User.js';
+import User from '../models/User.js';
 import hashPassword from '../utils/hashPassword.js';
 import { ACCESS_TOKEN_LIFETIME, SECRET } from '../utils/env.js';
 import UnathorizedError from '../errors/Unathorized.js';

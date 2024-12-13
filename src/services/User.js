@@ -1,4 +1,4 @@
-import UserModel from '../model/User.js';
+import Model from '../models/User.js';
 import hashPassword from '../utils/hashPassword.js';
 import DuplicateError from '../errors/Duplicate.js';
 import BadRequestError from '../errors/BadRequest.js';
@@ -6,7 +6,7 @@ import BadRequestError from '../errors/BadRequest.js';
 class User {
   // eslint-disable-next-line object-curly-newline
   static async register({ name, email, password, gamertag }) {
-    let user = await UserModel.findOne({
+    let user = await Model.findOne({
       where: {
         email,
       },
@@ -17,7 +17,7 @@ class User {
       throw new DuplicateError('Email already registered!');
     }
 
-    user = await UserModel.create({
+    user = await Model.create({
       name,
       email,
       password: hashPassword(password),
@@ -29,13 +29,13 @@ class User {
   }
 
   static async readUsers() {
-    const user = await UserModel.findAll();
+    const user = await Model.findAll();
 
     return user;
   }
 
   static async readUserById(id) {
-    const user = await UserModel.findOne({
+    const user = await Model.findOne({
       where: {
         id,
       },

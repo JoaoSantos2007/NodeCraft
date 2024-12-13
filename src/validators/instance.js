@@ -1,4 +1,4 @@
-import Instance from '../model/Instance.js';
+import Instance from '../models/Instance.js';
 import validator from './validator.js';
 
 const instanceValidator = (data, instance = null) => {

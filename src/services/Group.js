@@ -1,4 +1,4 @@
-import { Group as Model } from '../model/index.js';
+import { Group as Model } from '../models/index.js';
 import { BadRequest, InvalidRequest } from '../errors/index.js';
 
 class Group {

@@ -1,4 +1,4 @@
-import Properties from '../model/Properties.js';
+import Properties from '../models/Properties.js';
 import validator from './validator.js';
 
 const propertiesValidator = (data, properties, instanceType) => {
