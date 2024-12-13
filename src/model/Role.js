@@ -9,15 +9,12 @@ Role.init({
     defaultValue: Sequelize.UUIDV4,
     primaryKey: true,
   },
-  groupId: {
-
-  },
   name: {
     type: DataTypes.STRING,
     allowNull: false,
   },
   permissons: {
-    type: DataTypes.ARRAY,
+    type: DataTypes.JSON,
     allowNull: false,
   },
 }, {
@@ -25,7 +22,5 @@ Role.init({
   sequelize: db,
   timestamps: false,
 });
-
-await Role.sync({ alter: true });
 
 export default Role;

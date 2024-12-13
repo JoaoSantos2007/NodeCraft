@@ -24,6 +24,4 @@ Group.init({
   timestamps: false,
 });
 
-await Group.sync({ alter: true });
-
 export default Group;

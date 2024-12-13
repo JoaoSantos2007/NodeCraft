@@ -46,6 +46,4 @@ User.init({
   },
 });
 
-await User.sync({ alter: true });
-
 export default User;
