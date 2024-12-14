@@ -1,9 +1,13 @@
 import Service from '../services/Role.js';
+import GroupService from '../services/Group.js';
 
 class Role {
   static async readAll(req, res, next) {
     try {
-      const roles = await Service.readAll();
+      const groupId = req?.params?.groupId;
+
+      const group = await GroupService.readOne(groupId);
+      const roles = await Service.readAll(group);
 
       return res.status(200).json({ success: true, roles });
     } catch (err) {
@@ -13,8 +17,11 @@ class Role {
 
   static async readOne(req, res, next) {
     try {
-      const id = req?.params?.id;
-      const role = await Service.readOne(id);
+      const groupId = req?.params?.groupId;
+      const roleId = req?.params?.roleId;
+
+      const group = await GroupService.readOne(groupId);
+      const role = await Service.readOne(group, roleId);
 
       return res.status(200).json({ success: true, role });
     } catch (err) {
@@ -24,8 +31,11 @@ class Role {
 
   static async create(req, res, next) {
     try {
+      const groupId = req?.params?.groupId;
       const data = req.body;
-      const role = await Service.create(data);
+
+      const group = await GroupService.readOne(groupId);
+      const role = await Service.create(group, data);
 
       return res.status(201).json({ success: true, created: true, role });
     } catch (err) {
@@ -35,10 +45,12 @@ class Role {
 
   static async update(req, res, next) {
     try {
-      const id = req?.params?.id;
+      const groupId = req?.params?.groupId;
+      const roleId = req?.params?.roleId;
       const data = req.body;
 
-      const role = await Service.update(id, data);
+      const group = await GroupService.readOne(groupId);
+      const role = await Service.update(group, roleId, data);
 
       return res.status(200).json({ success: true, updated: true, role });
     } catch (err) {
@@ -48,8 +60,11 @@ class Role {
 
   static async delete(req, res, next) {
     try {
-      const id = req?.params?.id;
-      const role = await Service.delete(id);
+      const groupId = req?.params?.groupId;
+      const roleId = req?.params?.roleId;
+
+      const group = await GroupService.readOne(groupId);
+      const role = await Service.delete(group, roleId);
 
       return res.status(200).json({ success: true, deleted: true, role });
     } catch (err) {

@@ -13,9 +13,24 @@ Role.init({
     type: DataTypes.STRING,
     allowNull: false,
   },
-  permissons: {
-    type: DataTypes.JSON,
+  permissions: {
+    type: DataTypes.TEXT,
     allowNull: false,
+    get() {
+      const rawValue = this.getDataValue('permissions');
+      return rawValue ? JSON.parse(rawValue) : [];
+    },
+    set(value) {
+      this.setDataValue('permissions', JSON.stringify(value));
+    },
+    validate: {
+      isValidArray(value) {
+        const parsed = Array.isArray(value) ? value : JSON.parse(value);
+        if (!Array.isArray(parsed) || !parsed.every((item) => typeof item === 'string')) {
+          throw new Error('Permissions field must be a type of array!');
+        }
+      },
+    },
   },
 }, {
   tableName: 'Role',

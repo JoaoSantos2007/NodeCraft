@@ -8,7 +8,7 @@ class Group {
   }
 
   static async readOne(id) {
-    const group = await Model.findByPk(id);
+    const group = await Model.findByPk(id, { include: ['roles', 'members'] });
     if (!group) throw new BadRequest('Group not found!');
 
     return group;
