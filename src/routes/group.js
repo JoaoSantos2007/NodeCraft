@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import Contoller from '../controllers/Group.js';
 import role from './role.js';
+import member from './member.js';
 
 const router = Router();
 
@@ -10,6 +11,7 @@ router
   .post('/group', Contoller.create)
   .put('/group/:id', Contoller.update)
   .delete('/group/:id', Contoller.delete)
-  .use('/group', role);
+  .use('/group', role)
+  .use('/group', member);
 
 export default router;
