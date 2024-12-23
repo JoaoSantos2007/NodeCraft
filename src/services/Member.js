@@ -1,4 +1,7 @@
 import { Member as Model } from '../models/index.js';
+import { BadRequest } from '../errors/index.js';
+import User from './User.js';
+import Role from './Role.js';
 
 class Member {
   static async readAll(group) {
@@ -6,18 +9,47 @@ class Member {
     return members;
   }
 
-  static async readOne(group, ) {
+  static async readOne(group, memberId) {
+    const member = await Model.findOne({
+      where: { GroupId: group.id, id: memberId },
+    });
 
+    if (!member) throw new BadRequest('Member not found!');
+
+    return member;
   }
 
   static async create(group, data) {
+    const user = await User.readUserById(data.userId);
+    const role = await Role.readOne(data.roleId);
+
     const member = await Model.create({
       GroupId: group.id,
-      RoleId: data.roleId,
-      UserId: data.userId,
+      RoleId: role.id,
+      UserId: user.id,
       admin: data.admin,
       permissions: data.permissions,
     });
+
+    return member;
+  }
+
+  static async update(group, data) {
+    const member = await Member.readOne(group, data.id);
+
+    member.update({
+      RoleId: data.roleId,
+      permissions: data.permissions,
+    });
+
+    await member.save();
+
+    return member;
+  }
+
+  static async delete(group, memberId) {
+    const member = await Member.readOne(group, memberId);
+    await member.destroy();
 
     return member;
   }

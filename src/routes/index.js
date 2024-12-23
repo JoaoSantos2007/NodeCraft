@@ -1,5 +1,6 @@
 import express from 'express';
 import cookieParser from 'cookie-parser';
+import helmet from 'helmet';
 import user from './user.js';
 import auth from './auth.js';
 import instance from './instance.js';
@@ -13,6 +14,7 @@ const routes = (app) => {
   app.use(
     express.json(),
     cookieParser(),
+    helmet(),
     user,
     auth,
     instance,
