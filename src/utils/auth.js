@@ -20,7 +20,7 @@ async function verifyUser(accessToken) {
 }
 
 function verifyUserAdmin(user) {
-  return user.role === 'admin';
+  return user.admin;
 }
 
 async function verifyUserAccess(instanceId, user) {

@@ -4,9 +4,17 @@ class File {
   static read(req, res, next) {
     try {
       const { id } = req.params;
+      const { query } = req;
       let path = req?.params?.path ?? '';
       path += req.params[0] || '';
 
+      // Download file
+      if (query.download === 'true') {
+        const result = Service.download(id, path);
+        return res.download(result);
+      }
+
+      // Read file content
       const result = Service.read(id, path);
       return res.status(200).json({ success: true, ...result });
     } catch (err) {
@@ -17,9 +25,17 @@ class File {
   static create(req, res, next) {
     try {
       const { id } = req.params;
-      const { body } = req;
+      const body = req?.body;
+      const location = req?.location;
+      const filename = req?.filename;
       let path = req?.params?.path ?? '';
       path += req.params[0] || '';
+
+      if (location || filename) {
+        return res.status(201).json({
+          success: true, uploaded: true, location, filename,
+        });
+      }
 
       const result = Service.create(id, path, body);
       return res.status(201).json({ success: true, created: true, ...result });
@@ -55,24 +71,33 @@ class File {
     }
   }
 
-  static download(req, res, next) {
+  static async unzip(req, res, next) {
     try {
       const { id } = req.params;
       let path = req?.params?.path ?? '';
       path += req.params[0] || '';
 
-      const result = Service.download(id, path);
-      return res.download(result);
+      const pathName = Service.unzip(id, path);
+      return res.status(200).json({ success: true, unzipped: true, name: pathName });
     } catch (err) {
       return next(err);
     }
   }
 
-  static upload(req, res, next) {
+  static async move(req, res, next) {
     try {
-      const { location, filename } = req;
+      const { id } = req.params;
+      let path = req?.params?.path ?? '';
+      path += req.params[0] || '';
 
-      return res.status(200).json({ success: true, location, filename });
+      let destiny = req?.params?.destiny ?? '';
+      destiny += req.params[1] || '';
+
+      const result = Service.move(id, path, destiny);
+
+      return res.status(200).json({
+        success: true, moved: result, path, destiny,
+      });
     } catch (err) {
       return next(err);
     }
