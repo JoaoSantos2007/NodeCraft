@@ -15,7 +15,7 @@ class Action {
   static async run(req, res, next) {
     try {
       const { id } = req.params;
-      const instance = await Service.runInstance(id);
+      const instance = await Service.run(id);
 
       return res.status(200).json({ success: true, running: true, instance });
     } catch (err) {
@@ -26,12 +26,11 @@ class Action {
   static async update(req, res, next) {
     try {
       const { id } = req.params;
-      const info = await Service.updateInstance(id);
-      const msg = info.updated ? 'Instance Updated!' : 'No Update Available!';
+      const info = await Service.updateVersion(id);
+      const msg = info.updating ? 'Updating Instance!' : 'No Update Available!';
 
       return res.status(200).json({
         success: true,
-        updated: !!info.updated,
         version: info.version,
         build: info.build,
         msg,
@@ -44,7 +43,7 @@ class Action {
   static async stop(req, res, next) {
     try {
       const { id } = req.params;
-      const instance = await Service.stopInstance(id);
+      const instance = await Service.stop(id);
 
       return res.status(200).json({ success: true, stopped: true, instance });
     } catch (err) {

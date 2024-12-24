@@ -1,8 +1,7 @@
 import { writeFileSync } from 'fs';
 import { INSTANCES_PATH } from '../utils/env.js';
-import NodeCraft from './NodeCraft.js';
 import {
-  Paper, Purpur, Vanilla, Forge,
+  Paper, Purpur, Vanilla,
 } from '../softwares/index.js';
 import { syncLists } from '../utils/Properties.js';
 import Instance from './Instance.js';
@@ -15,25 +14,20 @@ class Java extends Instance {
     this.setup();
   }
 
-  static async install(instance) {
-    let info = { version: instance.version, build: null };
+  static async install(instance, isUpdate = false) {
+    writeFileSync(`${INSTANCES_PATH}/${instance.id}/eula.txt`, 'eula=true');
+    let info = { version: instance.version, build: null, updated: false };
 
     switch (instance.software) {
       case 'paper':
-        info = await Paper.install(instance);
+        info = await Paper.install(instance, isUpdate);
         break;
       case 'purpur':
-        info = await Purpur.install(instance);
-        break;
-      case 'forge':
-        info = await Forge.install(instance);
+        info = await Purpur.install(instance, isUpdate);
         break;
       default:
-        info = await Vanilla.install(instance);
+        info = await Vanilla.install(instance, isUpdate);
     }
-
-    writeFileSync(`${INSTANCES_PATH}/${instance.id}/eula.txt`, 'eula=true');
-    NodeCraft.update(instance.id, { version: info.version, build: info.build, installed: true });
 
     return info;
   }

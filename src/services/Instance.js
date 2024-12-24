@@ -2,7 +2,7 @@ import { mkdirSync, readdirSync, rmSync } from 'fs';
 import { randomUUID } from 'crypto';
 import shell from 'shelljs';
 import { INSTANCES_PATH } from '../utils/env.js';
-import instanceValidator from '../validators/instance.js';
+import validate from '../validators/instance.js';
 import NodeCraft from './NodeCraft.js';
 
 class Instance {
@@ -17,7 +17,7 @@ class Instance {
   }
 
   static create(data) {
-    instanceValidator(data);
+    validate(data);
 
     const id = randomUUID();
     mkdirSync(`${INSTANCES_PATH}/${id}`);
@@ -41,7 +41,7 @@ class Instance {
 
   static update(id, data) {
     const instance = Instance.readOne(id);
-    instanceValidator(data, instance);
+    validate(data, instance);
 
     // eslint-disable-next-line no-restricted-syntax
     for (const [key, value] of Object.entries(data)) instance[key] = value;

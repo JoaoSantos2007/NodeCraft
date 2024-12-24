@@ -3,7 +3,7 @@ import Bedrock from '../services/Bedrock.js';
 import Java from '../services/Java.js';
 
 class Instance {
-  static async create(req, res, next) {
+  static create(req, res, next) {
     try {
       const version = req.params.version || 'latest';
       const { body } = req;

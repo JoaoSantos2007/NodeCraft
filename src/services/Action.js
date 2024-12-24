@@ -5,7 +5,7 @@ import Java from './Java.js';
 import Bedrock from './Bedrock.js';
 
 class Action {
-  static async readStatus(id) {
+  static readStatus(id) {
     const instance = Action.verifyInstanceInProgess(id);
     if (!instance) throw new BadRequest('Instance is not in progress!');
 
@@ -16,8 +16,8 @@ class Action {
     return status;
   }
 
-  static async runInstance(id) {
-    const instance = await Instance.readOne(id);
+  static run(id) {
+    const instance = Instance.readOne(id);
     const { type } = instance;
     let newInstance = null;
 
@@ -33,34 +33,34 @@ class Action {
     return instancesList[id];
   }
 
-  static async updateInstance(id) {
-    const instance = await Instance.readOne(id);
+  static async updateVersion(id) {
+    const instance = Instance.readOne(id);
 
     if (instance.disableUpdate) throw new InvalidRequest('Updates are disabled for this instance!');
 
     const { type } = instance;
     let info = { version: instance.version, build: instance.build, updated: false };
-    if (type === 'bedrock') info = await Bedrock.update(instance);
-    else if (type === 'java') info = await Java.update(instance);
+    if (type === 'bedrock') info = await Bedrock.install(instance, true);
+    else if (type === 'java') info = await Java.install(instance, true);
 
     return info;
   }
 
   // Revisar
-  static async updateAllInstances() {
-    const instances = await Instance.readAll();
+  static async updateAllVersions() {
+    const instances = Instance.readAll();
 
     instances.forEach(async (instance) => {
       if (!instance.disableUpdate) {
         const { id } = instance;
-        if (Action.verifyInstanceInProgess(id)) await Instance.stop(id);
-        await Instance.updateVersion(instance.id);
+        if (Action.verifyInstanceInProgess(id)) Instance.stop(id);
+        Instance.updateVersion(instance.id);
       }
     });
   }
 
-  static async stopInstance(id) {
-    const instance = await Instance.readOne(id);
+  static stop(id) {
+    const instance = Instance.readOne(id);
     if (!Action.verifyInstanceInProgess(id)) throw new BadRequest('Instance is not in progress!');
 
     instancesList[id].stop();
