@@ -33,15 +33,15 @@ class Action {
     return instancesList[id];
   }
 
-  static async updateVersion(id) {
+  static async updateVersion(id, force = false) {
     const instance = Instance.readOne(id);
 
     if (instance.disableUpdate) throw new InvalidRequest('Updates are disabled for this instance!');
 
     const { type } = instance;
     let info = { version: instance.version, build: instance.build, updated: false };
-    if (type === 'bedrock') info = await Bedrock.install(instance, true);
-    else if (type === 'java') info = await Java.install(instance, true);
+    if (type === 'bedrock') info = await Bedrock.install(instance, true, force);
+    else if (type === 'java') info = await Java.install(instance, true, force);
 
     return info;
   }

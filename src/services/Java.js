@@ -14,19 +14,19 @@ class Java extends Instance {
     this.setup();
   }
 
-  static async install(instance, isUpdate = false) {
+  static async install(instance, isUpdate = false, force = false) {
     writeFileSync(`${INSTANCES_PATH}/${instance.id}/eula.txt`, 'eula=true');
     let info = { version: instance.version, build: null, updated: false };
 
     switch (instance.software) {
       case 'paper':
-        info = await Paper.install(instance, isUpdate);
+        info = await Paper.install(instance, isUpdate, force);
         break;
       case 'purpur':
-        info = await Purpur.install(instance, isUpdate);
+        info = await Purpur.install(instance, isUpdate, force);
         break;
       default:
-        info = await Vanilla.install(instance, isUpdate);
+        info = await Vanilla.install(instance, isUpdate, force);
     }
 
     return info;

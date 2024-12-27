@@ -5,10 +5,9 @@ import Java from '../services/Java.js';
 class Instance {
   static create(req, res, next) {
     try {
-      const version = req.params.version || 'latest';
       const { body } = req;
 
-      const instance = Service.create({ ...body, version });
+      const instance = Service.create(body);
       if (body.type === 'bedrock') Bedrock.install(instance);
       else Java.install(instance);
 

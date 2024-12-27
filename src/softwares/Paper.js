@@ -43,9 +43,9 @@ class Paper {
     return { needUpdate, info };
   }
 
-  static async install(instance, isUpdate = false) {
+  static async install(instance, isUpdate = false, force = false) {
     const { needUpdate, info } = await Paper.verifyNeedUpdate(instance);
-    if (!needUpdate) return { ...info, updated: false };
+    if (!needUpdate && !force) return { ...info, updated: false };
 
     const downloadUrl = `https://api.papermc.io/v2/projects/paper/versions/${info.version}/builds/${info.build}/downloads/paper-${info.version}-${info.build}.jar`;
 

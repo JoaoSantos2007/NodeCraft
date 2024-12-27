@@ -26,13 +26,14 @@ class Action {
   static async update(req, res, next) {
     try {
       const { id } = req.params;
-      const info = await Service.updateVersion(id);
+      const force = req?.query?.force === 'true';
+      const info = await Service.updateVersion(id, force);
       const msg = info.updating ? 'Updating Instance!' : 'No Update Available!';
 
       return res.status(200).json({
         success: true,
-        version: info.version,
-        build: info.build,
+        version: info.version || null,
+        build: info.build || null,
         msg,
       });
     } catch (err) {

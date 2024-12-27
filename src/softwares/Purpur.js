@@ -31,21 +31,21 @@ class Purpur {
   static async verifyNeedUpdate(instance) {
     const latest = await Purpur.getLatest();
     const info = { version: latest.version, build: latest.build };
-    let needUpdated;
+    let needUpdate;
 
-    if (!instance.installed) needUpdated = true;
-    else if (instance.disableUpdate) needUpdated = false;
+    if (!instance.installed) needUpdate = true;
+    else if (instance.disableUpdate) needUpdate = false;
     else {
-      needUpdated = instance.version !== latest.version
+      needUpdate = instance.version !== latest.version
       || Number(instance.build) !== Number(latest.build);
     }
 
-    return { needUpdated, info };
+    return { needUpdate, info };
   }
 
-  static async install(instance, isUpdate = false) {
+  static async install(instance, isUpdate = false, force = false) {
     const { needUpdate, info } = await Purpur.verifyNeedUpdate(instance);
-    if (!needUpdate) return { ...info, updated: false };
+    if (!needUpdate && !force) return { ...info, updated: false };
 
     const downloadUrl = `https://api.purpurmc.org/v2/purpur/${info.version}/${info.build}/download`;
 

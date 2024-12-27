@@ -1,6 +1,6 @@
-import shell from 'shelljs';
 import { readFileSync, writeFileSync } from 'fs';
 import * as cheerio from 'cheerio';
+import AdmZip from 'adm-zip';
 import { INSTANCES_PATH } from '../utils/env.js';
 import NodeCraft from './NodeCraft.js';
 import Temp from './Temp.js';
@@ -14,32 +14,52 @@ class Bedrock extends Instance {
     this.setup();
   }
 
-  static verifyNeedUpdate(latestVersion, instance) {
-    const { installed, version, disableUpdate } = instance;
+  static async verifyNeedUpdate(instance) {
+    const url = await Bedrock.getUrl();
+    const version = Bedrock.extractVersion(url);
+    let needUpdate = false;
 
-    if (!installed) return true;
-    return (!disableUpdate && version !== latestVersion);
+    if (!instance.installed) needUpdate = true;
+    else if (instance.disableUpdate) needUpdate = false;
+    else needUpdate = instance.version !== version;
+
+    return { needUpdate, version, url };
   }
 
-  static async install(instance) {
-    const downloadUrl = await Bedrock.getDownloadUrl();
-    const latestVersion = Bedrock.extractVersion(downloadUrl);
-    const info = { version: latestVersion, build: null };
-    if (!Bedrock.verifyNeedUpdate(latestVersion, instance)) return { ...info, updated: false };
+  static async install(instance, isUpdate = false, force = false) {
+    const { needUpdate, version, url } = await Bedrock.verifyNeedUpdate(instance);
+    if (!needUpdate && !force) return { version, updated: false };
 
     // Install and unzip
     const instancePath = `${INSTANCES_PATH}/${instance.id}`;
     const tempPath = Temp.create();
-    await download(`${tempPath}/bedrock.zip`, downloadUrl);
-    shell.exec(`unzip -o ${tempPath}/bedrock.zip -d ${instancePath}`, { silent: true });
 
+    if (isUpdate) {
+      // Start the download process in the background
+      download(`${tempPath}/bedrock.zip`, url).then(() => {
+        // Update the instance info after download completes
+
+        const zip = new AdmZip(`${tempPath}/bedrock.zip`);
+        zip.extractAllTo(instancePath, true);
+        Temp.delete(tempPath);
+        NodeCraft.update(instance.id, { version, installed: true });
+      });
+
+      // Return the immediate response
+      return { version, updating: true };
+    }
+
+    // Wait for the download to complete
+    await download(`${tempPath}/bedrock.zip`, url);
+    const zip = new AdmZip(`${tempPath}/bedrock.zip`);
+    zip.extractAllTo(instancePath, true);
     Temp.delete(tempPath);
-    NodeCraft.update(instance.id, { version: latestVersion, build: null, installed: true });
+    NodeCraft.update(instance.id, { version, installed: true });
 
-    return info;
+    return { version, updated: true };
   }
 
-  static async getDownloadUrl() {
+  static async getUrl() {
     const tempPath = Temp.create();
     await download(`${tempPath}/index.html`, 'https://minecraft.net/en-us/download/server/bedrock');
     const html = readFileSync(`${tempPath}/index.html`, 'utf8');
