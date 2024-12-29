@@ -1,9 +1,8 @@
 import { existsSync, realpathSync } from 'fs';
 import * as Path from 'path';
 import { BadRequest, InvalidRequest } from '../errors/index.js';
-import { INSTANCES_PATH } from '../utils/env.js';
+import { INSTANCES_PATH } from '../../config/settings.js';
 import errorHandler from '../utils/errorHandler.js';
-import isUUID from '../utils/isUUID.js';
 
 class File {
   static verifyTwoPoints(path) {
@@ -21,13 +20,18 @@ class File {
     return false;
   }
 
+  static verifyUUID(id) {
+    const uuidRegex = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+    return uuidRegex.test(id);
+  }
+
   static verify(req, res, next, newPath = false) {
     try {
       const { id } = req.params;
       let path = req?.params?.path ?? '';
       path += req.params[0] || '';
 
-      if (!isUUID(id)) throw new InvalidRequest(`${id} is not a valid uuid!`);
+      if (!File.verifyUUID(id)) throw new InvalidRequest(`${id} is not a valid uuid!`);
       if (File.verifyTwoPoints(path)) throw new InvalidRequest('directory traversal is not valid!');
 
       let realPath;

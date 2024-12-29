@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto';
 import { mkdirSync, rmSync } from 'fs';
-import { TEMPORARY_PATH } from '../utils/env.js';
+import { TEMPORARY_PATH } from '../../config/settings.js';
 
 class Temp {
   static create(autoDelete = false) {

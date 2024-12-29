@@ -1,11 +1,11 @@
 import { readFileSync, writeFileSync } from 'fs';
 import * as cheerio from 'cheerio';
 import AdmZip from 'adm-zip';
-import { INSTANCES_PATH } from '../utils/env.js';
+import { INSTANCES_PATH } from '../../config/settings.js';
 import NodeCraft from './NodeCraft.js';
 import Temp from './Temp.js';
 import download from '../utils/download.js';
-import { syncLists } from '../utils/Properties.js';
+import List from './List.js';
 import Instance from './Instance.js';
 
 class Bedrock extends Instance {
@@ -75,7 +75,7 @@ class Bedrock extends Instance {
   }
 
   setup() {
-    syncLists(this.path, this.settings);
+    List.sync(this.path, this.settings);
     this.wipePrivileges();
     this.updateAccess();
     this.run();

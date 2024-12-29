@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, writeFileSync } from 'fs';
-import { INSTANCES_PATH } from '../utils/env.js';
-import { getList } from '../utils/Properties.js';
+import { INSTANCES_PATH } from '../../config/settings.js';
+import List from './List.js';
 import { BadRequest } from '../errors/index.js';
 
 class NodeCraft {
@@ -12,7 +12,7 @@ class NodeCraft {
       maxHistoryLines: 100,
       disableUpdate: false,
       players: {},
-      properties: getList(info.type),
+      properties: List.get(info.type),
       history: [],
       startCMD: info.type === 'bedrock' ? './bedrock_server' : 'java -jar server.jar nogui',
       worldPath: 'world',

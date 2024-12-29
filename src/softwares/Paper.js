@@ -1,7 +1,7 @@
 import { BadRequest } from '../errors/index.js';
 import download from '../utils/download.js';
 import NodeCraft from '../services/NodeCraft.js';
-import { INSTANCES_PATH } from '../utils/env.js';
+import { INSTANCES_PATH } from '../../config/settings.js';
 
 class Paper {
   static async getVersions() {

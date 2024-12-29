@@ -13,7 +13,7 @@ import {
 import Path from 'path';
 import AdmZip from 'adm-zip';
 import { randomUUID } from 'crypto';
-import { INSTANCES_PATH } from '../utils/env.js';
+import { INSTANCES_PATH } from '../../config/settings.js';
 import validator from '../validators/file.js';
 import Temp from './Temp.js';
 import { Base, InvalidRequest } from '../errors/index.js';

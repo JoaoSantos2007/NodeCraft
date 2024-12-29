@@ -1,5 +1,5 @@
 import { BadRequest, InvalidRequest } from '../errors/index.js';
-import instancesList from '../utils/instancesList.js';
+import { INSTANCES } from '../../config/settings.js';
 import Instance from './Instance.js';
 import Java from './Java.js';
 import Bedrock from './Bedrock.js';
@@ -25,12 +25,12 @@ class Action {
     else if (type === 'java') newInstance = new Java(instance);
     else throw new Error();
 
-    instancesList[id] = newInstance;
+    INSTANCES[id] = newInstance;
     return instance;
   }
 
   static verifyInstanceInProgess(id) {
-    return instancesList[id];
+    return INSTANCES[id];
   }
 
   static async updateVersion(id, force = false) {
@@ -63,8 +63,8 @@ class Action {
     const instance = Instance.readOne(id);
     if (!Action.verifyInstanceInProgess(id)) throw new BadRequest('Instance is not in progress!');
 
-    instancesList[id].stop();
-    instancesList[id] = null;
+    INSTANCES[id].stop();
+    INSTANCES[id] = null;
     return instance;
   }
 }

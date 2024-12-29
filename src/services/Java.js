@@ -1,12 +1,11 @@
 import { writeFileSync } from 'fs';
-import { INSTANCES_PATH } from '../utils/env.js';
+import { INSTANCES_PATH } from '../../config/settings.js';
 import {
   Paper, Purpur, Vanilla,
 } from '../softwares/index.js';
-import { syncLists } from '../utils/Properties.js';
+import List from './List.js';
 import Instance from './Instance.js';
 import findPlayer from '../utils/findPlayer.js';
-import formatUUID from '../utils/formatUUID.js';
 
 class Java extends Instance {
   constructor(settings) {
@@ -32,8 +31,15 @@ class Java extends Instance {
     return info;
   }
 
+  static formatUUID(uuidString) {
+    if (uuidString.length !== 32) return undefined;
+
+    const formattedUUID = `${uuidString.slice(0, 8)}-${uuidString.slice(8, 12)}-${uuidString.slice(12, 16)}-${uuidString.slice(16, 20)}-${uuidString.slice(20)}`;
+    return formattedUUID;
+  }
+
   async setup() {
-    syncLists(this.path, this.settings);
+    List.sync(this.path, this.settings);
     this.updateAccess();
     this.setupOps();
     this.run();
@@ -59,7 +65,7 @@ class Java extends Instance {
       if (operator) {
         // eslint-disable-next-line no-await-in-loop
         const id = await findPlayer(gamertag);
-        const uuid = formatUUID(id);
+        const uuid = Java.formatUUID(id);
         if (uuid) {
           ops.push({
             uuid,
@@ -85,7 +91,7 @@ class Java extends Instance {
       if (access === 'always' || player.admin || (access === 'monitored' && this.admins > 0)) {
         // eslint-disable-next-line no-await-in-loop
         const id = await findPlayer(gamertag);
-        const uuid = formatUUID(id);
+        const uuid = Java.formatUUID(id);
         if (uuid) allowlist.push({ uuid, name: gamertag });
       }
 

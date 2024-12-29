@@ -2,7 +2,7 @@ import * as cheerio from 'cheerio';
 import { readFileSync } from 'fs';
 import Temp from '../services/Temp.js';
 import download from '../utils/download.js';
-import { INSTANCES_PATH } from '../utils/env.js';
+import { INSTANCES_PATH } from '../../config/settings.js';
 import NodeCraft from '../services/NodeCraft.js';
 
 class Vanilla {

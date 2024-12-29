@@ -1,7 +1,7 @@
 import { mkdirSync, readdirSync, rmSync } from 'fs';
 import { randomUUID } from 'crypto';
 import shell from 'shelljs';
-import { INSTANCES_PATH } from '../utils/env.js';
+import { INSTANCES_PATH } from '../../config/settings.js';
 import validate from '../validators/instance.js';
 import NodeCraft from './NodeCraft.js';
 

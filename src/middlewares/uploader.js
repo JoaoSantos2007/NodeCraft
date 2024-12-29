@@ -1,5 +1,5 @@
 import multer from 'multer';
-import { INSTANCES_PATH } from '../utils/env.js';
+import { INSTANCES_PATH } from '../../config/settings.js';
 
 const storage = multer.diskStorage({
   destination(req, file, cb) {

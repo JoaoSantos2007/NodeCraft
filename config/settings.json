@@ -1,0 +1,9 @@
+{
+  "instancesPath": "default",
+  "temporaryPath": "default",
+  "logPath": "default",
+  "backupPath": "default",
+  "accessTokenLifetime": 3600,
+  "enableInterface": true,
+  "timezone": "UTC"
+}
