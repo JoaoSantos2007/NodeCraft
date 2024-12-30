@@ -11,6 +11,7 @@ const dirname = path.dirname(filename);
 const CONFIG_PATH = path.join(dirname, 'settings.json');
 dotenv.config();
 
+// eslint-disable-next-line import/no-mutable-exports
 let config = {};
 try {
   const rawData = readFileSync(CONFIG_PATH, 'utf-8');
@@ -25,8 +26,8 @@ const DEBUG = process.env.DEBUG || false;
 const SALT = process.env.SALT || '$2b$10$iXyVMT9A121GYTBibPIt6e';
 const SECRET = process.env.SECRET || '4246e8f9e71b0b086b3b194a4bcb5d07c94dd773dddb51752183f7e9c82c543f';
 const ABSOLUTE_PATH = path.resolve();
-const INSTANCES_PATH = config.instancesPath === 'default' ? `${ABSOLUTE_PATH}/instances` : config.instancesPath;
-const TEMPORARY_PATH = config.temporaryPath === 'default' ? `${ABSOLUTE_PATH}/temp` : config.temporaryPath;
+const INSTANCES_PATH = config.instancesPath || `${ABSOLUTE_PATH}/instances`;
+const TEMPORARY_PATH = config.temporaryPath || `${ABSOLUTE_PATH}/temp`;
 const ACCESS_TOKEN_LIFETIME = config.accessTokenLifetime || '15m';
 const INSTANCES = {};
 
@@ -44,4 +45,5 @@ export {
   SALT,
   SECRET,
   INSTANCES,
+  config,
 };
