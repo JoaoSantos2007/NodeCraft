@@ -21,7 +21,7 @@ class Member {
 
   static async create(group, data) {
     const user = await User.readUserById(data.userId);
-    const role = await Role.readOne(data.roleId);
+    const role = await Role.readOne(group, data.roleId);
 
     const member = await Model.create({
       GroupId: group.id,

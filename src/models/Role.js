@@ -5,7 +5,7 @@ class Role extends Model { }
 
 Role.init({
   id: {
-    type: Sequelize.UUIDV4,
+    type: DataTypes.UUID,
     defaultValue: Sequelize.UUIDV4,
     primaryKey: true,
   },
@@ -31,6 +31,16 @@ Role.init({
         }
       },
     },
+  },
+  GroupId: { // Campo explícito para a chave estrangeira
+    type: Sequelize.UUIDV4,
+    allowNull: false, // Ajuste conforme necessário
+    references: {
+      model: 'Group',
+      key: 'id',
+    },
+    onUpdate: 'CASCADE',
+    onDelete: 'SET NULL',
   },
 }, {
   tableName: 'Role',

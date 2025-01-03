@@ -1,11 +1,11 @@
 import { Sequelize, DataTypes, Model } from 'sequelize';
 import db from '../../config/sequelize.js';
 
-class Member extends Model { }
+class Member extends Model {}
 
 Member.init({
   id: {
-    type: Sequelize.UUIDV4,
+    type: DataTypes.UUID,
     defaultValue: Sequelize.UUIDV4,
     primaryKey: true,
   },
@@ -33,9 +33,39 @@ Member.init({
       },
     },
   },
+  UserId: {
+    type: DataTypes.UUID,
+    allowNull: false,
+    references: {
+      model: 'User',
+      key: 'id',
+    },
+    onDelete: 'CASCADE',
+    onUpdate: 'CASCADE',
+  },
+  GroupId: {
+    type: DataTypes.UUID,
+    allowNull: false,
+    references: {
+      model: 'Group',
+      key: 'id',
+    },
+    onDelete: 'CASCADE',
+    onUpdate: 'CASCADE',
+  },
+  RoleId: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: {
+      model: 'Role',
+      key: 'id',
+    },
+    onDelete: 'SET NULL',
+    onUpdate: 'CASCADE',
+  },
 }, {
-  tableName: 'Member',
   sequelize: db,
+  tableName: 'Member',
   timestamps: false,
 });
 

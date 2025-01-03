@@ -5,7 +5,7 @@ class Group extends Model { }
 
 Group.init({
   id: {
-    type: Sequelize.UUIDV4,
+    type: DataTypes.UUID,
     defaultValue: Sequelize.UUIDV4,
     primaryKey: true,
   },

@@ -3,12 +3,36 @@ import { BadRequest, InvalidRequest } from '../errors/index.js';
 
 class Group {
   static async readAll() {
-    const groups = await Model.findAll({ include: ['roles', 'members'] });
+    const groups = await Model.findAll({
+      include: [
+        {
+          association: 'roles',
+          attributes: ['id', 'name', 'permissions', 'GroupId'], // Inclua apenas os campos relevantes
+        },
+        {
+          association: 'Members', // Use o mesmo alias definido na associação
+          attributes: ['id', 'admin', 'permissions', 'UserId', 'GroupId', 'RoleId'], // Campos desejados do Member
+        },
+      ],
+    });
+
     return groups;
   }
 
   static async readOne(id) {
-    const group = await Model.findByPk(id, { include: ['roles', 'members'] });
+    const group = await Model.findByPk(id, {
+      include: [
+        {
+          association: 'roles',
+          attributes: ['id', 'name', 'permissions', 'GroupId'], // Inclua apenas os campos relevantes
+        },
+        {
+          association: 'Members', // Use o mesmo alias definido na associação
+          attributes: ['id', 'admin', 'permissions', 'UserId', 'GroupId', 'RoleId'], // Campos desejados do Member
+        },
+      ],
+    });
+
     if (!group) throw new BadRequest('Group not found!');
 
     return group;
