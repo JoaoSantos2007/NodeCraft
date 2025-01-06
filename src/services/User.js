@@ -1,7 +1,7 @@
 import Model from '../models/User.js';
 import hashPassword from '../utils/hashPassword.js';
-import DuplicateError from '../errors/Duplicate.js';
-import BadRequestError from '../errors/BadRequest.js';
+import { Duplicate, BadRequest } from '../errors/index.js';
+import Instance from './Instance.js';
 
 class User {
   // eslint-disable-next-line object-curly-newline
@@ -14,7 +14,7 @@ class User {
 
     // email already registered
     if (user) {
-      throw new DuplicateError('Email already registered!');
+      throw new Duplicate('Email already registered!');
     }
 
     user = await Model.create({
@@ -41,7 +41,7 @@ class User {
       },
     });
 
-    if (!user) throw new BadRequestError('User not found!');
+    if (!user) throw new BadRequest('User not found!');
 
     return user;
   }
@@ -58,6 +58,16 @@ class User {
     await user.destroy();
 
     return user;
+  }
+
+  static async getRemainingQuota(id) {
+    const user = await User.readUserById(id);
+    const instances = Instance.readAllByOwner(id);
+    const instancesNumber = instances.length;
+
+    const remainingQuota = user.quota - instancesNumber;
+
+    return remainingQuota;
   }
 }
 

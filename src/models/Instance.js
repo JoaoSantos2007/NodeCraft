@@ -1,4 +1,12 @@
 const Instance = {
+  owner: {
+    type: 'string',
+    internal: true,
+  },
+  group: {
+    type: 'string',
+    internal: true,
+  },
   name: {
     type: 'string',
     required: true,
@@ -13,7 +21,7 @@ const Instance = {
   },
   software: {
     type: 'string',
-    values: ['vanilla', 'paper', 'purpur', 'forge', 'fabric'],
+    values: ['vanilla', 'paper', 'purpur', 'spigot'],
     internal: true,
   },
   installed: {

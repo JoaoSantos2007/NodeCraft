@@ -6,9 +6,27 @@ import Auth from '../middlewares/Auth.js';
 const router = Router();
 
 router
-  .get('/:id/action/status', Auth.verifyAccess, Controller.status)
-  .post('/:id/action/run', Auth.verifyAccess, Middleware.verifyInProgress, Controller.run)
-  .put('/:id/action/update', Auth.verifyAccess, Middleware.verifyInProgress, Controller.update)
-  .delete('/:id/action/stop', Auth.verifyAccess, Controller.stop);
+  .get(
+    '/:id/action/status',
+    (req, res, next) => Auth.verifyAccess('instance:status', req, res, next),
+    Controller.status,
+  )
+  .post(
+    '/:id/action/run',
+    (req, res, next) => Auth.verifyAccess('instance:start', req, res, next),
+    Middleware.verifyInProgress,
+    Controller.run,
+  )
+  .put(
+    '/:id/action/update',
+    (req, res, next) => Auth.verifyAccess('instance:update', req, res, next),
+    Middleware.verifyInProgress,
+    Controller.update,
+  )
+  .delete(
+    '/:id/action/stop',
+    (req, res, next) => Auth.verifyAccess('instance:stop', req, res, next),
+    Controller.stop,
+  );
 
 export default router;

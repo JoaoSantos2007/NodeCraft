@@ -8,12 +8,53 @@ import uploader from '../middlewares/uploader.js';
 const router = Router();
 
 router
-  .get('/:id/file', Auth.verifyAccess, Middleware.verifyPath, Controller.read) // Read root files/folders
-  .get('/:id/file/:path*', Auth.verifyAccess, Middleware.verifyPath, Controller.read) // Read content or Download files/folders
-  .post('/:id/file/:path*/actions/unzip', Auth.verifyAccess, Middleware.verifyPath, Controller.unzip) // Unzip files
-  .post('/:id/file/:path*', Auth.verifyAccess, Instance.verifyInProgress, Middleware.verifyNewPath, uploader.single('file'), Controller.create) // Create or Upload files/folders
-  .put('/:id/file/:path*', Auth.verifyAccess, Instance.verifyInProgress, Middleware.verifyPath, Controller.update) // Update files content
-  .delete('/:id/file/:path*', Auth.verifyAccess, Instance.verifyInProgress, Middleware.verifyPath, Controller.delete) // Delete files/folders
-  .patch('/:id/file/:path*/to/:destiny*', Auth.verifyAccess, Instance.verifyInProgress, Middleware.verifyPath, Middleware.verifyDestiny, Controller.move); // Move files/folders
+  .get( // Read root files/folders
+    '/:id/file',
+    (req, res, next) => Auth.verifyAccess('instance:file:read', req, res, next),
+    Middleware.verifyPath,
+    Controller.read,
+  )
+  .get( // Read content or Download files/folders
+    '/:id/file/:path*',
+    (req, res, next) => Auth.verifyAccess('instance:file:read', req, res, next),
+    Middleware.verifyPath,
+    Controller.read,
+  )
+  .post( // Unzip files
+    '/:id/file/:path*/actions/unzip',
+    (req, res, next) => Auth.verifyAccess('instance:file:unzip', req, res, next),
+    Middleware.verifyPath,
+    Controller.unzip,
+  )
+  .post( // Create or Upload files/folders
+    '/:id/file/:path*',
+    (req, res, next) => Auth.verifyAccess('instance:file:create', req, res, next),
+    Instance.verifyInProgress,
+    Middleware.verifyNewPath,
+    uploader.single('file'),
+    Controller.create,
+  )
+  .put( // Update files content
+    '/:id/file/:path*',
+    (req, res, next) => Auth.verifyAccess('instance:file:update', req, res, next),
+    Instance.verifyInProgress,
+    Middleware.verifyPath,
+    Controller.update,
+  )
+  .delete( // Delete files/folders
+    '/:id/file/:path*',
+    (req, res, next) => Auth.verifyAccess('instance:file:delete', req, res, next),
+    Instance.verifyInProgress,
+    Middleware.verifyPath,
+    Controller.delete,
+  )
+  .patch( // Move files/folders
+    '/:id/file/:path*/to/:destiny*',
+    (req, res, next) => Auth.verifyAccess('instance:file:move', req, res, next),
+    Instance.verifyInProgress,
+    Middleware.verifyPath,
+    Middleware.verifyDestiny,
+    Controller.move,
+  );
 
 export default router;

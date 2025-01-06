@@ -5,7 +5,15 @@ import Controller from '../controllers/Settings.js';
 const router = Router();
 
 router
-  .get('/settings', Auth.verifyAdmin, Controller.read)
-  .put('/settings', Auth.verifyAdmin, Controller.update);
+  .get(
+    '/settings',
+    (req, res, next) => Auth.verifyAccess('admin', req, res, next),
+    Controller.read,
+  )
+  .put(
+    '/settings',
+    (req, res, next) => Auth.verifyAccess('admin', req, res, next),
+    Controller.update,
+  );
 
 export default router;

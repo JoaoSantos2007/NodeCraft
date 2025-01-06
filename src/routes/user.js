@@ -5,13 +5,44 @@ import Auth from '../middlewares/Auth.js';
 const router = Router();
 
 router
-  .get('/user', Auth.verifyLogged, Controller.read)
-  .get('/user/all', Auth.verifyLogged, Controller.readMany)
-  .get('/user/:id', Auth.verifyLogged, Controller.readById)
-  .post('/user', Controller.create)
-  .put('/user', Auth.verifyLogged, Controller.update)
-  .put('/user/:id', Auth.verifyAdmin, Controller.updateOther)
-  .delete('/user', Auth.verifyLogged, Controller.delete)
-  .delete('/user/:id', Auth.verifyAdmin, Controller.deleteOther);
+  .get(
+    '/user',
+    (req, res, next) => Auth.verifyAccess('', req, res, next),
+    Controller.read,
+  )
+  .get(
+    '/user/all',
+    (req, res, next) => Auth.verifyAccess('', req, res, next),
+    Controller.readMany,
+  )
+  .get(
+    '/user/:id',
+    (req, res, next) => Auth.verifyAccess('', req, res, next),
+    Controller.readById,
+  )
+  .post(
+    '/user',
+    Controller.create,
+  )
+  .put(
+    '/user',
+    (req, res, next) => Auth.verifyAccess('', req, res, next),
+    Controller.update,
+  )
+  .put(
+    '/user/:id',
+    (req, res, next) => Auth.verifyAccess('admin', req, res, next),
+    Controller.updateOther,
+  )
+  .delete(
+    '/user',
+    (req, res, next) => Auth.verifyAccess('', req, res, next),
+    Controller.delete,
+  )
+  .delete(
+    '/user/:id',
+    (req, res, next) => Auth.verifyAccess('admin', req, res, next),
+    Controller.deleteOther,
+  );
 
 export default router;

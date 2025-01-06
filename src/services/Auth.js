@@ -1,9 +1,10 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
-import Player from './Player.js';
 import hashPassword from '../utils/hashPassword.js';
+import Instance from './Instance.js';
 import { ACCESS_TOKEN_LIFETIME, SECRET } from '../../config/settings.js';
 import { Unathorized } from '../errors/index.js';
+import Group from './Group.js';
 
 class Auth {
   static async login({ email, password }) {
@@ -49,18 +50,27 @@ class Auth {
     return user;
   }
 
-  static verifyUserAdmin(user) {
-    return user.admin;
+  static async verifyUserHasPermissionOnInstance(user, permission, id) {
+    const instance = await Instance.readOne(id);
+    const owner = instance?.owner;
+
+    if (owner === user.id) return true;
+
+    try {
+      Group.readOne(owner);
+
+      return false;
+    } catch (err) {
+      return false;
+    }
+
+    return false;
   }
 
-  static async verifyUserAccess(instanceId, user) {
-    if (Auth.verifyUserAdmin(user)) return true;
-
-    const players = await Player.readAll(instanceId);
-    // eslint-disable-next-line no-restricted-syntax
-    for (const [, player] of Object.entries(players)) {
-      if (player.accountId === user.id && player.admin) return true;
-    }
+  static async checkPermission(user, permission, id) {
+    if (user.admin) return true;
+    if (permission === 'admin') return false;
+    if (''.split(':')[0] === 'instance') return Auth.verifyUserHasPermissionOnInstance(user, permission, id);
 
     return false;
   }

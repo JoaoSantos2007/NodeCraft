@@ -1,0 +1,11 @@
+{
+  "permissions": [
+    "instance:read",
+    "instance:write",
+    "instance:update",
+    "instance:delete",
+    "instance:execute",
+    "instance:stop",
+    "instance:"
+  ]
+}

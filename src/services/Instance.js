@@ -16,13 +16,13 @@ class Instance {
     this.startCMD = settings.startCMD;
   }
 
-  static create(data) {
+  static create(data, userId) {
     validate(data);
 
     const id = randomUUID();
     mkdirSync(`${INSTANCES_PATH}/${id}`);
 
-    const settings = NodeCraft.create({ ...data, id });
+    const settings = NodeCraft.create({ ...data, id, owner: userId });
     return settings;
   }
 
@@ -55,6 +55,20 @@ class Instance {
     rmSync(`${INSTANCES_PATH}/${id}`, { recursive: true });
 
     return instance;
+  }
+
+  static readAllByOwner(ownerId) {
+    const instanceList = readdirSync(INSTANCES_PATH);
+
+    const instances = [];
+    instanceList.map((id) => {
+      const instance = NodeCraft.read(id);
+      if (instance.owner === ownerId) instances.push(instance);
+
+      return instance;
+    });
+
+    return instances;
   }
 
   run() {

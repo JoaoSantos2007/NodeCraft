@@ -1,5 +1,6 @@
 import { Group as Model } from '../models/index.js';
 import { BadRequest, InvalidRequest } from '../errors/index.js';
+import Instance from './Instance.js';
 
 class Group {
   static async readAll() {
@@ -62,6 +63,16 @@ class Group {
     await group.destroy();
 
     return group;
+  }
+
+  static async getRemainingQuota(id) {
+    const group = await Group.readOne(id);
+    const instances = Instance.readAllByOwner(id);
+    const instancesNumber = instances.length;
+
+    const remainingQuota = group.quota - instancesNumber;
+
+    return remainingQuota;
   }
 }
 
