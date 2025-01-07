@@ -19,6 +19,17 @@ class Member {
     return member;
   }
 
+  static async readOneByUser(group, userId) {
+    const member = await Model.findOne({
+      where: { GroupId: group.id, UserId: userId },
+      include: ['Role'],
+    });
+
+    if (!member) throw new BadRequest('Member not found!');
+
+    return member;
+  }
+
   static async create(group, data) {
     const user = await User.readUserById(data.userId);
     const role = await Role.readOne(group, data.roleId);

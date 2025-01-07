@@ -15,7 +15,7 @@ class Auth {
       req.user = user;
 
       // Check if has permission
-      if (Service.checkPermission(user, permission, id)) return next();
+      if (await Service.checkPermission(user, permission, id)) return next();
       throw new Unathorized('You do not have permission to access this route!');
     } catch (err) {
       return errorHandler(err, res);
