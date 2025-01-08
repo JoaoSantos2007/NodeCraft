@@ -1,5 +1,6 @@
 import { Sequelize, DataTypes, Model } from 'sequelize';
 import db from '../../config/sequelize.js';
+import { permissions } from '../../config/settings.js';
 
 class Member extends Model {}
 
@@ -30,6 +31,9 @@ Member.init({
         if (!Array.isArray(parsed) || !parsed.every((item) => typeof item === 'string')) {
           throw new Error('Permissions field must be a type of array!');
         }
+        parsed.forEach((item) => {
+          if (!permissions.includes(item)) throw new Error(`${item} is an invalid permission!`);
+        });
       },
     },
   },
@@ -42,6 +46,12 @@ Member.init({
     },
     onDelete: 'CASCADE',
     onUpdate: 'CASCADE',
+    validate: {
+      isUUID: {
+        args: 4,
+        msg: 'UserId must be a uuid!',
+      },
+    },
   },
   GroupId: {
     type: DataTypes.UUID,
@@ -52,6 +62,12 @@ Member.init({
     },
     onDelete: 'CASCADE',
     onUpdate: 'CASCADE',
+    validate: {
+      isUUID: {
+        args: 4,
+        msg: 'GroupId must be a uuid!',
+      },
+    },
   },
   RoleId: {
     type: DataTypes.UUID,
@@ -62,6 +78,12 @@ Member.init({
     },
     onDelete: 'SET NULL',
     onUpdate: 'CASCADE',
+    validate: {
+      isUUID: {
+        args: 4,
+        msg: 'RoleId must be a uuid!',
+      },
+    },
   },
 }, {
   sequelize: db,

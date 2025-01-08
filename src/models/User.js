@@ -12,10 +12,29 @@ User.init({
   name: {
     type: DataTypes.STRING,
     allowNull: false,
+    validate: {
+      isAlphanumeric: {
+        msg: 'name must be alphanumeric!',
+      },
+      len: {
+        args: [2, 32],
+        msg: 'name must have a length between 2 and 32!',
+      },
+    },
   },
   email: {
     type: DataTypes.STRING,
     allowNull: false,
+    unique: true,
+    validate: {
+      isEmail: {
+        msg: 'email must be valid!',
+      },
+      len: {
+        args: [1, 257],
+        msg: 'email must have a length between 1 and 257!',
+      },
+    },
   },
   password: {
     type: DataTypes.STRING,
@@ -24,6 +43,12 @@ User.init({
   gamertag: {
     type: DataTypes.STRING,
     allowNull: true,
+    validate: {
+      len: {
+        args: [80],
+        msg: 'gamertag must have a length under 80!',
+      },
+    },
   },
   admin: {
     type: DataTypes.BOOLEAN,
@@ -34,6 +59,11 @@ User.init({
     type: DataTypes.INTEGER,
     allowNull: false,
     defaultValue: 0,
+    validate: {
+      isInt: {
+        msg: 'quota must be a integer number!',
+      },
+    },
   },
 }, {
   tableName: 'User',

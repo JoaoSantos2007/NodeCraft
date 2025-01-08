@@ -3,10 +3,6 @@ const Instance = {
     type: 'string',
     internal: true,
   },
-  group: {
-    type: 'string',
-    internal: true,
-  },
   name: {
     type: 'string',
     required: true,
@@ -61,7 +57,7 @@ const Instance = {
   startCMD: {
     type: 'string',
   },
-  worldPath: {
+  worldPath: { // Review
     type: 'string',
     max: 50,
   },

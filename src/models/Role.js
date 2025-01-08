@@ -1,5 +1,6 @@
 import { Sequelize, DataTypes, Model } from 'sequelize';
 import db from '../../config/sequelize.js';
+import { permissions } from '../../config/settings.js';
 
 class Role extends Model { }
 
@@ -12,6 +13,15 @@ Role.init({
   name: {
     type: DataTypes.STRING,
     allowNull: false,
+    validate: {
+      isAlphanumeric: {
+        msg: 'name must be alphanumeric!',
+      },
+      len: {
+        args: [2, 32],
+        msg: 'name must have a length between 2 and 32!',
+      },
+    },
   },
   permissions: {
     type: DataTypes.TEXT,
@@ -29,18 +39,27 @@ Role.init({
         if (!Array.isArray(parsed) || !parsed.every((item) => typeof item === 'string')) {
           throw new Error('Permissions field must be a type of array!');
         }
+        parsed.forEach((item) => {
+          if (!permissions.includes(item)) throw new Error(`${item} is an invalid permission!`);
+        });
       },
     },
   },
-  GroupId: { // Campo explícito para a chave estrangeira
+  GroupId: {
     type: Sequelize.UUIDV4,
-    allowNull: false, // Ajuste conforme necessário
+    allowNull: false,
     references: {
       model: 'Group',
       key: 'id',
     },
     onUpdate: 'CASCADE',
     onDelete: 'SET NULL',
+    validate: {
+      isUUID: {
+        args: 4,
+        msg: 'GroupId must be a uuid!',
+      },
+    },
   },
 }, {
   tableName: 'Role',

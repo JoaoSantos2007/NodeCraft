@@ -27,18 +27,18 @@ router
   )
   .post(
     '/instance',
-    (req, res, next) => Auth.verifyAccess('instance:write', req, res, next),
+    (req, res, next) => Auth.verifyAccess('logged', req, res, next),
     Controller.create,
   )
   .put(
     '/instance/:id',
-    (req, res, next) => Auth.verifyAccess('instance:write', req, res, next),
+    (req, res, next) => Auth.verifyAccess('instance:update', req, res, next),
     Middleware.verifyInProgress,
     Controller.update,
   )
   .delete(
     '/instance/:id',
-    (req, res, next) => Auth.verifyAccess('instance:write', req, res, next),
+    (req, res, next) => Auth.verifyAccess('instance:delete', req, res, next),
     Middleware.verifyInProgress,
     Controller.delete,
   )

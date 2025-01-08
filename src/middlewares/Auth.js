@@ -14,6 +14,8 @@ class Auth {
       const user = await Service.verifyUser(accessToken);
       req.user = user;
 
+      if (permission === 'logged') return next();
+
       // Check if has permission
       if (await Service.checkPermission(user, permission, id)) return next();
       throw new Unathorized('You do not have permission to access this route!');

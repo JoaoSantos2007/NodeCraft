@@ -7,17 +7,17 @@ const router = Router();
 router
   .get(
     '/user',
-    (req, res, next) => Auth.verifyAccess('', req, res, next),
+    (req, res, next) => Auth.verifyAccess('logged', req, res, next),
     Controller.read,
   )
   .get(
     '/user/all',
-    (req, res, next) => Auth.verifyAccess('', req, res, next),
+    (req, res, next) => Auth.verifyAccess('logged', req, res, next),
     Controller.readMany,
   )
   .get(
     '/user/:id',
-    (req, res, next) => Auth.verifyAccess('', req, res, next),
+    (req, res, next) => Auth.verifyAccess('logged', req, res, next),
     Controller.readById,
   )
   .post(
@@ -26,7 +26,7 @@ router
   )
   .put(
     '/user',
-    (req, res, next) => Auth.verifyAccess('', req, res, next),
+    (req, res, next) => Auth.verifyAccess('logged', req, res, next),
     Controller.update,
   )
   .put(
@@ -36,7 +36,7 @@ router
   )
   .delete(
     '/user',
-    (req, res, next) => Auth.verifyAccess('', req, res, next),
+    (req, res, next) => Auth.verifyAccess('logged', req, res, next),
     Controller.delete,
   )
   .delete(

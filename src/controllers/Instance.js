@@ -1,9 +1,10 @@
 import Service from '../services/Instance.js';
 import UserService from '../services/User.js';
 import GroupService from '../services/Group.js';
+import AuthService from '../services/Auth.js';
 import Bedrock from '../services/Bedrock.js';
 import Java from '../services/Java.js';
-import { BadRequest } from '../errors/index.js';
+import { BadRequest, Unathorized } from '../errors/index.js';
 
 class Instance {
   static async create(req, res, next) {
@@ -12,11 +13,17 @@ class Instance {
       let owner;
 
       if (body.group) {
-        // Verify Group max quota
         const group = await GroupService.readOne(body.group);
+
+        // Verify if user has permission to create instance insade group
+        const userHasPermission = await AuthService.verifyUserHasPermissionInsideGroup(group, user, 'instance:create');
+        if (!userHasPermission) throw new Unathorized("User doesn't have this permission inside group!");
+
+        // Verify Group max quota
         const remainingQuota = await GroupService.getRemainingQuota(group.id);
         if (remainingQuota <= 0) throw new BadRequest('Group has reached the maximum quota!');
 
+        delete body.group;
         owner = group.id;
       } else {
         // Verify User max quota

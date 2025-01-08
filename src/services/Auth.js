@@ -51,17 +51,8 @@ class Auth {
     return user;
   }
 
-  static async verifyUserHasPermissionOnInstance(user, permission, id) {
+  static async verifyUserHasPermissionInsideGroup(group, user, permission) {
     try {
-      const instance = await Instance.readOne(id);
-
-      // Verify if instance belongs to a user
-      const owner = instance?.owner;
-      if (owner === user.id) return true;
-
-      // Verify if instance belongs to a group
-      const group = await Group.readOne(owner);
-
       // Verify if user belongs to the group
       const member = await Member.readOneByUser(group, user.id);
 
@@ -71,6 +62,23 @@ class Auth {
       // Verify if user has permission inside the group
       return (member.permissions.includes(permission)
       || member.Role.permissions.includes(permission));
+    } catch (err) {
+      return false;
+    }
+  }
+
+  static async verifyUserHasPermissionOnInstance(user, permission, id) {
+    try {
+      const instance = await Instance.readOne(id);
+
+      // Verify if instance belongs to the user
+      const owner = instance?.owner;
+      if (owner === user.id) return true;
+
+      // Verify if instance belongs to a group
+      const group = await Group.readOne(owner);
+
+      return Auth.verifyUserHasPermissionInsideGroup(group, user, permission);
     } catch (err) {
       return false;
     }

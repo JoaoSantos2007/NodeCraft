@@ -1,24 +1,34 @@
+/* eslint-disable import/no-mutable-exports */
 /* eslint-disable no-console */
 import path from 'path';
 import dotenv from 'dotenv';
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 
+dotenv.config();
+
 // Equivalente ao __dirname em ES Modules
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
 
 const CONFIG_PATH = path.join(dirname, 'settings.json');
-dotenv.config();
+const PERMISSIONS_PATH = path.join(dirname, 'permissions.json');
 
-// eslint-disable-next-line import/no-mutable-exports
 let config = {};
 try {
   const rawData = readFileSync(CONFIG_PATH, 'utf-8');
   config = JSON.parse(rawData);
 } catch (error) {
-  console.error('Erro ao carregar configurações:', error.message);
+  console.error('Error to load settings.json', error.message);
   process.exit(1); // Encerra o programa se o arquivo não puder ser carregado
+}
+
+let permissions = [];
+try {
+  const rawData = readFileSync(PERMISSIONS_PATH, 'utf-8');
+  permissions = JSON.parse(rawData);
+} catch (error) {
+  console.error('Error to load permissions.json', error.message);
 }
 
 const PORT = process.env.PORT || 3000;
@@ -46,4 +56,5 @@ export {
   SECRET,
   INSTANCES,
   config,
+  permissions,
 };
