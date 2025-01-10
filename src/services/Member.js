@@ -30,6 +30,20 @@ class Member {
     return member;
   }
 
+  static async readAllGroupsByUser(userId) {
+    const groups = [];
+
+    const members = await Model.findAll({
+      where: { UserId: userId },
+    });
+
+    members.forEach((member) => {
+      groups.push(member.GroupId);
+    });
+
+    return groups;
+  }
+
   static async create(group, data) {
     const user = await User.readUserById(data.userId);
     const role = await Role.readOne(group, data.roleId);

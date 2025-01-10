@@ -1,6 +1,7 @@
 import Service from '../services/Instance.js';
 import UserService from '../services/User.js';
 import GroupService from '../services/Group.js';
+import MemberService from '../services/Member.js';
 import AuthService from '../services/Auth.js';
 import Bedrock from '../services/Bedrock.js';
 import Java from '../services/Java.js';
@@ -45,9 +46,19 @@ class Instance {
     }
   }
 
-  static readAll(req, res, next) {
+  static async readAll(req, res, next) {
     try {
-      const instances = Service.readAll();
+      const { user } = req;
+      let instances = [];
+      let allOwners = [user.id];
+
+      if (user.admin === true) instances = Service.readAll();
+      else {
+        const groupsIds = await MemberService.readAllGroupsByUser(user.id);
+        allOwners = allOwners.concat(groupsIds);
+
+        instances = Service.readAllByOwners(allOwners);
+      }
 
       return res.status(200).json({ success: true, instances });
     } catch (err) {

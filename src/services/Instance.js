@@ -39,6 +39,34 @@ class Instance {
     return NodeCraft.read(id);
   }
 
+  static readAllByOwner(ownerId) {
+    const instanceList = readdirSync(INSTANCES_PATH);
+
+    const instances = [];
+    instanceList.map((id) => {
+      const instance = NodeCraft.read(id);
+      if (instance.owner === ownerId) instances.push(instance);
+
+      return instance;
+    });
+
+    return instances;
+  }
+
+  static readAllByOwners(ownersIds) {
+    const instanceList = readdirSync(INSTANCES_PATH);
+
+    const instances = [];
+    instanceList.map((id) => {
+      const instance = NodeCraft.read(id);
+      if (ownersIds.includes(instance.owner) === true) instances.push(instance);
+
+      return instance;
+    });
+
+    return instances;
+  }
+
   static update(id, data) {
     const instance = Instance.readOne(id);
     validate(data, instance);
@@ -55,20 +83,6 @@ class Instance {
     rmSync(`${INSTANCES_PATH}/${id}`, { recursive: true });
 
     return instance;
-  }
-
-  static readAllByOwner(ownerId) {
-    const instanceList = readdirSync(INSTANCES_PATH);
-
-    const instances = [];
-    instanceList.map((id) => {
-      const instance = NodeCraft.read(id);
-      if (instance.owner === ownerId) instances.push(instance);
-
-      return instance;
-    });
-
-    return instances;
   }
 
   run() {

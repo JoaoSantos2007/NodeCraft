@@ -13,7 +13,7 @@ router
   )
   .post(
     '/:id/action/run',
-    (req, res, next) => Auth.verifyAccess('instance:start', req, res, next),
+    (req, res, next) => Auth.verifyAccess('instance:execute', req, res, next),
     Middleware.verifyInProgress,
     Controller.run,
   )
@@ -25,7 +25,7 @@ router
   )
   .delete(
     '/:id/action/stop',
-    (req, res, next) => Auth.verifyAccess('instance:stop', req, res, next),
+    (req, res, next) => Auth.verifyAccess('instance:execute', req, res, next),
     Controller.stop,
   );
 

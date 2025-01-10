@@ -88,6 +88,15 @@ class Auth {
     if (user.admin) return true;
     if (permission === 'admin') return false;
     if (permission.split(':')[0] === 'instance') return Auth.verifyUserHasPermissionOnInstance(user, permission, id);
+    if (permission.split(':')[0] === 'group') {
+      try {
+        const group = await Group.readOne(id);
+
+        return Auth.verifyUserHasPermissionInsideGroup(group, user, permission);
+      } catch (err) {
+        return false;
+      }
+    }
 
     return false;
   }

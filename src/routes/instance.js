@@ -12,12 +12,7 @@ const router = Router();
 router
   .get(
     '/instance',
-    (req, res, next) => Auth.verifyAccess('instance:read', req, res, next),
-    Controller.readAll,
-  )
-  .get(
-    '/instance/all',
-    (req, res, next) => Auth.verifyAccess('admin', req, res, next),
+    (req, res, next) => Auth.verifyAccess('logged', req, res, next),
     Controller.readAll,
   )
   .get(
