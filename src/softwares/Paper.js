@@ -1,9 +1,10 @@
-import * as cheerio from 'cheerio';
-import { readFileSync } from 'fs';
+/* eslint-disable no-new */
 import { BadRequest } from '../errors/index.js';
-import Temp from '../services/Temp.js';
 import download from '../utils/download.js';
-import { INSTANCES_PATH } from '../utils/env.js';
+import NodeCraft from '../services/NodeCraft.js';
+import { INSTANCES_PATH } from '../../config/settings.js';
+import Instance from '../services/Instance.js';
+import Java from '../services/Java.js';
 
 class Paper {
   static async getVersions() {
@@ -20,91 +21,66 @@ class Paper {
     return data.builds;
   }
 
-  static async analizeBuild(version, build) {
-    const response = await fetch(`https://papermc.io/api/v2/projects/paper/versions/${version}/builds/${build}`);
-    return response.json();
-  }
-
-  static async getStableVersion() {
-    const tempPath = Temp.create();
-    await download(`${tempPath}/index.html`, 'https://papermc.io/downloads/paper');
-    const html = readFileSync(`${tempPath}/index.html`, 'utf8');
-    const $ = cheerio.load(html);
-
-    const rawObj = $('#__NEXT_DATA__').html();
-    const obj = JSON.parse(rawObj);
-
-    const version = obj.props.pageProps.project.latestStableVersion;
-    Temp.delete(tempPath);
-    return version;
-  }
-
-  static async getStableBuild(version) {
-    const builds = await Paper.getBuilds(version);
-
-    let index = builds.length - 1;
-    while (index >= 0) {
-      const buildIndex = builds[index];
-
-      // eslint-disable-next-line no-await-in-loop
-      const buildData = await Paper.analizeBuild(version, buildIndex);
-      if (buildData.channel === 'default') return buildIndex;
-      index -= 1;
-    }
-
-    return builds[builds.length - 1];
-  }
-
-  static async getStable() {
-    const version = await Paper.getStableVersion();
-    const build = await Paper.getStableBuild(version);
-
-    return { version, build };
-  }
-
-  static async getSpecifDownloadUrl(version = null) {
+  static async getLatest(version = null) {
     const versions = await Paper.getVersions();
-    if (!versions.includes(version)) throw new BadRequest(`version ${version} not found!`);
-    const build = await Paper.getStableBuild(version);
+    if (version !== 'latest' && version && !versions.includes(version)) throw new BadRequest(`version ${version} not found!`);
 
-    return `https://api.papermc.io/v2/projects/paper/versions/${version}/builds/${build}/downloads/paper-${version}-${build}.jar`;
+    const validVersion = versions.pop();
+    const build = (await Paper.getBuilds(validVersion)).pop();
+
+    return { version: validVersion, build };
   }
 
-  static async getLatestDownloadUrl() {
-    const { version, build } = await Paper.getStable();
+  static async verifyNeedUpdate(instance) {
+    const latest = await Paper.getLatest();
+    const info = { version: latest.version, build: latest.build };
+    let needUpdate = false;
 
-    return `https://api.papermc.io/v2/projects/paper/versions/${version}/builds/${build}/downloads/paper-${version}-${build}.jar`;
-  }
-
-  static async getDownloadUrl(version) {
-    if (version) return Paper.getSpecifDownloadUrl(version);
-    return Paper.getLatestDownloadUrl();
-  }
-
-  static extractBuildAndVersion(url) {
-    const info = url.split('paper-')[1].split('.jar')[0].split('-');
-
-    return { version: info[0], build: Number(info[1]) };
-  }
-
-  static async install(path, version) {
-    const downloadUrl = await Paper.getDownloadUrl(version);
-    const info = Paper.extractBuildAndVersion(downloadUrl);
-    await download(`${path}/server.jar`, downloadUrl);
-
-    return info;
-  }
-
-  static async update(instance) {
-    const { version, build } = await Paper.getStable();
-    if (instance.version === version && Number(instance.build) === Number(build)) {
-      return { version, build, updated: false };
+    if (!instance.installed) needUpdate = true;
+    else if (instance.disableUpdate) needUpdate = false;
+    else {
+      needUpdate = instance.version !== latest.version
+      || Number(instance.build) !== Number(latest.build);
     }
 
-    const info = await Paper.install(`${INSTANCES_PATH}/${instance.id}`);
-    info.updated = true;
+    return { needUpdate, info };
+  }
 
-    return info;
+  static async install(instance, isUpdate = false, force = false) {
+    const { needUpdate, info } = await Paper.verifyNeedUpdate(instance);
+    if (!needUpdate && !force) return { ...info, updated: false };
+
+    const downloadUrl = `https://api.papermc.io/v2/projects/paper/versions/${info.version}/builds/${info.build}/downloads/paper-${info.version}-${info.build}.jar`;
+
+    if (isUpdate) {
+      // Start the download process in the background
+      download(`${INSTANCES_PATH}/${instance.id}/server.jar`, downloadUrl).then(async () => {
+        // Update the instance info after download completes
+
+        // Stop Instance for update
+        await Instance.stopAndWait(instance.id);
+
+        NodeCraft.update(instance.id, {
+          version: info.version,
+          build: info.build,
+          installed: true,
+        });
+
+        // Restart instance if necessary
+        if (instance.run) new Java(instance);
+      });
+
+      // Return the immediate response
+      return { ...info, updating: true };
+    }
+
+    // Wait for the download to complete
+    await download(`${INSTANCES_PATH}/${instance.id}/server.jar`, downloadUrl);
+
+    // Update the instance info after download completes
+    NodeCraft.update(instance.id, { version: info.version, build: info.build, installed: true });
+
+    return { ...info, updated: true };
   }
 }
 

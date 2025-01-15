@@ -1,4 +1,4 @@
-import File from '../model/File.js';
+import File from '../models/File.js';
 import validator from './validator.js';
 
 const fileValidator = (data) => {

@@ -1,14 +1,31 @@
 import { Router } from 'express';
-import Action from '../controller/Action.js';
-import InstanceMiddleware from '../middlewares/Instance.js';
+import Controller from '../controllers/Action.js';
+import Middleware from '../middlewares/Instance.js';
 import Auth from '../middlewares/Auth.js';
 
 const router = Router();
 
 router
-  .get('/:id/action', Auth.verifyAccess, Action.status)
-  .post('/:id/action', Auth.verifyAccess, InstanceMiddleware.verifyInProgress, Action.run)
-  .put('/:id/action', Auth.verifyAccess, InstanceMiddleware.verifyInProgress, Action.update)
-  .delete('/:id/action', Auth.verifyAccess, Action.stop);
+  .get(
+    '/:id/action/status',
+    (req, res, next) => Auth.verifyAccess('instance:status', req, res, next),
+    Controller.status,
+  )
+  .post(
+    '/:id/action/run',
+    (req, res, next) => Auth.verifyAccess('instance:execute', req, res, next),
+    Middleware.verifyInProgress,
+    Controller.run,
+  )
+  .put(
+    '/:id/action/update',
+    (req, res, next) => Auth.verifyAccess('instance:update', req, res, next),
+    Controller.update,
+  )
+  .delete(
+    '/:id/action/stop',
+    (req, res, next) => Auth.verifyAccess('instance:execute', req, res, next),
+    Controller.stop,
+  );
 
 export default router;

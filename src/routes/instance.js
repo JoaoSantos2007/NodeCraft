@@ -1,9 +1,8 @@
 import { Router } from 'express';
-import Controller from '../controller/Instance.js';
+import Controller from '../controllers/Instance.js';
 import Middleware from '../middlewares/Instance.js';
 import player from './player.js';
 import properties from './properties.js';
-import world from './world.js';
 import action from './action.js';
 import file from './file.js';
 import Auth from '../middlewares/Auth.js';
@@ -11,15 +10,35 @@ import Auth from '../middlewares/Auth.js';
 const router = Router();
 
 router
-  .get('/instance', Auth.verifyLogged, Controller.readAll)
-  .get('/instance/:id', Auth.verifyLogged, Controller.readOne)
-  .post('/instance', Auth.verifyAdmin, Controller.create)
-  .post('/instance/:version', Auth.verifyAdmin, Controller.create)
-  .put('/instance/:id', Auth.verifyAccess, Middleware.verifyInProgress, Controller.update)
-  .delete('/instance/:id', Auth.verifyAdmin, Middleware.verifyInProgress, Controller.delete)
+  .get(
+    '/instance',
+    (req, res, next) => Auth.verifyAccess('logged', req, res, next),
+    Controller.readAll,
+  )
+  .get(
+    '/instance/:id',
+    (req, res, next) => Auth.verifyAccess('instance:read', req, res, next),
+    Controller.readOne,
+  )
+  .post(
+    '/instance',
+    (req, res, next) => Auth.verifyAccess('logged', req, res, next),
+    Controller.create,
+  )
+  .put(
+    '/instance/:id',
+    (req, res, next) => Auth.verifyAccess('instance:update', req, res, next),
+    Middleware.verifyInProgress,
+    Controller.update,
+  )
+  .delete(
+    '/instance/:id',
+    (req, res, next) => Auth.verifyAccess('instance:delete', req, res, next),
+    Middleware.verifyInProgress,
+    Controller.delete,
+  )
   .use('/instance', action)
   .use('/instance', properties)
-  .use('/instance', world)
   .use('/instance', player)
   .use('/instance', file);
 

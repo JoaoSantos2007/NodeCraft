@@ -1,18 +1,11 @@
+import { writeFileSync } from 'fs';
+import { INSTANCES_PATH } from '../../config/settings.js';
 import {
-  existsSync, rmSync, writeFileSync,
-} from 'fs';
-import shell from 'shelljs';
-import { INSTANCES_PATH } from '../utils/env.js';
-import { BadRequest } from '../errors/index.js';
-import NodeCraft from './NodeCraft.js';
-import Temp from './Temp.js';
-import {
-  Paper, Purpur, Vanilla, Forge,
+  Paper, Purpur, Vanilla,
 } from '../softwares/index.js';
-import { syncPropertiesLists } from '../utils/Properties.js';
+import List from './List.js';
 import Instance from './Instance.js';
 import findPlayer from '../utils/findPlayer.js';
-import formatUUID from '../utils/formatUUID.js';
 
 class Java extends Instance {
   constructor(settings) {
@@ -20,118 +13,33 @@ class Java extends Instance {
     this.setup();
   }
 
-  static async create(id, software = 'vanilla', version = null) {
-    const instancePath = `${INSTANCES_PATH}/${id}`;
-    let info = { version, build: null };
-
-    switch (software) {
-      case 'paper':
-        info = await Paper.install(instancePath, version);
-        break;
-      case 'purpur':
-        info = await Purpur.install(instancePath, version);
-        break;
-      case 'forge':
-        info = await Forge.install(instancePath, version);
-        break;
-      default:
-        info = await Vanilla.install(instancePath);
-    }
-
-    // First Run and Agree With eula.txt
-    shell.exec(`cd ${instancePath} && java -jar forge.jar --installServer nogui`, { silent: true });
-    writeFileSync(`${instancePath}/eula.txt`, 'eula=true');
-
-    return NodeCraft.create(id, info.version, 'java', software, info.build);
-  }
-
-  static async update(instance) {
-    let info = { version: instance.version, build: instance.build, updated: false };
+  static async install(instance, isUpdate = false, force = false) {
+    writeFileSync(`${INSTANCES_PATH}/${instance.id}/eula.txt`, 'eula=true');
+    let info = { version: instance.version, build: null, updated: false };
 
     switch (instance.software) {
       case 'paper':
-        info = await Paper.update(instance);
+        info = await Paper.install(instance, isUpdate, force);
         break;
       case 'purpur':
-        info = await Purpur.update(instance);
-        break;
-      case 'forge':
-        info = await Forge.update(instance);
+        info = await Purpur.install(instance, isUpdate, force);
         break;
       default:
-        info = await Vanilla.update(instance);
+        info = await Vanilla.install(instance, isUpdate, force);
     }
-
-    const instanceUpdated = instance;
-    instanceUpdated.version = info.version;
-    instanceUpdated.build = info.build;
-    NodeCraft.save(instanceUpdated);
 
     return info;
   }
 
-  static async downloadWorld(instance, worldType = null) {
-    const instancePath = `${INSTANCES_PATH}/${instance.id}`;
-    let worldPath = `${instancePath}/world`;
-    let zipName = 'world';
+  static formatUUID(uuidString) {
+    if (uuidString.length !== 32) return undefined;
 
-    if (worldType) {
-      if (worldType.toLowerCase() === 'nether') {
-        worldPath = `${instancePath}/world_nether`;
-        zipName = 'world_nether';
-      } else if (worldType.toLowerCase() === 'end') {
-        worldPath = `${instancePath}/world_the_end`;
-        zipName = 'world_the_end';
-      }
-    }
-
-    if (!existsSync(worldPath)) throw new BadRequest('World path not found!');
-
-    const zipFile = `${worldPath}/${zipName}.zip`;
-    // Zip world path
-    shell.exec(`cd ${worldPath} && zip -rFS ${zipFile} .`, { silent: true });
-
-    return zipFile;
-  }
-
-  static async uploadWorld(instance, uploadPath, worldType = null) {
-    const instancePath = `${INSTANCES_PATH}/${instance.id}`;
-    let world = `${instancePath}/world`;
-    const uploadFile = `${uploadPath}/upload.zip`;
-
-    if (worldType) {
-      if (worldType.toLowerCase() === 'nether') {
-        world = `${instancePath}/world_nether`;
-      } else if (worldType.toLowerCase() === 'end') {
-        world = `${instancePath}/world_the_end`;
-      }
-    }
-    if (existsSync(world)) rmSync(world, { recursive: true });
-
-    // Unzip uploaded world
-    shell.exec(`unzip -o ${uploadFile} -d ${world}`, { silent: true });
-    Temp.delete(uploadPath);
-
-    return instance;
-  }
-
-  static async deleteWorld(instance, worldType = null) {
-    const instancePath = `${INSTANCES_PATH}/${instance.id}`;
-    let world = `${instancePath}/world`;
-
-    if (worldType) {
-      if (worldType.toLowerCase() === 'nether') {
-        world = `${instancePath}/world_nether`;
-      } else if (worldType.toLowerCase() === 'end') {
-        world = `${instancePath}/world_the_end`;
-      }
-    }
-
-    if (existsSync(world)) rmSync(world, { recursive: true });
+    const formattedUUID = `${uuidString.slice(0, 8)}-${uuidString.slice(8, 12)}-${uuidString.slice(12, 16)}-${uuidString.slice(16, 20)}-${uuidString.slice(20)}`;
+    return formattedUUID;
   }
 
   async setup() {
-    syncPropertiesLists(this.path, this.settings);
+    List.sync(this.path, this.settings);
     this.updateAccess();
     this.setupOps();
     this.run();
@@ -157,7 +65,7 @@ class Java extends Instance {
       if (operator) {
         // eslint-disable-next-line no-await-in-loop
         const id = await findPlayer(gamertag);
-        const uuid = formatUUID(id);
+        const uuid = Java.formatUUID(id);
         if (uuid) {
           ops.push({
             uuid,
@@ -183,7 +91,7 @@ class Java extends Instance {
       if (access === 'always' || player.admin || (access === 'monitored' && this.admins > 0)) {
         // eslint-disable-next-line no-await-in-loop
         const id = await findPlayer(gamertag);
-        const uuid = formatUUID(id);
+        const uuid = Java.formatUUID(id);
         if (uuid) allowlist.push({ uuid, name: gamertag });
       }
 

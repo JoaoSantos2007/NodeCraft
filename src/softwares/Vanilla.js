@@ -1,11 +1,15 @@
+/* eslint-disable no-new */
 import * as cheerio from 'cheerio';
 import { readFileSync } from 'fs';
 import Temp from '../services/Temp.js';
 import download from '../utils/download.js';
-import { INSTANCES_PATH } from '../utils/env.js';
+import { INSTANCES_PATH } from '../../config/settings.js';
+import NodeCraft from '../services/NodeCraft.js';
+import Instance from '../services/Instance.js';
+import Java from '../services/Java.js';
 
 class Vanilla {
-  static async getDownloadUrl() {
+  static async getUrl() {
     const tempPath = Temp.create();
     await download(`${tempPath}/index.html`, 'https://www.minecraft.net/en-us/download/server');
     const html = readFileSync(`${tempPath}/index.html`, 'utf8');
@@ -16,7 +20,7 @@ class Vanilla {
     return downloadUrl;
   }
 
-  static async getLatestVersion() {
+  static async getLatest() {
     const response = await fetch('https://launchermeta.mojang.com/mc/game/version_manifest.json');
     const data = await response.json();
 
@@ -34,24 +38,51 @@ class Vanilla {
     return 0;
   }
 
-  static async install(path, url = null) {
-    const downloadUrl = url || await Vanilla.getDownloadUrl();
-    const version = await Vanilla.getLatestVersion();
-    await download(`${path}/server.jar`, downloadUrl);
+  static async verifyNeedUpdate(instance) {
+    const version = await Vanilla.getLatest();
+    let needUpdate = false;
 
-    return { version, build: null };
+    if (!instance.installed) needUpdate = true;
+    else if (instance.disableUpdate) needUpdate = false;
+    else needUpdate = instance.version !== version;
+
+    return { needUpdate, version };
   }
 
-  static async update(instance) {
-    const latestVersion = await Vanilla.getLatestVersion();
-    if (latestVersion === instance.version) {
-      return { version: instance.version, build: instance.build, updated: false };
+  static async install(instance, isUpdate = false, force = false) {
+    const { needUpdate, version } = await Vanilla.verifyNeedUpdate(instance);
+    if (!needUpdate && !force) return { version, updated: false };
+
+    const downloadUrl = await Vanilla.getUrl();
+
+    if (isUpdate) {
+      // Start the download process in the background
+      download(`${INSTANCES_PATH}/${instance.id}/server.jar`, downloadUrl).then(async () => {
+        // Update the instance info after download completes
+
+        // Stop Instance for update
+        await Instance.stopAndWait(instance.id);
+
+        NodeCraft.update(instance.id, {
+          version,
+          installed: true,
+        });
+
+        // Restart instance if necessary
+        if (instance.run) new Java(instance);
+      });
+
+      // Return the immediate response
+      return { version, updating: true };
     }
 
-    const info = await Vanilla.install(`${INSTANCES_PATH}/${instance.id}`);
-    info.updated = true;
+    // Wait for the download to complete
+    await download(`${INSTANCES_PATH}/${instance.id}/server.jar`, downloadUrl);
 
-    return info;
+    // Update the instance info after download completes
+    NodeCraft.update(instance.id, { version, installed: true });
+
+    return { version, updated: true };
   }
 }
 

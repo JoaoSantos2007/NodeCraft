@@ -1,28 +1,27 @@
 import { existsSync, readFileSync, writeFileSync } from 'fs';
-import { INSTANCES_PATH } from '../utils/env.js';
-import { getPropertiesListLocal } from '../utils/Properties.js';
+import { INSTANCES_PATH } from '../../config/settings.js';
+import List from './List.js';
 import { BadRequest } from '../errors/index.js';
 
 class NodeCraft {
-  static get(id, version, type, software = 'vanilla', build = null) {
-    const instancePath = `${INSTANCES_PATH}/${id}`;
-    const properties = getPropertiesListLocal(instancePath);
-    properties['level-name'] = 'world';
-
+  static create(info) {
     const settings = {
-      id,
-      name: 'A Minecraft Server',
-      type,
-      software,
-      version,
-      build,
+      ...info,
+      installed: false,
+      build: null,
       maxHistoryLines: 100,
       disableUpdate: false,
       players: {},
-      properties,
+      properties: List.get(info.type),
       history: [],
+      startCMD: info.type === 'bedrock' ? 'chmod +x bedrock_server && ./bedrock_server' : 'java -jar server.jar nogui',
+      worldPath: 'world',
+      worldNetherPath: 'world_nether',
+      worldEndPath: 'world_the_end',
+      pluginsPath: 'plugins',
     };
 
+    NodeCraft.save(settings);
     return settings;
   }
 
@@ -36,11 +35,11 @@ class NodeCraft {
     return instance;
   }
 
-  static create(id, version, type, software, build = null) {
-    const settings = NodeCraft.get(id, version, type, software, build);
-    NodeCraft.save(settings);
+  static update(id, settings) {
+    const instance = NodeCraft.read(id);
+    Object.assign(instance, settings);
 
-    return settings;
+    NodeCraft.save(instance);
   }
 
   static save(settings) {

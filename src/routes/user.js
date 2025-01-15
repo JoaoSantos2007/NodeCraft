@@ -1,17 +1,48 @@
 import { Router } from 'express';
-import User from '../controller/User.js';
+import Controller from '../controllers/User.js';
 import Auth from '../middlewares/Auth.js';
 
 const router = Router();
 
 router
-  .get('/user', Auth.verifyLogged, User.read)
-  .get('/user/all', Auth.verifyLogged, User.readMany)
-  .get('/user/:id', Auth.verifyLogged, User.readById)
-  .post('/user', User.create)
-  .put('/user', Auth.verifyLogged, User.update)
-  .put('/user/:id', Auth.verifyAdmin, User.updateOther)
-  .delete('/user', Auth.verifyLogged, User.delete)
-  .delete('/user/:id', Auth.verifyAdmin, User.deleteOther);
+  .get(
+    '/user',
+    (req, res, next) => Auth.verifyAccess('logged', req, res, next),
+    Controller.read,
+  )
+  .get(
+    '/user/all',
+    (req, res, next) => Auth.verifyAccess('logged', req, res, next),
+    Controller.readMany,
+  )
+  .get(
+    '/user/:id',
+    (req, res, next) => Auth.verifyAccess('logged', req, res, next),
+    Controller.readById,
+  )
+  .post(
+    '/user',
+    Controller.create,
+  )
+  .put(
+    '/user',
+    (req, res, next) => Auth.verifyAccess('logged', req, res, next),
+    Controller.update,
+  )
+  .put(
+    '/user/:id',
+    (req, res, next) => Auth.verifyAccess('admin', req, res, next),
+    Controller.updateOther,
+  )
+  .delete(
+    '/user',
+    (req, res, next) => Auth.verifyAccess('logged', req, res, next),
+    Controller.delete,
+  )
+  .delete(
+    '/user/:id',
+    (req, res, next) => Auth.verifyAccess('admin', req, res, next),
+    Controller.deleteOther,
+  );
 
 export default router;

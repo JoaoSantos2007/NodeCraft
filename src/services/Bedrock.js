@@ -1,14 +1,12 @@
-import shell from 'shelljs';
-import {
-  existsSync, mkdirSync, readFileSync, rmSync, writeFileSync,
-} from 'fs';
+/* eslint-disable no-new */
+import { readFileSync, writeFileSync } from 'fs';
 import * as cheerio from 'cheerio';
-import { BadRequest } from '../errors/index.js';
-import { INSTANCES_PATH } from '../utils/env.js';
+import AdmZip from 'adm-zip';
+import { INSTANCES_PATH } from '../../config/settings.js';
 import NodeCraft from './NodeCraft.js';
 import Temp from './Temp.js';
 import download from '../utils/download.js';
-import { syncPropertiesLists } from '../utils/Properties.js';
+import List from './List.js';
 import Instance from './Instance.js';
 
 class Bedrock extends Instance {
@@ -17,27 +15,58 @@ class Bedrock extends Instance {
     this.setup();
   }
 
-  static async create(id) {
-    const version = await Bedrock.install(`${INSTANCES_PATH}/${id}`);
-    return NodeCraft.create(id, version, 'bedrock');
+  static async verifyNeedUpdate(instance) {
+    const url = await Bedrock.getUrl();
+    const version = Bedrock.extractVersion(url);
+    let needUpdate = false;
+
+    if (!instance.installed) needUpdate = true;
+    else if (instance.disableUpdate) needUpdate = false;
+    else needUpdate = instance.version !== version;
+
+    return { needUpdate, version, url };
   }
 
-  static async update(instance) {
+  static async install(instance, isUpdate = false, force = false) {
+    const { needUpdate, version, url } = await Bedrock.verifyNeedUpdate(instance);
+    if (!needUpdate && !force) return { version, updated: false };
+
+    // Install and unzip
     const instancePath = `${INSTANCES_PATH}/${instance.id}`;
+    const tempPath = Temp.create();
 
-    const downloadUrl = await Bedrock.getDownloadUrl();
-    const latestVersion = Bedrock.extractVersion(downloadUrl);
-    if (latestVersion === instance.version) return { updated: false, version: instance.version };
+    if (isUpdate) {
+      // Start the download process in the background
+      download(`${tempPath}/bedrock.zip`, url).then(async () => {
+        // Update the instance info after download completes
 
-    await Bedrock.install(instancePath, downloadUrl);
-    const instanceUpdated = instance;
-    instanceUpdated.version = latestVersion;
-    NodeCraft.save(instanceUpdated);
+        // Stop Instance for update
+        await Instance.stopAndWait(instance.id);
 
-    return { updated: true, version: latestVersion };
+        const zip = new AdmZip(`${tempPath}/bedrock.zip`);
+        zip.extractAllTo(instancePath, true);
+        Temp.delete(tempPath);
+        NodeCraft.update(instance.id, { version, installed: true });
+
+        // Restart instance if necessary
+        if (instance.run) new Bedrock(instance);
+      });
+
+      // Return the immediate response
+      return { version, updating: true };
+    }
+
+    // Wait for the download to complete
+    await download(`${tempPath}/bedrock.zip`, url);
+    const zip = new AdmZip(`${tempPath}/bedrock.zip`);
+    zip.extractAllTo(instancePath, true);
+    Temp.delete(tempPath);
+    NodeCraft.update(instance.id, { version, installed: true });
+
+    return { version, updated: true };
   }
 
-  static async getDownloadUrl() {
+  static async getUrl() {
     const tempPath = Temp.create();
     await download(`${tempPath}/index.html`, 'https://minecraft.net/en-us/download/server/bedrock');
     const html = readFileSync(`${tempPath}/index.html`, 'utf8');
@@ -52,58 +81,8 @@ class Bedrock extends Instance {
     return url.split('bedrock-server-')[1].split('.zip')[0];
   }
 
-  static async install(path, url = null) {
-    const tempPath = Temp.create();
-    const downloadUrl = url || await Bedrock.getDownloadUrl();
-
-    // Install and unzip
-    await download(`${tempPath}/bedrock.zip`, downloadUrl);
-    shell.exec(`unzip -o ${tempPath}/bedrock.zip -d ${path}`, { silent: true });
-
-    Temp.delete(tempPath);
-    return Bedrock.extractVersion(downloadUrl);
-  }
-
-  static async downloadWorld(instance) {
-    const worldPath = `${INSTANCES_PATH}/${instance.id}/worlds`;
-    const worldName = instance.properties['level-name'];
-    const world = `${worldPath}/${worldName}`;
-
-    if (!existsSync(world)) throw new BadRequest('World not found!');
-    const file = `${worldPath}/world.mcworld`;
-    // Zip world path
-    shell.exec(`cd ${world} && zip -rFS ${file} .`, { silent: true });
-
-    return file;
-  }
-
-  static async uploadWorld(instance, uploadPath) {
-    const uploadFile = `${uploadPath}/upload.zip`;
-    const worldsPath = `${INSTANCES_PATH}/${instance.id}/worlds`;
-    if (!existsSync(worldsPath)) mkdirSync(worldsPath);
-
-    const worldName = instance.properties['level-name'];
-    const world = `${worldsPath}/${worldName}`;
-    if (existsSync(world)) rmSync(world, { recursive: true });
-
-    // Unzip uploaded world
-    shell.exec(`unzip ${uploadFile} -d ${world}`, { silent: true });
-    Temp.delete(uploadPath);
-
-    return instance;
-  }
-
-  static async deleteWorld(instance) {
-    const worldsPath = `${INSTANCES_PATH}/${instance.id}/worlds`;
-    if (!existsSync(worldsPath)) return;
-
-    const worldName = instance.properties['level-name'];
-    const world = `${worldsPath}/${worldName}`;
-    if (existsSync(world)) rmSync(world, { recursive: true });
-  }
-
   setup() {
-    syncPropertiesLists(this.path, this.settings);
+    List.sync(this.path, this.settings);
     this.wipePrivileges();
     this.updateAccess();
     this.run();

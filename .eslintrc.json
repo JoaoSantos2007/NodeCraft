@@ -9,6 +9,7 @@
         "ecmaVersion": "latest",
         "sourceType": "module"
     },
+    "ignorePatterns": ["node_modules/", "tests/", "instances/", "temp/"],
     "rules": {
         "import/extensions": [
             "error",

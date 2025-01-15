@@ -1,9 +1,10 @@
-import * as cheerio from 'cheerio';
-import { readFileSync } from 'fs';
+/* eslint-disable no-new */
 import { BadRequest } from '../errors/index.js';
-import Temp from '../services/Temp.js';
+import NodeCraft from '../services/NodeCraft.js';
 import download from '../utils/download.js';
-import { INSTANCES_PATH } from '../utils/env.js';
+import { INSTANCES_PATH } from '../../config/settings.js';
+import Instance from '../services/Instance.js';
+import Java from '../services/Java.js';
 
 class Purpur {
   static async getVersions() {
@@ -20,85 +21,66 @@ class Purpur {
     return data.builds.all;
   }
 
-  static async analizeBuild(version, build) {
-    const response = await fetch(`https://api.purpurmc.org/v2/purpur/${version}/${build}`);
-    const data = await response.json();
-
-    return data;
-  }
-
-  static async getStableVersion() {
-    const tempPath = Temp.create();
-
-    await download(`${tempPath}/index.html`, 'https://purpurmc.org/downloads');
-    const html = readFileSync(`${tempPath}/index.html`, 'utf8');
-    const $ = cheerio.load(html);
-
-    const dropdown = $('#dropdown');
-    const selectedVersion = dropdown.find('option[selected]');
-    const version = selectedVersion.attr('value');
-
-    Temp.delete(tempPath);
-    return version;
-  }
-
-  static async getLatestBuild(version) {
-    const response = await fetch(`https://api.purpurmc.org/v2/purpur/${version}`);
-    const data = await response.json();
-
-    return data.builds.latest;
-  }
-
-  static async getStable() {
-    const version = await Purpur.getStableVersion();
-    const build = await Purpur.getLatestBuild(version);
-
-    return { version, build };
-  }
-
-  static async getSpecifDownloadUrl(version = null) {
+  static async getLatest(version) {
     const versions = await Purpur.getVersions();
-    if (!versions.includes(version)) throw new BadRequest(`version ${version} not found!`);
-    const build = await Purpur.getLatestBuild(version);
+    if (version !== 'latest' && version && !versions.includes(version)) throw new BadRequest(`version ${version} not found!`);
 
-    return `https://api.purpurmc.org/v2/purpur/${version}/${build}/download`;
+    const validVersion = versions.pop();
+    const build = (await Purpur.getBuilds(validVersion)).pop();
+
+    return { version: validVersion, build };
   }
 
-  static async getLatestDownloadUrl() {
-    const { version, build } = await Purpur.getStable();
+  static async verifyNeedUpdate(instance) {
+    const latest = await Purpur.getLatest();
+    const info = { version: latest.version, build: latest.build };
+    let needUpdate;
 
-    return `https://api.purpurmc.org/v2/purpur/${version}/${build}/download`;
-  }
-
-  static async getDownloadUrl(version) {
-    if (version) return Purpur.getSpecifDownloadUrl(version);
-    return Purpur.getLatestDownloadUrl();
-  }
-
-  static async extractBuildAndVersion(url) {
-    const info = url.split('purpur/')[1].split('/download')[0].split('/');
-
-    return { version: info[0], build: Number(info[1]) };
-  }
-
-  static async install(path, version) {
-    const downloadUrl = await Purpur.getDownloadUrl(version);
-    const info = Purpur.extractBuildAndVersion(downloadUrl);
-    await download(`${path}/server.jar`, downloadUrl);
-
-    return info;
-  }
-
-  static async update(instance) {
-    const { version, build } = await Purpur.getStable();
-    if (instance.version === version && Number(instance.build) === Number(build)) {
-      return { version, build, updated: false };
+    if (!instance.installed) needUpdate = true;
+    else if (instance.disableUpdate) needUpdate = false;
+    else {
+      needUpdate = instance.version !== latest.version
+      || Number(instance.build) !== Number(latest.build);
     }
 
-    const info = await Purpur.install(`${INSTANCES_PATH}/${instance.id}`);
-    info.updated = true;
+    return { needUpdate, info };
+  }
 
-    return info;
+  static async install(instance, isUpdate = false, force = false) {
+    const { needUpdate, info } = await Purpur.verifyNeedUpdate(instance);
+    if (!needUpdate && !force) return { ...info, updated: false };
+
+    const downloadUrl = `https://api.purpurmc.org/v2/purpur/${info.version}/${info.build}/download`;
+
+    if (isUpdate) {
+      // Start the download process in the background
+      download(`${INSTANCES_PATH}/${instance.id}/server.jar`, downloadUrl).then(async () => {
+        // Update the instance info after download completes
+
+        // Stop Instance for update
+        await Instance.stopAndWait(instance.id);
+
+        NodeCraft.update(instance.id, {
+          version: info.version,
+          build: info.build,
+          installed: true,
+        });
+
+        // Restart instance if necessary
+        if (instance.run) new Java(instance);
+      });
+
+      // Return the immediate response
+      return { ...info, updating: true };
+    }
+
+    // Wait for the download to complete
+    await download(`${INSTANCES_PATH}/${instance.id}/server.jar`, downloadUrl);
+
+    // Update the instance info after download completes
+    NodeCraft.update(instance.id, { version: info.version, build: info.build, installed: true });
+
+    return { ...info, updated: true };
   }
 }
 
