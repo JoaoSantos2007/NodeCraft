@@ -5,7 +5,7 @@ import Instance from './Instance.js';
 
 class User {
   // eslint-disable-next-line object-curly-newline
-  static async register({ name, email, password, gamertag }) {
+  static async create({ name, email, password, gamertag }) {
     let user = await Model.findOne({
       where: {
         email,
@@ -28,13 +28,13 @@ class User {
     return user;
   }
 
-  static async readUsers() {
+  static async readAll() {
     const user = await Model.findAll();
 
     return user;
   }
 
-  static async readUserById(id) {
+  static async readOne(id) {
     const user = await Model.findOne({
       where: {
         id,
@@ -46,22 +46,22 @@ class User {
     return user;
   }
 
-  static async updateUser(id, data) {
-    const user = await User.readUserById(id);
+  static async update(id, data) {
+    const user = await User.readOne(id);
     await user.update(data);
 
     return user;
   }
 
-  static async deleteUser(id) {
-    const user = await User.readUserById(id);
+  static async delete(id) {
+    const user = await User.readOne(id);
     await user.destroy();
 
     return user;
   }
 
   static async getRemainingQuota(id) {
-    const user = await User.readUserById(id);
+    const user = await User.readOne(id);
     const instances = Instance.readAllByOwner(id);
     const instancesNumber = instances.length;
 
