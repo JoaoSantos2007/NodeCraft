@@ -12,8 +12,8 @@ router
   )
   .get(
     '/user/all',
-    (req, res, next) => Auth.verifyAccess('logged', req, res, next),
-    Controller.readMany,
+    (req, res, next) => Auth.verifyAccess('admin', req, res, next),
+    Controller.readAll,
   )
   .get(
     '/user/:id',

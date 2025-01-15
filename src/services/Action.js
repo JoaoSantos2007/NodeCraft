@@ -1,5 +1,5 @@
 /* eslint-disable no-new */
-import { BadRequest, InvalidRequest } from '../errors/index.js';
+import { InvalidRequest } from '../errors/index.js';
 import { INSTANCES } from '../../config/settings.js';
 import Instance from './Instance.js';
 import Java from './Java.js';
@@ -9,7 +9,7 @@ import NodeCraft from './NodeCraft.js';
 class Action {
   static readStatus(id) {
     const instance = Instance.verifyInProgess(id);
-    if (!instance) throw new BadRequest('Instance is not in progress!');
+    if (!instance) throw new InvalidRequest('Instance is not in progress!');
 
     const status = { ...instance };
 
@@ -38,13 +38,12 @@ class Action {
 
     const { type } = instance;
     let info = { version: instance.version, build: instance.build, updated: false };
-    if (type === 'bedrock') info = await Bedrock.install(instance, true, force);
-    else if (type === 'java') info = await Java.install(instance, true, force);
+    if (type === 'bedrock') info = await Bedrock.install(instance, force);
+    else if (type === 'java') info = await Java.install(instance, force);
 
     return info;
   }
 
-  // Revisar
   static updateVersionAll() {
     const instances = Instance.readAll();
 
@@ -56,7 +55,7 @@ class Action {
 
   static stop(id) {
     const instance = Instance.readOne(id);
-    if (!Instance.verifyInProgess(id)) throw new BadRequest('Instance is not in progress!');
+    if (!Instance.verifyInProgess(id)) throw new InvalidRequest('Instance is not in progress!');
 
     INSTANCES[id].stop();
 

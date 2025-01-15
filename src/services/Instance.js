@@ -89,10 +89,6 @@ class Instance {
     return INSTANCES[id];
   }
 
-  static restart() {
-
-  }
-
   static stopAndWait(id) {
     return new Promise((resolve, reject) => {
       try {

@@ -35,8 +35,8 @@ class Instance {
       }
 
       const instance = Service.create(body, owner);
-      if (body.type === 'bedrock') Bedrock.install(instance);
-      else Java.install(instance);
+      if (body.type === 'bedrock') Bedrock.install(instance, true);
+      else Java.install(instance, true);
 
       return res.status(201).json({
         success: true, id: instance.id, building: true, instance,

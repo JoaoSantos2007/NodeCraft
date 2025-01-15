@@ -27,7 +27,8 @@ class Bedrock extends Instance {
     return { needUpdate, version, url };
   }
 
-  static async install(instance, isUpdate = false, force = false) {
+  static async install(instance, force = false) {
+    // Verify if instance needUpdates
     const { needUpdate, version, url } = await Bedrock.verifyNeedUpdate(instance);
     if (!needUpdate && !force) return { version, updated: false };
 
@@ -35,35 +36,22 @@ class Bedrock extends Instance {
     const instancePath = `${INSTANCES_PATH}/${instance.id}`;
     const tempPath = Temp.create();
 
-    if (isUpdate) {
-      // Start the download process in the background
-      download(`${tempPath}/bedrock.zip`, url).then(async () => {
-        // Update the instance info after download completes
+    // Start the download process in the background
+    download(`${tempPath}/bedrock.zip`, url).then(async () => {
+      // Stop Instance for update
+      await Instance.stopAndWait(instance.id);
 
-        // Stop Instance for update
-        await Instance.stopAndWait(instance.id);
+      const zip = new AdmZip(`${tempPath}/bedrock.zip`);
+      zip.extractAllTo(instancePath, true);
+      Temp.delete(tempPath);
+      NodeCraft.update(instance.id, { version, installed: true });
 
-        const zip = new AdmZip(`${tempPath}/bedrock.zip`);
-        zip.extractAllTo(instancePath, true);
-        Temp.delete(tempPath);
-        NodeCraft.update(instance.id, { version, installed: true });
+      // Restart instance if necessary
+      if (instance.run) new Bedrock(instance);
+    });
 
-        // Restart instance if necessary
-        if (instance.run) new Bedrock(instance);
-      });
-
-      // Return the immediate response
-      return { version, updating: true };
-    }
-
-    // Wait for the download to complete
-    await download(`${tempPath}/bedrock.zip`, url);
-    const zip = new AdmZip(`${tempPath}/bedrock.zip`);
-    zip.extractAllTo(instancePath, true);
-    Temp.delete(tempPath);
-    NodeCraft.update(instance.id, { version, installed: true });
-
-    return { version, updated: true };
+    // Return the immediate response
+    return { version, updating: true };
   }
 
   static async getUrl() {

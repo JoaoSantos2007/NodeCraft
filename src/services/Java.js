@@ -1,11 +1,12 @@
+/* eslint-disable no-new */
 import { writeFileSync } from 'fs';
 import { INSTANCES_PATH } from '../../config/settings.js';
-import {
-  Paper, Purpur, Vanilla,
-} from '../softwares/index.js';
 import List from './List.js';
 import Instance from './Instance.js';
 import findPlayer from '../utils/findPlayer.js';
+import download from '../utils/download.js';
+import NodeCraft from './NodeCraft.js';
+import Softwares from './Softwares.js';
 
 class Java extends Instance {
   constructor(settings) {
@@ -13,22 +14,72 @@ class Java extends Instance {
     this.setup();
   }
 
-  static async install(instance, isUpdate = false, force = false) {
-    writeFileSync(`${INSTANCES_PATH}/${instance.id}/eula.txt`, 'eula=true');
-    let info = { version: instance.version, build: null, updated: false };
+  static async verifyNeedUpdate(instance) {
+    let latest = null;
 
     switch (instance.software) {
       case 'paper':
-        info = await Paper.install(instance, isUpdate, force);
+        latest = await Softwares.getPaperLatest();
         break;
       case 'purpur':
-        info = await Purpur.install(instance, isUpdate, force);
+        latest = await Softwares.getPurpurLatest();
         break;
       default:
-        info = await Vanilla.install(instance, isUpdate, force);
+        latest = await Softwares.getVanillaLatest();
     }
 
-    return info;
+    const info = { version: latest.version, build: latest.build };
+    let needUpdate = false;
+
+    if (!instance.installed) needUpdate = true;
+    else if (instance.disableUpdate) needUpdate = false;
+    else if (latest.build) {
+      needUpdate = instance.version !== latest.version
+      || Number(instance.build) !== Number(latest.build);
+    } else needUpdate = instance.version !== latest.version;
+
+    return { needUpdate, info };
+  }
+
+  static async install(instance, force = false) {
+    // Allow eula.txt
+    writeFileSync(`${INSTANCES_PATH}/${instance.id}/eula.txt`, 'eula=true');
+
+    // Verify if instance needUpdates
+    const { needUpdate, info } = await Java.verifyNeedUpdate(instance);
+    if (!needUpdate && !force) return { ...info, updated: false };
+
+    // Get Download Url for each instance software type
+    let downloadUrl;
+    switch (instance.software) {
+      case 'paper':
+        downloadUrl = Softwares.getPaperDownloadUrl(info.version, info.build);
+        break;
+      case 'purpur':
+        downloadUrl = Softwares.getPurpurDownloadUrl(info.version, info.build);
+        break;
+      default:
+        downloadUrl = await Softwares.getVanillaDownloadUrl();
+    }
+
+    // Start the download process in the background
+    download(`${INSTANCES_PATH}/${instance.id}/server.jar`, downloadUrl).then(async () => {
+      // Stop Instance for update
+      await Instance.stopAndWait(instance.id);
+
+      // Update Nodecraft file
+      NodeCraft.update(instance.id, {
+        version: info.version,
+        build: info.build,
+        installed: true,
+      });
+
+      // Restart instance if necessary
+      if (instance.run) new Java(instance);
+    });
+
+    // Return the immediate response
+    return { ...info, updating: true };
   }
 
   static formatUUID(uuidString) {
