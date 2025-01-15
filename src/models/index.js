@@ -16,6 +16,7 @@ Member.belongsTo(Role, { foreignKey: 'RoleId' });
 User.hasMany(Member, { foreignKey: 'UserId' });
 Group.hasMany(Member, { foreignKey: 'GroupId' });
 
+await db.sync();
 await db.query('PRAGMA foreign_keys = ON');
 
 export {

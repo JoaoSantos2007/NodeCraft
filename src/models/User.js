@@ -13,8 +13,9 @@ User.init({
     type: DataTypes.STRING,
     allowNull: false,
     validate: {
-      isAlphanumeric: {
-        msg: 'name must be alphanumeric!',
+      is: {
+        args: /^[a-zA-ZÀ-ÿ0-9\s]+$/i,
+        msg: 'name must be valid!',
       },
       len: {
         args: [2, 32],
