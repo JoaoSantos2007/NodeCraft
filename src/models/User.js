@@ -46,7 +46,7 @@ User.init({
     allowNull: true,
     validate: {
       len: {
-        args: [80],
+        args: [3, 80],
         msg: 'gamertag must have a length under 80!',
       },
     },
