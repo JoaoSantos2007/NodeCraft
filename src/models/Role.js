@@ -1,6 +1,6 @@
 import { Sequelize, DataTypes, Model } from 'sequelize';
 import db from '../../config/sequelize.js';
-import { permissions } from '../../config/settings.js';
+import { PERMISSIONS } from '../../config/settings.js';
 
 class Role extends Model { }
 
@@ -40,7 +40,7 @@ Role.init({
           throw new Error('Permissions field must be a type of array!');
         }
         parsed.forEach((item) => {
-          if (!permissions.includes(item)) throw new Error(`${item} is an invalid permission!`);
+          if (!PERMISSIONS.includes(item)) throw new Error(`${item} is an invalid permission!`);
         });
       },
     },

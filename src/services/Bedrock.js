@@ -1,3 +1,4 @@
+/* eslint-disable no-new */
 import { readFileSync, writeFileSync } from 'fs';
 import * as cheerio from 'cheerio';
 import AdmZip from 'adm-zip';
@@ -36,13 +37,19 @@ class Bedrock extends Instance {
 
     if (isUpdate) {
       // Start the download process in the background
-      download(`${tempPath}/bedrock.zip`, url).then(() => {
+      download(`${tempPath}/bedrock.zip`, url).then(async () => {
         // Update the instance info after download completes
+
+        // Stop Instance for update
+        await Instance.stopAndWait(instance.id);
 
         const zip = new AdmZip(`${tempPath}/bedrock.zip`);
         zip.extractAllTo(instancePath, true);
         Temp.delete(tempPath);
         NodeCraft.update(instance.id, { version, installed: true });
+
+        // Restart instance if necessary
+        if (instance.run) new Bedrock(instance);
       });
 
       // Return the immediate response

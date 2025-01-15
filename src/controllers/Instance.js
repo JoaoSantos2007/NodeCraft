@@ -54,8 +54,8 @@ class Instance {
 
       if (user.admin === true) instances = Service.readAll();
       else {
-        const groupsIds = await MemberService.readAllGroupsByUser(user.id);
-        allOwners = allOwners.concat(groupsIds);
+        const groupsId = await MemberService.readAllGroupsByUser(user.id);
+        allOwners = allOwners.concat(groupsId);
 
         instances = Service.readAllByOwners(allOwners);
       }

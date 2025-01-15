@@ -1,9 +1,12 @@
+/* eslint-disable no-new */
 import * as cheerio from 'cheerio';
 import { readFileSync } from 'fs';
 import Temp from '../services/Temp.js';
 import download from '../utils/download.js';
 import { INSTANCES_PATH } from '../../config/settings.js';
 import NodeCraft from '../services/NodeCraft.js';
+import Instance from '../services/Instance.js';
+import Java from '../services/Java.js';
 
 class Vanilla {
   static async getUrl() {
@@ -54,12 +57,19 @@ class Vanilla {
 
     if (isUpdate) {
       // Start the download process in the background
-      download(`${INSTANCES_PATH}/${instance.id}/server.jar`, downloadUrl).then(() => {
+      download(`${INSTANCES_PATH}/${instance.id}/server.jar`, downloadUrl).then(async () => {
         // Update the instance info after download completes
+
+        // Stop Instance for update
+        await Instance.stopAndWait(instance.id);
+
         NodeCraft.update(instance.id, {
           version,
           installed: true,
         });
+
+        // Restart instance if necessary
+        if (instance.run) new Java(instance);
       });
 
       // Return the immediate response

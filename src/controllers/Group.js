@@ -1,9 +1,17 @@
 import Service from '../services/Group.js';
+import MemberService from '../services/Member.js';
 
 class Group {
   static async readAll(req, res, next) {
     try {
-      const groups = await Service.readAll();
+      const { user } = req;
+      let groups = [];
+
+      if (user.admin === true) groups = await Service.readAll();
+      else {
+        const groupsId = await MemberService.readAllGroupsByUser(user.id);
+        groups = await Service.readAllGroupsByIds(groupsId);
+      }
 
       return res.status(200).json({ success: true, groups });
     } catch (err) {

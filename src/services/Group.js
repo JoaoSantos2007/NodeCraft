@@ -1,3 +1,4 @@
+import { Sequelize } from 'sequelize';
 import { Group as Model } from '../models/index.js';
 import { BadRequest, InvalidRequest } from '../errors/index.js';
 import Instance from './Instance.js';
@@ -5,6 +6,28 @@ import Instance from './Instance.js';
 class Group {
   static async readAll() {
     const groups = await Model.findAll({
+      include: [
+        {
+          association: 'roles',
+          attributes: ['id', 'name', 'permissions', 'GroupId'], // Inclua apenas os campos relevantes
+        },
+        {
+          association: 'Members', // Use o mesmo alias definido na associação
+          attributes: ['id', 'admin', 'permissions', 'UserId', 'GroupId', 'RoleId'], // Campos desejados do Member
+        },
+      ],
+    });
+
+    return groups;
+  }
+
+  static async readAllGroupsByIds(groupsId) {
+    const groups = await Model.findAll({
+      where: {
+        id: {
+          [Sequelize.Op.in]: groupsId,
+        },
+      },
       include: [
         {
           association: 'roles',

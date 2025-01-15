@@ -1,7 +1,7 @@
 import { mkdirSync, readdirSync, rmSync } from 'fs';
 import { randomUUID } from 'crypto';
 import shell from 'shelljs';
-import { INSTANCES_PATH } from '../../config/settings.js';
+import { INSTANCES_PATH, INSTANCES } from '../../config/settings.js';
 import validate from '../validators/instance.js';
 import NodeCraft from './NodeCraft.js';
 
@@ -85,8 +85,59 @@ class Instance {
     return instance;
   }
 
+  static verifyInProgess(id) {
+    return INSTANCES[id];
+  }
+
+  static restart() {
+
+  }
+
+  static stopAndWait(id) {
+    return new Promise((resolve, reject) => {
+      try {
+        if (!Instance.verifyInProgess(id)) {
+          resolve();
+        } else {
+          INSTANCES[id].stop();
+
+          // Declare timeout variable
+          let timeout;
+
+          // Verify periodically if instance is in progress
+          const interval = setInterval(() => {
+            if (!Instance.verifyInProgess(id)) {
+              clearInterval(interval);
+              clearTimeout(timeout);
+              resolve();
+            }
+          }, 500);
+
+          // Set a timeout to reject the promise after 20 seconds
+          timeout = setTimeout(() => {
+            clearInterval(interval);
+            reject(new Error('Timeout: Instance did not stop within 20 seconds.'));
+          }, 20000); // 20 seconds
+        }
+      } catch (err) {
+        reject(err);
+      }
+    });
+  }
+
+  static closeInstance(id) {
+    INSTANCES[id] = null;
+  }
+
   run() {
+    INSTANCES[this.settings.id] = this;
     this.terminal = shell.exec(`cd ${this.path} && ${this.startCMD}`, { silent: false, async: true });
+    this.setListeners();
+  }
+
+  setListeners() {
+    this.terminal.on('close', () => Instance.closeInstance(this.settings.id));
+    this.terminal.on('error', () => Instance.closeInstance(this.settings.id));
   }
 
   stop() {

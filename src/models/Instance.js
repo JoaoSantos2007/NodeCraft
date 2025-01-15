@@ -33,6 +33,10 @@ const Instance = {
     int: true,
     internal: true,
   },
+  run: {
+    type: 'boolean',
+    internal: true,
+  },
   maxHistoryLines: {
     type: 'number',
     int: true,

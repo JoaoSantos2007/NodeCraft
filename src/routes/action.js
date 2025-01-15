@@ -20,7 +20,6 @@ router
   .put(
     '/:id/action/update',
     (req, res, next) => Auth.verifyAccess('instance:update', req, res, next),
-    Middleware.verifyInProgress,
     Controller.update,
   )
   .delete(

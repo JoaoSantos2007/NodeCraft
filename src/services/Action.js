@@ -1,12 +1,14 @@
+/* eslint-disable no-new */
 import { BadRequest, InvalidRequest } from '../errors/index.js';
 import { INSTANCES } from '../../config/settings.js';
 import Instance from './Instance.js';
 import Java from './Java.js';
 import Bedrock from './Bedrock.js';
+import NodeCraft from './NodeCraft.js';
 
 class Action {
   static readStatus(id) {
-    const instance = Action.verifyInstanceInProgess(id);
+    const instance = Instance.verifyInProgess(id);
     if (!instance) throw new BadRequest('Instance is not in progress!');
 
     const status = { ...instance };
@@ -19,18 +21,14 @@ class Action {
   static run(id) {
     const instance = Instance.readOne(id);
     const { type } = instance;
-    let newInstance = null;
 
-    if (type === 'bedrock') newInstance = new Bedrock(instance);
-    else if (type === 'java') newInstance = new Java(instance);
-    else throw new Error();
+    if (type === 'bedrock') new Bedrock(instance);
+    else if (type === 'java') new Java(instance);
 
-    INSTANCES[id] = newInstance;
+    instance.run = true;
+    NodeCraft.update(id, instance);
+
     return instance;
-  }
-
-  static verifyInstanceInProgess(id) {
-    return INSTANCES[id];
   }
 
   static async updateVersion(id, force = false) {
@@ -47,24 +45,24 @@ class Action {
   }
 
   // Revisar
-  static async updateAllVersions() {
+  static updateVersionAll() {
     const instances = Instance.readAll();
 
     instances.forEach(async (instance) => {
-      if (!instance.disableUpdate) {
-        const { id } = instance;
-        if (Action.verifyInstanceInProgess(id)) Instance.stop(id);
-        Instance.updateVersion(instance.id);
-      }
+      if (instance.disableUpdate) return;
+      await Action.updateVersion(instance.id);
     });
   }
 
   static stop(id) {
     const instance = Instance.readOne(id);
-    if (!Action.verifyInstanceInProgess(id)) throw new BadRequest('Instance is not in progress!');
+    if (!Instance.verifyInProgess(id)) throw new BadRequest('Instance is not in progress!');
 
     INSTANCES[id].stop();
-    INSTANCES[id] = null;
+
+    instance.run = false;
+    NodeCraft.update(id, instance);
+
     return instance;
   }
 }
