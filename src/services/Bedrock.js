@@ -81,7 +81,9 @@ class Bedrock extends Instance {
     this.terminal.stdout.on('data', (data) => {
       this.updateHistory(data);
       this.verifyPlayerConnected(data);
+      this.verifyPlayerSpawned(data);
       this.verifyPlayerDisconnected(data);
+      this.verifyServerIsDone(data);
     });
   }
 
@@ -92,7 +94,7 @@ class Bedrock extends Instance {
       if (player.access === 'always' && !player.admin) allowlist.push({ ignoresPlayerLimit: false, name: player.gamertag });
       if (player.admin) allowlist.push({ ignoresPlayerLimit: true, name: player.gamertag });
       if (player.access === 'monitored' && this.admins > 0) allowlist.push({ ignoresPlayerLimit: false, name: player.gamertag });
-      if (player.access === 'monitored' && this.admins < 0 && this.players.includes(player.gamertag)) this.emitEvent(`kick ${player.gamertag}`);
+      if (player.access === 'monitored' && this.admins <= 0 && this.players.includes(player.gamertag)) this.emitEvent(`kick ${player.gamertag}`);
     });
 
     writeFileSync(`${this.path}/allowlist.json`, JSON.stringify(allowlist), 'utf8');
@@ -101,7 +103,6 @@ class Bedrock extends Instance {
   verifyPlayerConnected(output) {
     if (output.includes('Player connected')) {
       const gamertag = (output.split('] Player connected: ')[1]).split(',')[0];
-      const xuid = (output.split('xuid: ')[1]).split('\n')[0];
       this.online += 1;
       this.players.push(gamertag);
 
@@ -109,8 +110,14 @@ class Bedrock extends Instance {
         this.admins += 1;
         this.updateAccess();
       }
+    }
+  }
 
-      this.verifyPrivileges(gamertag, xuid);
+  verifyPlayerSpawned(output) {
+    if (output.includes('Player Spawned')) {
+      const gamertag = (output.split('] Player Spawned: ')[1]).split(' xuid')[0];
+
+      this.verifyPrivileges(gamertag);
     }
   }
 
@@ -131,23 +138,18 @@ class Bedrock extends Instance {
     writeFileSync(`${this.path}/permissions.json`, '[]', 'utf8');
   }
 
-  verifyPrivileges(gamertag, xuid) {
+  verifyPrivileges(gamertag) {
     this.readPlayers().forEach((player) => {
       if (player.gamertag === gamertag && player.operator) {
-        const rawData = readFileSync(`${this.path}/permissions.json`, 'utf8');
-        const permissions = JSON.parse(rawData);
-
-        let alreadyInList = false;
-        permissions.forEach((obj) => {
-          if (Number(obj.xuid) === Number(xuid)) alreadyInList = true;
-        });
-
-        if (!alreadyInList) {
-          permissions.push({ permission: 'operator', xuid });
-          writeFileSync(`${this.path}/permissions.json`, JSON.stringify(permissions), 'utf8');
-        }
+        this.emitEvent(`op ${gamertag}`);
       }
     });
+  }
+
+  verifyServerIsDone(output) {
+    if (output.includes('Server started') && this.isDone === false) {
+      this.isDone = true;
+    }
   }
 }
 
