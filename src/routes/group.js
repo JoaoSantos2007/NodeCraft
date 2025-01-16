@@ -24,7 +24,7 @@ router
   )
   .put(
     '/group/:id',
-    (req, res, next) => Auth.verifyAccess('group:update', req, res, next),
+    (req, res, next) => Auth.verifyAccess('admin', req, res, next),
     Contoller.update,
   )
   .delete(

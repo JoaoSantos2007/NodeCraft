@@ -76,7 +76,7 @@ class Group {
     if (!name) throw new InvalidRequest('Name field is missing!');
 
     const group = await Group.readOne(id);
-    await group.update({ name });
+    await group.update({ name, quota: data.quota });
 
     return Group.readOne(id);
   }

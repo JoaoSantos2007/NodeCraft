@@ -53,6 +53,9 @@ class Auth {
 
   static async verifyUserHasPermissionInsideGroup(group, user, permission) {
     try {
+      // Verify if user is a server admin
+      if (user.admin === true) return true;
+
       // Verify if user belongs to the group
       const member = await Member.readOneByUser(group, user.id);
 
