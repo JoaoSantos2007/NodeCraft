@@ -91,8 +91,8 @@ class Java extends Instance {
 
   async setup() {
     List.sync(this.path, this.settings);
-    this.updateAccess();
-    this.setupOps();
+    await this.updateAccess();
+    await this.setupOps();
     this.run();
     this.handleServerEvents();
   }
@@ -102,11 +102,13 @@ class Java extends Instance {
       this.updateHistory(data);
       this.verifyPlayerConnected(data);
       this.verifyPlayerDisconnected(data);
+      this.verifyServerIsDone(data);
     });
   }
 
   async setupOps() {
     const playersValues = this.readPlayers();
+    let mojangApiNotWorking = false;
     const ops = [];
 
     // eslint-disable-next-line no-restricted-syntax
@@ -116,6 +118,12 @@ class Java extends Instance {
       if (operator) {
         // eslint-disable-next-line no-await-in-loop
         const id = await findPlayer(gamertag);
+
+        if (!id) {
+          mojangApiNotWorking = true;
+          return;
+        }
+
         const uuid = Java.formatUUID(id);
         if (uuid) {
           ops.push({
@@ -129,11 +137,25 @@ class Java extends Instance {
     }
 
     writeFileSync(`${this.path}/ops.json`, JSON.stringify(ops), 'utf8');
+
+    if (mojangApiNotWorking && this.isDone) this.updateAccessByTerminal();
+  }
+
+  setupOpsByTerminal() {
+    const playersValues = this.readPlayers();
+
+    // eslint-disable-next-line no-restricted-syntax
+    for (const player of playersValues) {
+      const { gamertag, operator } = player;
+
+      if (operator) this.emitEvent(`op ${gamertag}`);
+    }
   }
 
   async updateAccess() {
     const playersValues = this.readPlayers();
     const allowlist = [];
+    let mojangApiNotWorking = false;
 
     // eslint-disable-next-line no-restricted-syntax
     for (const player of playersValues) {
@@ -142,6 +164,12 @@ class Java extends Instance {
       if (access === 'always' || player.admin || (access === 'monitored' && this.admins > 0)) {
         // eslint-disable-next-line no-await-in-loop
         const id = await findPlayer(gamertag);
+
+        if (!id) {
+          mojangApiNotWorking = true;
+          return;
+        }
+
         const uuid = Java.formatUUID(id);
         if (uuid) allowlist.push({ uuid, name: gamertag });
       }
@@ -152,6 +180,25 @@ class Java extends Instance {
     }
 
     writeFileSync(`${this.path}/whitelist.json`, JSON.stringify(allowlist), 'utf8');
+
+    if (mojangApiNotWorking && this.isDone) this.updateAccessByTerminal();
+  }
+
+  updateAccessByTerminal() {
+    const playersValues = this.readPlayers();
+
+    // eslint-disable-next-line no-restricted-syntax
+    for (const player of playersValues) {
+      const { gamertag, access } = player;
+
+      if (access === 'always' || player.admin || (access === 'monitored' && this.admins > 0)) {
+        this.emitEvent(`whitelist add ${gamertag}`);
+      }
+
+      if (access === 'monitored' && this.admins < 0 && this.players.includes(gamertag)) {
+        this.emitEvent(`kick ${gamertag}`);
+      }
+    }
   }
 
   verifyPlayerConnected(output) {
@@ -177,6 +224,15 @@ class Java extends Instance {
         this.admins -= 1;
         this.updateAccess();
       }
+    }
+  }
+
+  verifyServerIsDone(output) {
+    if (output.includes('Done') && this.isDone === false) {
+      this.isDone = true;
+
+      this.updateAccessByTerminal();
+      this.setupOpsByTerminal();
     }
   }
 }

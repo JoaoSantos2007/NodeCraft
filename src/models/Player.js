@@ -1,7 +1,4 @@
 const Player = {
-  accountId: {
-    type: 'string',
-  },
   gamertag: {
     type: 'string',
     required: true,

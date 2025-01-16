@@ -14,6 +14,7 @@ class Instance {
     this.admins = 0;
     this.players = [];
     this.startCMD = settings.startCMD;
+    this.isDone = false;
   }
 
   static create(data, userId) {
