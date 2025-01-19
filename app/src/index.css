@@ -11,3 +11,26 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+/*
+==========================
+       My Styles
+==========================
+ */
+
+:root{
+  --primary-color: #1A4D1A;
+  --secondary-color: #3B8A3B;
+  --tertiary-color: #A2D8A2;
+  --dark-color: #2E2E2E;
+  --light-color: #F2F2F2
+}
+
+html, body{
+  width: 100%;
+  height: 100%;
+}
+
+body{
+  background: var(--light-color);
+}
