@@ -1,8 +1,8 @@
 import React from 'react';
 import './Navbar.css'
 import { Link } from 'react-router-dom';
-import ConfigIcon from '../../icons/ConfigIcon.jsx';
-import ServerIcon from '../../icons/ServerIcon.jsx';
+import ConfigIcon from '../../icons/ConfigIcon/index.js';
+import ServerIcon from '../../icons/ServerIcon/index.js';
 
 export const Navbar = () => {
   return(

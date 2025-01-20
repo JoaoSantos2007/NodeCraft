@@ -1,6 +1,6 @@
 import React from 'react'
 
-const CreeperIcon = (props) => {
+export const CreeperIcon = (props) => {
   return (
     <svg
       version="1.1"
@@ -26,5 +26,3 @@ const CreeperIcon = (props) => {
     </svg>
   )
 }
-
-export default CreeperIcon

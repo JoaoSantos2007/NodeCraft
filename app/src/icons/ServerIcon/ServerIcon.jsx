@@ -1,6 +1,6 @@
 import React from 'react'
 
-const ServerIcon = (props) => {
+export const ServerIcon = (props) => {
   return (
     <svg 
       xmlns="http://www.w3.org/2000/svg" 
@@ -21,5 +21,3 @@ const ServerIcon = (props) => {
     </svg>
   )
 }
-
-export default ServerIcon

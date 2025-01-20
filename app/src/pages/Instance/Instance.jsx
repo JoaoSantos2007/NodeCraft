@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import './Instance.css'
 import { useParams } from 'react-router-dom'
+import InstanceNav from '../../components/InstanceNav/index.js';
 
 export const Instance = () => {
   const { id } = useParams();
@@ -34,9 +35,8 @@ export const Instance = () => {
 
   return (
     <section className='instance'>
-      <nav className='instance-navbar'>
-        
-      </nav>
+      <InstanceNav id={id}/>
+
     </section>
   )
 }

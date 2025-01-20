@@ -7,3 +7,8 @@
   font-family: "MineCrafter Alt";
   src: url("../fonts/minecrafter/Minecrafter.Alt.ttf") format("truetype");
 }
+
+@font-face {
+  font-family: "Minecraft Seven";
+  src: url("../fonts/minecraft_seven/MinecraftSeven.woff2") format("woff2");
+}

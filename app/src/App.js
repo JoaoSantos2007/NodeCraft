@@ -5,11 +5,13 @@ import { useState } from 'react';
 
 // Components
 import Navbar from './components/Navbar/index.js';
+import { MusicPlayer } from './components/MusicPlayer/MusicPlayer.jsx';
 
 // Pages
 import Home from './pages/Home/index.js';
 import Instance from './pages/Instance/index.js';
-import { MusicPlayer } from './components/MusicPlayer/MusicPlayer.jsx';
+import Properties from './pages/Properties/index.js';
+import Player from './pages/Player/index.js';
 
 
 
@@ -39,6 +41,8 @@ function App() {
           <Route path='/' element={<Home />} />
 
           <Route path='/instance/:id' element={<Instance />} />
+          <Route path='/instance/:id/properties' element={<Properties />} />
+          <Route path='/instance/:id/player' element={<Player />} />
         </Routes>
       </BrowserRouter>
 

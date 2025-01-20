@@ -1,6 +1,6 @@
 import React from 'react'
 
-const ConfigIcon = (props) => {
+export const ConfigIcon = (props) => {
   return (
     <svg 
       xmlns="http://www.w3.org/2000/svg" 
@@ -13,5 +13,3 @@ const ConfigIcon = (props) => {
     </svg>
   )
 }
-
-export default ConfigIcon

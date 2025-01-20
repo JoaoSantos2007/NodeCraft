@@ -1,6 +1,6 @@
 import React from 'react'
 import './InstanceCard.css'
-import CreeperIcon from '../../icons/CreeperIcon.jsx';
+import CreeperIcon from '../../icons/CreeperIcon/index.js';
 import { useNavigate } from 'react-router-dom';
 
 export const InstanceCard = ({ instance }) => {
