@@ -1,5 +1,5 @@
 import { writeFileSync } from 'fs';
-import validator from '../validators/settings.js';
+import Validator from '../validators/Settings.js';
 import { ABSOLUTE_PATH, config } from '../../config/settings.js';
 
 class Settings {
@@ -8,7 +8,7 @@ class Settings {
   }
 
   static update(data) {
-    validator(data);
+    Validator(data);
     const newConfig = { ...config };
 
     // eslint-disable-next-line no-restricted-syntax

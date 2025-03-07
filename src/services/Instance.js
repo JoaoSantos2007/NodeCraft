@@ -1,9 +1,8 @@
-import { mkdirSync, readdirSync, rmSync } from 'fs';
-import { randomUUID } from 'crypto';
+import { mkdirSync, rmSync } from 'fs';
 import shell from 'shelljs';
 import { INSTANCES_PATH, INSTANCES } from '../../config/settings.js';
-import validate from '../validators/instance.js';
-import NodeCraft from './NodeCraft.js';
+import Validator from '../validators/Instance.js';
+import { Instance as Model } from '../models/index.js';
 
 class Instance {
   constructor(settings, type = null) {
@@ -13,70 +12,69 @@ class Instance {
     this.online = 0;
     this.admins = 0;
     this.players = [];
-    this.startCMD = settings.startCMD;
     this.isDone = false;
   }
 
-  static create(data, userId) {
-    validate(data);
+  static async create(data, userId) {
+    // Validate the create instance input data
+    Validator(data);
 
-    const id = randomUUID();
-    mkdirSync(`${INSTANCES_PATH}/${id}`);
+    // Create instance in the Database
+    const instance = await Model.create({
+      owner: userId,
+      name: data.name,
+      type: data.type,
+      maxHistory: data.maxHistory,
+      updateAlways: data.updateAlways,
+    });
 
-    const settings = NodeCraft.create({ ...data, id, owner: userId });
-    return settings;
+    // Create instance path in the system
+    mkdirSync(`${INSTANCES_PATH}/${instance.id}`);
+
+    return instance;
   }
 
-  static readAll() {
-    const instanceList = readdirSync(INSTANCES_PATH);
-
-    const instances = [];
-    instanceList.map((id) => instances.push(NodeCraft.read(id)));
+  static async readAll() {
+    const instances = await Model.findAll();
 
     return instances;
   }
 
-  static readOne(id) {
-    return NodeCraft.read(id);
+  static async readOne(id) {
+    const instance = await Model.findByPk(id);
+
+    return instance;
   }
 
-  static readAllByOwner(ownerId) {
-    const instanceList = readdirSync(INSTANCES_PATH);
-
-    const instances = [];
-    instanceList.map((id) => {
-      const instance = NodeCraft.read(id);
-      if (instance.owner === ownerId) instances.push(instance);
-
-      return instance;
+  static async readAllByOwner(ownerId) {
+    const instances = await Model.findAll({
+      where: {
+        owner: ownerId,
+      },
     });
 
     return instances;
   }
 
-  static readAllByOwners(ownersIds) {
-    const instanceList = readdirSync(INSTANCES_PATH);
+  static async readAllByOwners(ownersIds) {
+    // const instances = await Model.findAll({
+    //   where: {
+    //     owner: ownerId,
+    //   },
+    // });
 
-    const instances = [];
-    instanceList.map((id) => {
-      const instance = NodeCraft.read(id);
-      if (ownersIds.includes(instance.owner) === true) instances.push(instance);
-
-      return instance;
-    });
-
-    return instances;
+    // return instances;
   }
 
   static update(id, data) {
-    const instance = Instance.readOne(id);
-    validate(data, instance);
+    // const instance = Instance.readOne(id);
+    // validate(data, instance);
 
-    // eslint-disable-next-line no-restricted-syntax
-    for (const [key, value] of Object.entries(data)) instance[key] = value;
-    NodeCraft.save(instance);
+    // // eslint-disable-next-line no-restricted-syntax
+    // for (const [key, value] of Object.entries(data)) instance[key] = value;
+    // NodeCraft.save(instance);
 
-    return instance;
+    // return instance;
   }
 
   static delete(id) {
@@ -162,16 +160,16 @@ class Instance {
     return isAdmin;
   }
 
-  updateHistory(output) {
-    const instance = NodeCraft.read(this.settings.id);
-    const { history, maxHistoryLines } = instance;
+  async updateHistory(output) {
+    const instance = await Instance.readOne(this.settings.id);
+    const { history, maxHistory } = instance;
 
     history.push(output);
-    if (history.length > maxHistoryLines) {
-      instance.history = history.slice(Number(history.length - maxHistoryLines));
+    if (history.length > maxHistory) {
+      instance.history = history.slice(Number(history.length - maxHistory));
     }
 
-    NodeCraft.save(instance);
+    // NodeCraft.save(instance);
   }
 }
 

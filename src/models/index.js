@@ -2,6 +2,8 @@ import User from './User.js';
 import Group from './Group.js';
 import Role from './Role.js';
 import Member from './Member.js';
+import Instance from './Instance.js';
+import Player from './Player.js';
 import db from '../../config/sequelize.js';
 
 Group.hasMany(Role, { as: 'roles', foreignKey: 'GroupId' });
@@ -16,7 +18,7 @@ Member.belongsTo(Role, { foreignKey: 'RoleId' });
 User.hasMany(Member, { foreignKey: 'UserId' });
 Group.hasMany(Member, { foreignKey: 'GroupId' });
 
-await db.sync();
+await db.sync({ force: true });
 await db.query('PRAGMA foreign_keys = ON');
 
 export {
@@ -24,4 +26,5 @@ export {
   Group,
   Role,
   Member,
+  Instance,
 };

@@ -14,7 +14,7 @@ import Path from 'path';
 import AdmZip from 'adm-zip';
 import { randomUUID } from 'crypto';
 import { INSTANCES_PATH } from '../../config/settings.js';
-import validator from '../validators/file.js';
+import Validator from '../validators/File.js';
 import Temp from './Temp.js';
 import { Base, InvalidRequest } from '../errors/index.js';
 
@@ -53,7 +53,7 @@ class File {
   }
 
   static create(id, path, data) {
-    validator(data);
+    Validator(data);
     const { type } = data;
     const absolutePath = `${INSTANCES_PATH}/${id}/${path}`;
     let content = '';
@@ -73,7 +73,7 @@ class File {
   }
 
   static update(id, path, data) {
-    validator(data);
+    Validator(data);
     const absolutePath = `${INSTANCES_PATH}/${id}/${path}`;
     const type = File.verifyType(absolutePath);
     if (type === 'file') writeFileSync(absolutePath, data.content, 'utf8');

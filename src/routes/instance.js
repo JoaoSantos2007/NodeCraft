@@ -2,7 +2,6 @@ import { Router } from 'express';
 import Controller from '../controllers/Instance.js';
 import Middleware from '../middlewares/Instance.js';
 import player from './player.js';
-import properties from './properties.js';
 import action from './action.js';
 import file from './file.js';
 import Auth from '../middlewares/Auth.js';
@@ -38,7 +37,6 @@ router
     Controller.delete,
   )
   .use('/instance', action)
-  .use('/instance', properties)
   .use('/instance', player)
   .use('/instance', file);
 

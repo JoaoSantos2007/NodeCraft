@@ -6,8 +6,8 @@ app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 
   // Run instances on Startup
-  Initialization.runInstances();
+  // Initialization.runInstances();
 
   // Update instances every 3 hours
-  Initialization.scheduleUpdates();
+  // Initialization.scheduleUpdates();
 });

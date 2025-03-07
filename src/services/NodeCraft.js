@@ -15,10 +15,6 @@ class NodeCraft {
       properties: List.get(info.type),
       history: [],
       startCMD: info.type === 'bedrock' ? 'chmod +x bedrock_server && ./bedrock_server' : 'java -jar server.jar nogui',
-      worldPath: 'world',
-      worldNetherPath: 'world_nether',
-      worldEndPath: 'world_the_end',
-      pluginsPath: 'plugins',
     };
 
     NodeCraft.save(settings);

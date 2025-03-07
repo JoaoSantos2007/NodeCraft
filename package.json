@@ -24,6 +24,7 @@
     "jsonwebtoken": "^9.0.2",
     "multer": "^1.4.5-lts.1",
     "node-schedule": "^2.1.1",
+    "realm": "^20.1.0",
     "sequelize": "^6.33.0",
     "shelljs": "^0.8.5",
     "sqlite3": "^5.1.6"
