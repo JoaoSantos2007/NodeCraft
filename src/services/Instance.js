@@ -1,8 +1,9 @@
 import { mkdirSync, rmSync } from 'fs';
 import shell from 'shelljs';
+import { Op } from 'sequelize';
 import { INSTANCES_PATH, INSTANCES } from '../../config/settings.js';
-import Validator from '../validators/Instance.js';
-import { Instance as Model } from '../models/index.js';
+import { Instance as Model, Player as PlayerModel } from '../models/index.js';
+import { BadRequest } from '../errors/index.js';
 
 class Instance {
   constructor(settings, type = null) {
@@ -16,19 +17,13 @@ class Instance {
   }
 
   static async create(data, userId) {
-    // Validate the create instance input data
-    Validator(data);
-
     // Create instance in the Database
     const instance = await Model.create({
       owner: userId,
-      name: data.name,
-      type: data.type,
-      maxHistory: data.maxHistory,
-      updateAlways: data.updateAlways,
+      ...data,
     });
 
-    // Create instance path in the system
+    // Create instance path in the System
     mkdirSync(`${INSTANCES_PATH}/${instance.id}`);
 
     return instance;
@@ -41,7 +36,10 @@ class Instance {
   }
 
   static async readOne(id) {
-    const instance = await Model.findByPk(id);
+    const instance = await Model.findByPk(id, { include: { model: PlayerModel, as: 'players' } });
+    if (!instance) throw new BadRequest('Instance not found!');
+
+    instance.dataValues.running = !!INSTANCES[id];
 
     return instance;
   }
@@ -56,29 +54,29 @@ class Instance {
     return instances;
   }
 
-  static async readAllByOwners(ownersIds) {
-    // const instances = await Model.findAll({
-    //   where: {
-    //     owner: ownerId,
-    //   },
-    // });
+  static async readAllByOwners(ownerIds) {
+    const instances = await Model.findAll({
+      where: {
+        owner: {
+          [Op.in]: ownerIds,
+        },
+      },
+    });
 
-    // return instances;
+    return instances;
   }
 
-  static update(id, data) {
-    // const instance = Instance.readOne(id);
-    // validate(data, instance);
+  static async update(id, data) {
+    const instance = await Instance.readOne(id);
+    await instance.update(data);
 
-    // // eslint-disable-next-line no-restricted-syntax
-    // for (const [key, value] of Object.entries(data)) instance[key] = value;
-    // NodeCraft.save(instance);
-
-    // return instance;
+    return instance;
   }
 
-  static delete(id) {
-    const instance = Instance.readOne(id);
+  static async delete(id) {
+    const instance = await Instance.readOne(id);
+
+    await instance.destroy();
     rmSync(`${INSTANCES_PATH}/${id}`, { recursive: true });
 
     return instance;
@@ -125,8 +123,10 @@ class Instance {
   }
 
   run() {
+    const startCMD = this.type === 'bedrock' ? 'chmod +x bedrock_server && ./bedrock_server' : 'java -jar server.jar nogui';
+
     INSTANCES[this.settings.id] = this;
-    this.terminal = shell.exec(`cd ${this.path} && ${this.startCMD}`, { silent: false, async: true });
+    this.terminal = shell.exec(`cd ${this.path} && ${startCMD}`, { silent: false, async: true });
     this.setListeners();
   }
 
@@ -162,14 +162,21 @@ class Instance {
 
   async updateHistory(output) {
     const instance = await Instance.readOne(this.settings.id);
-    const { history, maxHistory } = instance;
 
-    history.push(output);
-    if (history.length > maxHistory) {
-      instance.history = history.slice(Number(history.length - maxHistory));
+    let msg = output;
+    let { history } = instance;
+
+    if (!msg.endsWith('\n')) msg += '\n';
+    history += msg;
+
+    // Verify and slice old lines
+    const lines = history.split('\n');
+    if (lines.length > instance.maxHistory) {
+      const trimmedLines = lines.slice(lines.length - instance.maxHistory);
+      history = trimmedLines.join('\n');
     }
 
-    // NodeCraft.save(instance);
+    await instance.update({ history });
   }
 }
 

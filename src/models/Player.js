@@ -9,10 +9,18 @@ Player.init({
     defaultValue: Sequelize.UUIDV4,
     primaryKey: true,
   },
+  instanceId: {
+    type: DataTypes.UUID,
+    allowNull: false,
+    references: {
+      model: 'instance',
+      key: 'id',
+    },
+    onDelete: 'CASCADE',
+  },
   gamertag: {
     type: DataTypes.STRING,
-    allowNull: true,
-    defaultValue: '',
+    allowNull: false,
   },
   operator: {
     type: DataTypes.BOOLEAN,
@@ -24,8 +32,9 @@ Player.init({
     values: ['always', 'monitored', 'never'],
     defaultValue: 'monitored',
   },
+
 }, {
-  tableName: 'Player',
+  tableName: 'player',
   sequelize: db,
   timestamps: false,
 });

@@ -9,5 +9,5 @@ app.listen(PORT, () => {
   // Initialization.runInstances();
 
   // Update instances every 3 hours
-  // Initialization.scheduleUpdates();
+  Initialization.scheduleUpdates();
 });

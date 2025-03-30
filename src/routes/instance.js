@@ -2,7 +2,6 @@ import { Router } from 'express';
 import Controller from '../controllers/Instance.js';
 import Middleware from '../middlewares/Instance.js';
 import player from './player.js';
-import action from './action.js';
 import file from './file.js';
 import Auth from '../middlewares/Auth.js';
 
@@ -36,7 +35,22 @@ router
     Middleware.verifyInProgress,
     Controller.delete,
   )
-  .use('/instance', action)
+  .post(
+    '/instance/:id/run',
+    (req, res, next) => Auth.verifyAccess('instance:execute', req, res, next),
+    Middleware.verifyInProgress,
+    Controller.run,
+  )
+  .post(
+    '/instance/:id/stop',
+    (req, res, next) => Auth.verifyAccess('instance:execute', req, res, next),
+    Controller.stop,
+  )
+  .post(
+    '/instance/:id/update',
+    (req, res, next) => Auth.verifyAccess('instance:update', req, res, next),
+    Controller.updateVersion,
+  )
   .use('/instance', player)
   .use('/instance', file);
 

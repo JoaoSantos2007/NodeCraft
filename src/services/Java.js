@@ -5,7 +5,6 @@ import List from './List.js';
 import Instance from './Instance.js';
 import findPlayer from '../utils/findPlayer.js';
 import download from '../utils/download.js';
-import NodeCraft from './NodeCraft.js';
 import Softwares from './Softwares.js';
 
 class Java extends Instance {
@@ -68,7 +67,7 @@ class Java extends Instance {
       await Instance.stopAndWait(instance.id);
 
       // Update Nodecraft file
-      NodeCraft.update(instance.id, {
+      await Instance.update(instance.id, {
         version: info.version,
         build: info.build,
         installed: true,

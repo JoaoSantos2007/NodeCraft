@@ -3,7 +3,6 @@ import { readFileSync, writeFileSync } from 'fs';
 import * as cheerio from 'cheerio';
 import AdmZip from 'adm-zip';
 import { INSTANCES_PATH } from '../../config/settings.js';
-import NodeCraft from './NodeCraft.js';
 import Temp from './Temp.js';
 import download from '../utils/download.js';
 import List from './List.js';
@@ -44,7 +43,7 @@ class Bedrock extends Instance {
       const zip = new AdmZip(`${tempPath}/bedrock.zip`);
       zip.extractAllTo(instancePath, true);
       Temp.delete(tempPath);
-      NodeCraft.update(instance.id, { version, installed: true });
+      await Instance.update(instance.id, { version, installed: true });
 
       // Restart instance if necessary
       if (instance.run) new Bedrock(instance);

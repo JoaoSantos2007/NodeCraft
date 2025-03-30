@@ -51,7 +51,7 @@ Instance.init({
     allowNull: false,
     validate: {
       isIn: {
-        args: ['vanilla', 'paper', 'purpur'],
+        args: [['vanilla', 'paper', 'purpur']],
         msg: 'software field must be vanilla, paper or purpur!',
       },
     },
@@ -109,14 +109,17 @@ Instance.init({
     allowNull: false,
     defaultValue: 'survival',
     validate: {
-      isIn: [['survival', 'creative', 'adventure']],
-      msg: 'gamemode field must be survival, creative or adventure!',
+      isIn: {
+        args: [['survival', 'creative', 'adventure']],
+        msg: 'gamemode field must be survival, creative or adventure!',
+      },
     },
   },
   difficulty: {
     type: DataTypes.STRING,
     values: ['peaceful', 'easy', 'normal', 'hard'],
     allowNull: false,
+    defaultValue: 'normal',
     validate: {
       isIn: {
         args: [['peaceful', 'easy', 'normal', 'hard']],
@@ -164,11 +167,11 @@ Instance.init({
     allowNull: false,
     validate: {
       min: {
-        args: 1,
+        args: [1],
         msg: 'maxPlayers field must be greater than or equal to 1!',
       },
       max: {
-        args: 10000,
+        args: [10000],
         msg: 'maxPlayers field must be lower than or equal to 10000!',
       },
     },
@@ -179,11 +182,11 @@ Instance.init({
     allowNull: false,
     validate: {
       min: {
-        args: 3,
+        args: [3],
         msg: 'viewDistance field must be greater than or equal to 3!',
       },
       max: {
-        args: 32,
+        args: [32],
         msg: 'viewDistance field must be lower than or equal to 32!',
       },
     },
@@ -194,11 +197,11 @@ Instance.init({
     allowNull: false,
     validate: {
       min: {
-        args: 0,
+        args: [0],
         msg: 'spawn field must be greater than or equal to 0!',
       },
       max: {
-        args: 32,
+        args: [32],
         msg: 'spawn field must be lower than or equal to 32!',
       },
     },
@@ -209,7 +212,7 @@ Instance.init({
     defaultValue: 0,
     validate: {
       min: {
-        args: 0,
+        args: [0],
         msg: 'idle field must be greater than or equal to -1!',
       },
     },

@@ -3,7 +3,6 @@ import { scheduleJob } from 'node-schedule';
 import Instance from './Instance.js';
 import Bedrock from './Bedrock.js';
 import Java from './Java.js';
-import Action from './Action.js';
 
 class Initialization {
   static async runInstances() {
@@ -17,7 +16,18 @@ class Initialization {
   }
 
   static scheduleUpdates() {
-    scheduleJob('0 3 * * *', Action.updateVersionAll);
+    // Update all instances
+    scheduleJob('0 3 * * *', async () => {
+      const instances = await Instance.readAll();
+
+      instances.forEach(async (instance) => {
+        if (!instance.updateAlways) return;
+        const { type } = instance;
+
+        if (type === 'bedrock') await Bedrock.install(instance);
+        else if (type === 'java') await Java.install(instance);
+      });
+    });
   }
 }
 
