@@ -110,13 +110,11 @@ class Instance {
   static async run(req, res, next) {
     try {
       const { id } = req.params;
-
       const instance = await Service.readOne(id);
       const { type } = instance;
 
       if (type === 'bedrock') new Bedrock(instance);
       else if (type === 'java') new Java(instance);
-      await Service.update(id, { run: true });
 
       return res.status(200).json({ success: true, running: true, instance });
     } catch (err) {
@@ -127,12 +125,10 @@ class Instance {
   static async stop(req, res, next) {
     try {
       const { id } = req.params;
-      const instance = await Service.readOne(id);
-      console.log(instance.dataValues.running, instance);
-      if (!instance.dataValues.running) throw new InvalidRequest('Instance is not in progress!');
+      const instance = await Service.readOne(id, true);
+      if (!instance.running) throw new InvalidRequest('Instance is not in progress!');
 
       INSTANCES[id].stop();
-      await Service.update(id, { run: false });
 
       return res.status(200).json({ success: true, stopped: true, instance });
     } catch (err) {

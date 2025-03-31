@@ -21,7 +21,7 @@ Group.hasMany(Member, { foreignKey: 'GroupId' });
 Instance.hasMany(Player, { foreignKey: 'instanceId', as: 'players' });
 Player.belongsTo(Instance, { foreignKey: 'instanceId', as: 'instance' });
 
-await db.sync({ alter: true });
+// await db.sync({ alter: true });
 await db.query('PRAGMA foreign_keys = ON');
 
 export {

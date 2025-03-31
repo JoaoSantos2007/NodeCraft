@@ -33,12 +33,13 @@ class List {
     list['player-idle-timeout'] = instance.idle;
     list['level-seed'] = instance.seed;
     list['motd'] = instance.motd;
+    list['server-port'] = 19132;
 
     if (instance.type === 'bedrock') {
       // Bedrock settings
       list['allow-cheats'] = instance.cheats;
       list['allow-list'] = instance.allowlist;
-      list['server-portv6'] = 0;
+      list['server-portv6'] = 19133;
       list['enable-lan-visibility'] = false;
     } else if (instance.type === 'java') {
       // Java settings
@@ -75,9 +76,9 @@ class List {
     writeFileSync(`${path}/server.properties`, listInString);
   }
 
-  static sync(path, settings) {
+  static sync(path, doc) {
     const serverProperties = List.get(path);
-    List.applyChanges(serverProperties, settings);
+    List.applyChanges(serverProperties, doc);
     List.save(path, serverProperties);
   }
 }

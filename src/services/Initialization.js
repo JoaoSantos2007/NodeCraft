@@ -8,7 +8,7 @@ class Initialization {
   static async runInstances() {
     const instances = await Instance.readAll();
     instances.forEach((instance) => {
-      if (instance.run) {
+      if (instance.running) {
         if (instance.type === 'bedrock') new Bedrock(instance);
         else if (instance.type === 'java') new Java(instance);
       }

@@ -9,8 +9,8 @@ import List from './List.js';
 import Instance from './Instance.js';
 
 class Bedrock extends Instance {
-  constructor(settings) {
-    super(settings, 'bedrock');
+  constructor(doc) {
+    super(doc, 'bedrock');
     this.setup();
   }
 
@@ -69,7 +69,7 @@ class Bedrock extends Instance {
   }
 
   setup() {
-    List.sync(this.path, this.settings);
+    List.sync(this.path, this.doc);
     this.wipePrivileges();
     this.updateAccess();
     this.run();
@@ -90,8 +90,7 @@ class Bedrock extends Instance {
     const playersValues = this.readPlayers();
     const allowlist = [];
     playersValues.forEach((player) => {
-      if (player.access === 'always' && !player.admin) allowlist.push({ ignoresPlayerLimit: false, name: player.gamertag });
-      if (player.admin) allowlist.push({ ignoresPlayerLimit: true, name: player.gamertag });
+      if (player.access === 'always' || player.operator === true) allowlist.push({ ignoresPlayerLimit: player.operator, name: player.gamertag });
       if (player.access === 'monitored' && this.admins > 0) allowlist.push({ ignoresPlayerLimit: false, name: player.gamertag });
       if (player.access === 'monitored' && this.admins <= 0 && this.players.includes(player.gamertag)) this.emitEvent(`kick ${player.gamertag}`);
     });

@@ -91,7 +91,7 @@ Instance.init({
     allowNull: false,
     defaultValue: 0,
   },
-  run: {
+  running: {
     type: DataTypes.BOOLEAN,
     allowNull: false,
     defaultValue: false,

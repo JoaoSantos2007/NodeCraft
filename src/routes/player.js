@@ -18,7 +18,7 @@ router
   .post(
     '/:instanceId/player',
     (req, res, next) => Auth.verifyAccess('instance:player:create', req, res, next),
-    Controller.add,
+    Controller.create,
   )
   .put(
     '/:instanceId/player/:playerId',

@@ -8,8 +8,8 @@ import download from '../utils/download.js';
 import Softwares from './Softwares.js';
 
 class Java extends Instance {
-  constructor(settings) {
-    super(settings, 'java');
+  constructor(doc) {
+    super(doc, 'java');
     this.setup();
   }
 
@@ -89,7 +89,7 @@ class Java extends Instance {
   }
 
   async setup() {
-    List.sync(this.path, this.settings);
+    List.sync(this.path, this.doc);
     await this.updateAccess();
     await this.setupOps();
     this.run();

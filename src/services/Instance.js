@@ -6,10 +6,10 @@ import { Instance as Model, Player as PlayerModel } from '../models/index.js';
 import { BadRequest } from '../errors/index.js';
 
 class Instance {
-  constructor(settings, type = null) {
-    this.settings = settings;
-    this.type = type || settings.type;
-    this.path = `${INSTANCES_PATH}/${settings.id}`;
+  constructor(doc, type = null) {
+    this.doc = doc;
+    this.type = type || doc.type;
+    this.path = `${INSTANCES_PATH}/${doc.id}`;
     this.online = 0;
     this.admins = 0;
     this.players = [];
@@ -30,16 +30,13 @@ class Instance {
   }
 
   static async readAll() {
-    const instances = await Model.findAll();
-
+    const instances = await Model.findAll({ include: { model: PlayerModel, as: 'players' } });
     return instances;
   }
 
   static async readOne(id) {
     const instance = await Model.findByPk(id, { include: { model: PlayerModel, as: 'players' } });
     if (!instance) throw new BadRequest('Instance not found!');
-
-    instance.dataValues.running = !!INSTANCES[id];
 
     return instance;
   }
@@ -75,7 +72,6 @@ class Instance {
 
   static async delete(id) {
     const instance = await Instance.readOne(id);
-
     await instance.destroy();
     rmSync(`${INSTANCES_PATH}/${id}`, { recursive: true });
 
@@ -119,23 +115,26 @@ class Instance {
   }
 
   static closeInstance(id) {
+    if (this.doc) this.doc.update({ running: false });
     INSTANCES[id] = null;
   }
 
   run() {
+    this.doc.update({ running: true });
     const startCMD = this.type === 'bedrock' ? 'chmod +x bedrock_server && ./bedrock_server' : 'java -jar server.jar nogui';
 
-    INSTANCES[this.settings.id] = this;
+    INSTANCES[this.doc.id] = this;
     this.terminal = shell.exec(`cd ${this.path} && ${startCMD}`, { silent: false, async: true });
     this.setListeners();
   }
 
   setListeners() {
-    this.terminal.on('close', () => Instance.closeInstance(this.settings.id));
-    this.terminal.on('error', () => Instance.closeInstance(this.settings.id));
+    this.terminal.on('close', () => Instance.closeInstance(this.doc.id));
+    this.terminal.on('error', () => Instance.closeInstance(this.doc.id));
   }
 
   stop() {
+    if (this.doc) this.doc.update({ running: false });
     this.emitEvent('stop');
     this.emitEvent('/stop');
   }
@@ -145,7 +144,7 @@ class Instance {
   }
 
   readPlayers() {
-    const playersValues = this.settings.players;
+    const playersValues = this.doc.players;
     return Object.values(playersValues);
   }
 
@@ -161,7 +160,7 @@ class Instance {
   }
 
   async updateHistory(output) {
-    const instance = await Instance.readOne(this.settings.id);
+    const instance = await Instance.readOne(this.doc.id);
 
     let msg = output;
     let { history } = instance;

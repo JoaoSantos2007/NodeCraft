@@ -6,12 +6,11 @@ const Player = {
   },
   operator: {
     type: 'boolean',
-  },
-  admin: {
-    type: 'boolean',
+    required: true,
   },
   access: {
     type: 'string',
+    required: true,
     values: ['always', 'monitored', 'never'],
   },
 };
