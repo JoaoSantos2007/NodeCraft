@@ -4,8 +4,6 @@ import UserService from '../services/User.js';
 import GroupService from '../services/Group.js';
 import MemberService from '../services/Member.js';
 import AuthService from '../services/Auth.js';
-import Bedrock from '../services/Bedrock.js';
-import Java from '../services/Java.js';
 import { BadRequest, Unathorized, InvalidRequest } from '../errors/index.js';
 import Validator from '../validators/Instance.js';
 import { INSTANCES } from '../../config/settings.js';
@@ -39,8 +37,7 @@ class Instance {
 
       Validator(body);
       const instance = await Service.create(body, user.id);
-      if (body.type === 'bedrock') Bedrock.install(instance, true);
-      else Java.install(instance, true);
+      Service.install(instance, true);
 
       return res.status(201).json({
         success: true, id: instance.id, building: true, instance,
@@ -111,10 +108,8 @@ class Instance {
     try {
       const { id } = req.params;
       const instance = await Service.readOne(id);
-      const { type } = instance;
 
-      if (type === 'bedrock') new Bedrock(instance);
-      else if (type === 'java') new Java(instance);
+      new Service(instance);
 
       return res.status(200).json({ success: true, running: true, instance });
     } catch (err) {
@@ -140,13 +135,10 @@ class Instance {
     try {
       const { id } = req.params;
       const force = req?.query?.force === 'true';
-
       const instance = await Service.readOne(id);
-      let info = { version: instance.version, build: instance.build, updated: false };
-      const { type } = instance;
 
-      if (type === 'bedrock') info = await Bedrock.install(instance, force);
-      else if (type === 'java') info = await Java.install(instance, force);
+      let info = { version: instance.version, build: instance.build, updated: false };
+      info = await Service.install(instance, force);
 
       return res.status(200).json({
         success: true,

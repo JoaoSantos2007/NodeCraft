@@ -1,17 +1,12 @@
 /* eslint-disable no-new */
 import { scheduleJob } from 'node-schedule';
 import Instance from './Instance.js';
-import Bedrock from './Bedrock.js';
-import Java from './Java.js';
 
 class Initialization {
   static async runInstances() {
     const instances = await Instance.readAll();
     instances.forEach((instance) => {
-      if (instance.running) {
-        if (instance.type === 'bedrock') new Bedrock(instance);
-        else if (instance.type === 'java') new Java(instance);
-      }
+      if (instance.running) new Instance(instance);
     });
   }
 
@@ -22,10 +17,7 @@ class Initialization {
 
       instances.forEach(async (instance) => {
         if (!instance.updateAlways) return;
-        const { type } = instance;
-
-        if (type === 'bedrock') await Bedrock.install(instance);
-        else if (type === 'java') await Java.install(instance);
+        await Instance.install();
       });
     });
   }

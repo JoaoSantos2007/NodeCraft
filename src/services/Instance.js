@@ -1,9 +1,15 @@
+/* eslint-disable no-new */
 import { mkdirSync, rmSync } from 'fs';
 import shell from 'shelljs';
 import { Op } from 'sequelize';
+import AdmZip from 'adm-zip';
 import { INSTANCES_PATH, INSTANCES } from '../../config/settings.js';
 import { Instance as Model, Player as PlayerModel } from '../models/index.js';
 import { BadRequest } from '../errors/index.js';
+import Temp from './Temp.js';
+import AccessGuard from './AccessGuard.js';
+import Manager from './InstanceManager.js';
+import download from '../utils/download.js';
 
 class Instance {
   constructor(doc, type = null) {
@@ -80,6 +86,43 @@ class Instance {
 
   static verifyInProgess(id) {
     return INSTANCES[id];
+  }
+
+  static async install(instance, force = false) {
+    // Verify if instance needUpdates
+    const info = await Manager.verifyNeedUpdate(instance);
+    if (!info.needUpdate && !force) return { version: info.version, updated: false };
+
+    // Define variables for download process
+    const instancePath = `${INSTANCES_PATH}/${instance.id}`;
+    const tempPath = Temp.create();
+    const downloadCommand = instance.type === 'bedrock' ? `${tempPath}/bedrock.zip` : `${instancePath}/server.jar`;
+
+    // Start the download process in the background
+    download(downloadCommand, info.url).then(async () => {
+      // Stop and Wait Instance for update
+      await Instance.stopAndWait(instance.id);
+
+      // Extract installer.zip if instance is bedrock type
+      if (instance.type === 'bedrock') {
+        const zip = new AdmZip(`${tempPath}/bedrock.zip`);
+        zip.extractAllTo(instancePath, true);
+        Temp.delete(tempPath);
+      }
+
+      // Update instance data
+      await Instance.update(instance.id, {
+        version: info.version,
+        build: info.build,
+        installed: true,
+      });
+
+      // Restart instance if necessary
+      if (instance.run) new Instance(instance);
+    });
+
+    // Return the immediate response
+    return { version: info.version, updating: true };
   }
 
   static stopAndWait(id) {
