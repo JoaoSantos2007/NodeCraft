@@ -1,10 +1,18 @@
 /* eslint-disable dot-notation */
 /* eslint-disable no-param-reassign */
 import { readFileSync, writeFileSync } from 'fs';
+import { ABSOLUTE_PATH } from '../../config/settings.js';
 
 class List {
-  static get(path) {
-    const data = readFileSync(`${path}/server.properties`, 'utf8');
+  static get(path, doc) {
+    let data = null;
+
+    try {
+      data = readFileSync(`${path}/server.properties`, 'utf8');
+    } catch (err) {
+      if (doc.type === 'bedrock') data = readFileSync(`${ABSOLUTE_PATH}/config/bedrock.properties`, 'utf8');
+      else data = readFileSync(`${ABSOLUTE_PATH}/config/java.properties`, 'utf8');
+    }
 
     // Extract properties
     const lines = data.split('\n');
@@ -77,7 +85,7 @@ class List {
   }
 
   static sync(path, doc) {
-    const serverProperties = List.get(path);
+    const serverProperties = List.get(path, doc);
     List.applyChanges(serverProperties, doc);
     List.save(path, serverProperties);
   }

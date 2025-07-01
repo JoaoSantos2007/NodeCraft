@@ -7,6 +7,7 @@ class Player {
       where: {
         instanceId,
       },
+      raw: true,
     });
 
     return players;

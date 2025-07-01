@@ -10,6 +10,8 @@ import Temp from './Temp.js';
 import AccessGuard from './AccessGuard.js';
 import Manager from './InstanceManager.js';
 import download from '../utils/download.js';
+import List from './List.js';
+import Player from './Player.js';
 
 class Instance {
   constructor(doc, type = null) {
@@ -19,7 +21,8 @@ class Instance {
     this.online = 0;
     this.admins = 0;
     this.players = [];
-    this.isDone = false;
+    this.started = false;
+    this.setup();
   }
 
   static async create(data, userId) {
@@ -168,12 +171,22 @@ class Instance {
 
     INSTANCES[this.doc.id] = this;
     this.terminal = shell.exec(`cd ${this.path} && ${startCMD}`, { silent: false, async: true });
+  }
+
+  async setup() {
+    List.sync(this.path, this.doc);
+    AccessGuard.wipe(this);
+    this.run();
     this.setListeners();
   }
 
   setListeners() {
     this.terminal.on('close', () => Instance.closeInstance(this.doc.id));
     this.terminal.on('error', () => Instance.closeInstance(this.doc.id));
+    this.terminal.stdout.on('data', (output) => {
+      this.updateHistory(output);
+      AccessGuard.analyzer(output, this);
+    });
   }
 
   stop() {
@@ -184,22 +197,6 @@ class Instance {
 
   emitEvent(cmd) {
     if (this.terminal) this.terminal.stdin.write(`${cmd}\n`);
-  }
-
-  readPlayers() {
-    const playersValues = this.doc.players;
-    return Object.values(playersValues);
-  }
-
-  verifyPlayerIsAdmin(gamertag) {
-    const players = this.readPlayers();
-    let isAdmin = false;
-
-    players.forEach((player) => {
-      if (player.gamertag === gamertag && player.admin) isAdmin = true;
-    });
-
-    return isAdmin;
   }
 
   async updateHistory(output) {
