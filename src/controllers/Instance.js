@@ -6,7 +6,8 @@ import MemberService from '../services/Member.js';
 import AuthService from '../services/Auth.js';
 import { BadRequest, Unathorized, InvalidRequest } from '../errors/index.js';
 import Validator from '../validators/Instance.js';
-import { INSTANCES } from '../../config/settings.js';
+import { INSTANCES_PATH, INSTANCES } from '../../config/settings.js';
+import ListService from '../services/List.js';
 
 class Instance {
   static async create(req, res, next) {
@@ -43,7 +44,6 @@ class Instance {
         success: true, id: instance.id, building: true, instance,
       });
     } catch (err) {
-      console.log(err);
       return next(err);
     }
   }
@@ -146,6 +146,46 @@ class Instance {
         build: info.build || null,
         msg: info.updating ? 'Updating Instance!' : 'No Update Available!',
       });
+    } catch (err) {
+      return next(err);
+    }
+  }
+
+  static async redefineProperties(req, res, next) {
+    try {
+      const { id } = req.params;
+      const instance = await Service.readOne(id);
+
+      ListService.redefine(`${INSTANCES_PATH}/${instance.id}`, instance);
+
+      return res.status(200).json({ success: true, redefined: true });
+    } catch (err) {
+      return next(err);
+    }
+  }
+
+  static async remapPort(req, res, next) {
+    try {
+      const { id } = req.params;
+      const instance = await Service.attributePort(id);
+
+      return res.status(200).json({
+        success: true, remapped: true, port: instance.port, instance,
+      });
+    } catch (err) {
+      return next(err);
+    }
+  }
+
+  static async remapAllPorts(req, res, next) {
+    try {
+      const instances = await Service.readAll();
+
+      instances.forEach(async (instance) => {
+        await Service.attributePort(instance.id);
+      });
+
+      return res.status(200).json({ success: true, remapped: true });
     } catch (err) {
       return next(err);
     }

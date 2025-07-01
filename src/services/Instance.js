@@ -1,9 +1,11 @@
 /* eslint-disable no-new */
-import { mkdirSync, rmSync } from 'fs';
+import { mkdirSync, rmSync, writeFileSync } from 'fs';
 import shell from 'shelljs';
 import { Op } from 'sequelize';
 import AdmZip from 'adm-zip';
-import { INSTANCES_PATH, INSTANCES } from '../../config/settings.js';
+import {
+  INSTANCES_PATH, INSTANCES, MIN_PORT, MAX_PORT,
+} from '../../config/settings.js';
 import { Instance as Model, Player as PlayerModel } from '../models/index.js';
 import { BadRequest } from '../errors/index.js';
 import Temp from './Temp.js';
@@ -11,7 +13,6 @@ import AccessGuard from './AccessGuard.js';
 import Manager from './InstanceManager.js';
 import download from '../utils/download.js';
 import List from './List.js';
-import Player from './Player.js';
 
 class Instance {
   constructor(doc, type = null) {
@@ -35,7 +36,7 @@ class Instance {
     // Create instance path in the System
     mkdirSync(`${INSTANCES_PATH}/${instance.id}`);
 
-    return instance;
+    return Instance.attributePort(instance.id);
   }
 
   static async readAll() {
@@ -165,9 +166,47 @@ class Instance {
     INSTANCES[id] = null;
   }
 
+  static async attributePort(id) {
+    const instances = await Instance.readAll();
+    const usedPorts = [];
+    const availablePorts = [];
+
+    // Find used ports
+    instances.forEach((instance) => {
+      const serverPort = instance.port;
+
+      if (!usedPorts.includes(serverPort) && !!serverPort) usedPorts.push(serverPort);
+    });
+
+    // Find available ports
+    for (let port = MIN_PORT; port <= MAX_PORT; port += 1) {
+      if (!usedPorts.includes(port)) {
+        availablePorts.push(port);
+      }
+    }
+
+    // Abort if no port available
+    if (availablePorts.length === 0) throw new Error('No port available!');
+
+    // Pick a freedom port
+    const randomIndex = Math.floor(Math.random() * availablePorts.length);
+    const randomPort = availablePorts[randomIndex];
+
+    // Update instance port
+    const instance = await Instance.update(id, { port: randomPort });
+    return instance;
+  }
+
   run() {
+    let startCMD;
     this.doc.update({ running: true });
-    const startCMD = this.type === 'bedrock' ? 'chmod +x bedrock_server && ./bedrock_server' : 'java -jar server.jar nogui';
+
+    if (this.type === 'bedrock') {
+      startCMD = 'chmod +x bedrock_server && ./bedrock_server';
+    } else if (this.type === 'java') {
+      startCMD = 'java -jar server.jar nogui';
+      writeFileSync(`${this.path}/eula.txt`, 'eula=true', 'utf8');
+    }
 
     INSTANCES[this.doc.id] = this;
     this.terminal = shell.exec(`cd ${this.path} && ${startCMD}`, { silent: false, async: true });

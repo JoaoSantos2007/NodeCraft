@@ -22,6 +22,16 @@ const Settings = {
   timezone: {
     type: 'string',
   },
+  minPort: {
+    type: 'number',
+    int: true,
+    min: 1,
+  },
+  maxPort: {
+    type: 'number',
+    int: true,
+    min: 2,
+  },
 };
 
 export default Settings;

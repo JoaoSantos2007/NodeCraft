@@ -17,6 +17,8 @@ const ACCESS_TOKEN_LIFETIME = config.accessTokenLifetime || '15m';
 const PERMISSIONS = config.permissions || [];
 const STAGE = process.env.STAGE || 'PROD';
 const INSTANCES = {};
+const MIN_PORT = config.minPort || 5621;
+const MAX_PORT = config.maxPort || 5671;
 
 if (!SALT || !SECRET) throw new Error('Enviroment Variables Are Missing In .ENV');
 if (!existsSync(`${ABSOLUTE_PATH}/instances`)) mkdirSync(`${ABSOLUTE_PATH}/instances`);
@@ -34,4 +36,6 @@ export {
   INSTANCES,
   PERMISSIONS,
   config,
+  MIN_PORT,
+  MAX_PORT,
 };

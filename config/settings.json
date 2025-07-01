@@ -6,6 +6,8 @@
   "accessTokenLifetime": 3600,
   "enableInterface": true,
   "timezone": "America/Sao_Paulo",
+  "minPort": 5621,
+  "maxPort": 5671,
   "permissions": [
     "instance:read",
     "instance:create",

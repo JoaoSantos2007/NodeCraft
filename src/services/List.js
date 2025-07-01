@@ -1,6 +1,6 @@
 /* eslint-disable dot-notation */
 /* eslint-disable no-param-reassign */
-import { readFileSync, writeFileSync } from 'fs';
+import { readFileSync, rmSync, writeFileSync } from 'fs';
 import { ABSOLUTE_PATH } from '../../config/settings.js';
 
 class List {
@@ -88,6 +88,11 @@ class List {
     const serverProperties = List.get(path, doc);
     List.applyChanges(serverProperties, doc);
     List.save(path, serverProperties);
+  }
+
+  static redefine(path, doc) {
+    rmSync(`${path}/server.properties`, { force: true });
+    List.sync(path, doc);
   }
 }
 

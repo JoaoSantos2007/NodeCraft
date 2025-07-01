@@ -51,6 +51,21 @@ router
     (req, res, next) => Auth.verifyAccess('instance:update', req, res, next),
     Controller.updateVersion,
   )
+  .put(
+    '/instance/:id/redefine/properties',
+    (req, res, next) => Auth.verifyAccess('instance:update', req, res, next),
+    Controller.redefineProperties,
+  )
+  .put(
+    '/instance/all/remap/port',
+    (req, res, next) => Auth.verifyAccess('admin', req, res, next),
+    Controller.remapAllPorts,
+  )
+  .put(
+    '/instance/:id/remap/port',
+    (req, res, next) => Auth.verifyAccess('instance:update', req, res, next),
+    Controller.remapPort,
+  )
   .use('/instance', player)
   .use('/instance', file);
 
