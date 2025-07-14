@@ -1,7 +1,8 @@
 /* eslint-disable consistent-return */
 /* eslint-disable no-new */
 import {
-  mkdirSync, rmSync, writeFileSync,
+  mkdirSync, rmSync, writeFileSync, chmodSync,
+  existsSync,
 } from 'fs';
 import { spawn } from 'child_process';
 import { Op } from 'sequelize';
@@ -31,16 +32,20 @@ class Instance {
   }
 
   static async create(data, userId) {
+    // Pick up a server port
+    const port = await Instance.SelectPort();
+
     // Create instance in the Database
     const instance = await Model.create({
       owner: userId,
+      port,
       ...data,
     });
 
     // Create instance path in the System
     mkdirSync(`${INSTANCES_PATH}/${instance.id}`);
 
-    return Instance.attributePort(instance.id);
+    return instance;
   }
 
   static async readAll() {
@@ -166,7 +171,7 @@ class Instance {
     return { version: info.version, updating: true };
   }
 
-  static async attributePort(id) {
+  static async SelectPort() {
     const instances = await Instance.readAll();
     const usedPorts = [];
     const availablePorts = [];
@@ -192,9 +197,7 @@ class Instance {
     const randomIndex = Math.floor(Math.random() * availablePorts.length);
     const randomPort = availablePorts[randomIndex];
 
-    // Update instance port
-    const instance = await Instance.update(id, { port: randomPort });
-    return instance;
+    return randomPort;
   }
 
   static stopAndWait(id) {
@@ -268,6 +271,7 @@ class Instance {
     let args;
 
     if (this.type === 'bedrock') {
+      if (existsSync(`${this.path}/bedrock_server`)) chmodSync(`${this.path}/bedrock_server`, 0o755);
       command = './bedrock_server';
       args = [];
     } else if (this.type === 'java') {
@@ -292,6 +296,7 @@ class Instance {
     this.terminal.on('error', () => this.stop(true));
     this.terminal.stdout.on('data', (output) => {
       const msg = output.toString();
+      console.log(msg);
       this.updateHistory(msg);
       AccessGuard.analyzer(msg, this);
     });

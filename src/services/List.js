@@ -47,7 +47,7 @@ class List {
       // Bedrock settings
       list['allow-cheats'] = instance.cheats;
       list['allow-list'] = instance.allowlist;
-      list['server-portv6'] = null;
+      list['server-portv6'] = 0;
       list['enable-lan-visibility'] = false;
     } else if (instance.type === 'java') {
       // Java settings

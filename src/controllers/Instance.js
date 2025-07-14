@@ -168,10 +168,11 @@ class Instance {
   static async remapPort(req, res, next) {
     try {
       const { id } = req.params;
-      const instance = await Service.attributePort(id);
+      const port = await Service.SelectPort();
+      const instance = await Service.update(id, { port });
 
       return res.status(200).json({
-        success: true, remapped: true, port: instance.port, instance,
+        success: true, remapped: true, port, instance,
       });
     } catch (err) {
       return next(err);
@@ -183,7 +184,8 @@ class Instance {
       const instances = await Service.readAll();
 
       instances.forEach(async (instance) => {
-        await Service.attributePort(instance.id);
+        const port = await Service.SelectPort();
+        await Service.update(instance.id, { port });
       });
 
       return res.status(200).json({ success: true, remapped: true });
