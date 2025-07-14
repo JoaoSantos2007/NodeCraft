@@ -120,12 +120,13 @@ class Instance {
   static async stop(req, res, next) {
     try {
       const { id } = req.params;
-      const instance = await Service.readOne(id, true);
-      if (!instance.running) throw new InvalidRequest('Instance is not in progress!');
+      const instance = await Service.readOne(id);
+      if (!instance.running && instance.pid === 0 && !INSTANCES[id]) throw new InvalidRequest('Instance is not in progress!');
 
-      INSTANCES[id].stop();
+      if (INSTANCES[id]) INSTANCES[id].stop();
+      else if (instance.pid) Service.stopAndWait(instance.id);
 
-      return res.status(200).json({ success: true, stopped: true, instance });
+      return res.status(200).json({ success: true, stopping: true, instance });
     } catch (err) {
       return next(err);
     }

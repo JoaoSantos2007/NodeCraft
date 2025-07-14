@@ -1,6 +1,9 @@
+/* eslint-disable consistent-return */
 /* eslint-disable no-new */
-import { mkdirSync, rmSync, writeFileSync } from 'fs';
-import shell from 'shelljs';
+import {
+  mkdirSync, rmSync, writeFileSync,
+} from 'fs';
+import { spawn } from 'child_process';
 import { Op } from 'sequelize';
 import AdmZip from 'adm-zip';
 import {
@@ -10,12 +13,13 @@ import { Instance as Model, Player as PlayerModel } from '../models/index.js';
 import { BadRequest } from '../errors/index.js';
 import Temp from './Temp.js';
 import AccessGuard from './AccessGuard.js';
-import Manager from './InstanceManager.js';
 import download from '../utils/download.js';
 import List from './List.js';
+import getMinecraftVersion from '../utils/getMinecraftVersion.js';
 
 class Instance {
   constructor(doc, type = null) {
+    this.id = doc.id;
     this.doc = doc;
     this.type = type || doc.type;
     this.path = `${INSTANCES_PATH}/${doc.id}`;
@@ -92,9 +96,39 @@ class Instance {
     return INSTANCES[id];
   }
 
+  static async verifyNeedUpdate(instance) {
+    const info = {
+      needUpdate: false, version: 0, build: 0, url: null,
+    };
+
+    if (instance.type === 'bedrock') {
+      const { version = '', url = '' } = await getMinecraftVersion('bedrock');
+
+      info.version = version;
+      info.url = url;
+    } if (instance.type === 'java') {
+      const {
+        version = '', build = 0, url = '',
+      } = await getMinecraftVersion(instance.software);
+
+      info.version = version;
+      info.build = build;
+      info.url = url;
+    }
+
+    // Verify if instance needs updates
+    info.needUpdate = instance.version !== info.version;
+    if (!info.needUpdate && info.build) {
+      info.needUpdate = Number(instance.build) !== Number(info.build);
+    }
+    if (!instance.installed) info.needUpdate = true;
+
+    return info;
+  }
+
   static async install(instance, force = false) {
     // Verify if instance needUpdates
-    const info = await Manager.verifyNeedUpdate(instance);
+    const info = await Instance.verifyNeedUpdate(instance);
     if (!info.needUpdate && !force) return { version: info.version, updated: false };
 
     // Define variables for download process
@@ -104,6 +138,9 @@ class Instance {
 
     // Start the download process in the background
     download(downloadCommand, info.url).then(async () => {
+      // Verify if the instance will need restart
+      const needRestart = instance.running;
+
       // Stop and Wait Instance for update
       await Instance.stopAndWait(instance.id);
 
@@ -122,48 +159,11 @@ class Instance {
       });
 
       // Restart instance if necessary
-      if (instance.run) new Instance(instance);
+      if (needRestart) new Instance(instance);
     });
 
     // Return the immediate response
     return { version: info.version, updating: true };
-  }
-
-  static stopAndWait(id) {
-    return new Promise((resolve, reject) => {
-      try {
-        if (!Instance.verifyInProgess(id)) {
-          resolve();
-        } else {
-          INSTANCES[id].stop();
-
-          // Declare timeout variable
-          let timeout;
-
-          // Verify periodically if instance is in progress
-          const interval = setInterval(() => {
-            if (!Instance.verifyInProgess(id)) {
-              clearInterval(interval);
-              clearTimeout(timeout);
-              resolve();
-            }
-          }, 500);
-
-          // Set a timeout to reject the promise after 20 seconds
-          timeout = setTimeout(() => {
-            clearInterval(interval);
-            reject(new Error('Timeout: Instance did not stop within 20 seconds.'));
-          }, 20000); // 20 seconds
-        }
-      } catch (err) {
-        reject(err);
-      }
-    });
-  }
-
-  static closeInstance(id) {
-    if (this.doc) this.doc.update({ running: false });
-    INSTANCES[id] = null;
   }
 
   static async attributePort(id) {
@@ -197,19 +197,63 @@ class Instance {
     return instance;
   }
 
-  run() {
-    let startCMD;
-    this.doc.update({ running: true });
+  static stopAndWait(id) {
+    return new Promise((resolve, reject) => {
+      let resolved = false;
 
-    if (this.type === 'bedrock') {
-      startCMD = 'chmod +x bedrock_server && ./bedrock_server';
-    } else if (this.type === 'java') {
-      startCMD = 'java -jar server.jar nogui';
-      writeFileSync(`${this.path}/eula.txt`, 'eula=true', 'utf8');
-    }
+      function safeResolve() {
+        if (!resolved) {
+          resolved = true;
+          resolve();
+        }
+      }
 
-    INSTANCES[this.doc.id] = this;
-    this.terminal = shell.exec(`cd ${this.path} && ${startCMD}`, { silent: false, async: true });
+      Instance.readOne(id)
+        .then((data) => {
+          const instance = data.get({ plain: true });
+          const pid = instance?.pid;
+
+          if (!pid || pid === 0 || !instance.running) return safeResolve();
+
+          // Verify if process is alive
+          try {
+            if (pid) process.kill(pid, 0); // Test if process is alive
+          } catch {
+            return safeResolve(); // Process already dead
+          }
+
+          // Kill process safetly
+          try {
+            if (pid) process.kill(pid, 'SIGTERM'); // Try to kill process
+          } catch (err) {
+            return safeResolve(); // Process already dead
+          }
+
+          // Check if the process is dead periodically in 1s
+          let timeout;
+          const interval = setInterval(() => {
+            try {
+              if (pid) process.kill(pid, 0); // Test if process is alive
+            } catch { // Process is dead, finish interval
+              clearInterval(interval);
+              clearTimeout(timeout);
+              return safeResolve();
+            }
+          }, 1000);
+
+          // Force kill a process after 20s
+          timeout = setTimeout(() => {
+            try {
+              if (pid) process.kill(pid, 'SIGKILL');
+            } catch (err) {
+              return safeResolve();
+            }
+            clearInterval(interval);
+            safeResolve();
+          }, 20000);
+        })
+        .catch((err) => reject(err));
+    });
   }
 
   async setup() {
@@ -219,23 +263,56 @@ class Instance {
     this.setListeners();
   }
 
+  run() {
+    let command;
+    let args;
+
+    if (this.type === 'bedrock') {
+      command = './bedrock_server';
+      args = [];
+    } else if (this.type === 'java') {
+      command = 'java';
+      args = ['-jar', 'server.jar', 'nogui'];
+      writeFileSync(`${this.path}/eula.txt`, 'eula=true', 'utf8');
+
+      rmSync(`${this.path}/world/session.lock`, { recursive: true });
+    }
+
+    INSTANCES[this.doc.id] = this;
+    this.terminal = spawn(command, args, {
+      cwd: this.path,
+      stdio: 'pipe',
+      detached: false,
+    });
+    Instance.update(this.id, { pid: this.terminal.pid, running: true });
+  }
+
   setListeners() {
-    this.terminal.on('close', () => Instance.closeInstance(this.doc.id));
-    this.terminal.on('error', () => Instance.closeInstance(this.doc.id));
+    this.terminal.on('close', () => this.stop(true));
+    this.terminal.on('error', () => this.stop(true));
     this.terminal.stdout.on('data', (output) => {
-      this.updateHistory(output);
-      AccessGuard.analyzer(output, this);
+      const msg = output.toString();
+      this.updateHistory(msg);
+      AccessGuard.analyzer(msg, this);
     });
   }
 
-  stop() {
-    if (this.doc) this.doc.update({ running: false });
-    this.emitEvent('stop');
-    this.emitEvent('/stop');
+  emitEvent(cmd) {
+    if (this.terminal && this.terminal.stdin && this.terminal.stdin.writable) this.terminal.stdin.write(`${cmd}\n`);
   }
 
-  emitEvent(cmd) {
-    if (this.terminal) this.terminal.stdin.write(`${cmd}\n`);
+  stop(ended = false) {
+    if (ended === false) {
+      this.emitEvent('stop');
+      this.emitEvent('/stop');
+
+      setTimeout(() => {
+        if (this.terminal && this.terminal.exitCode === null && !this.terminal.killed) this.terminal.kill('SIGKILL');
+      }, 10000);
+    } else if (ended === true && this.doc) {
+      Instance.update(this.id, { pid: 0, running: false });
+      INSTANCES[this.id] = null;
+    }
   }
 
   async updateHistory(output) {

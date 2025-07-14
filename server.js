@@ -1,13 +1,13 @@
 import app from './src/app.js';
 import { PORT } from './config/settings.js';
-import Initialization from './src/services/Initialization.js';
+import StartUp from './src/services/StartUp.js';
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 
   // Run instances on Startup
-  // Initialization.runInstances();
+  StartUp.restartInstances();
 
   // Update instances every 3 hours
-  Initialization.scheduleUpdates();
+  StartUp.scheduleUpdates();
 });

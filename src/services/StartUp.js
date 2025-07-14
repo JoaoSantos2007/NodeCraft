@@ -2,11 +2,16 @@
 import { scheduleJob } from 'node-schedule';
 import Instance from './Instance.js';
 
-class Initialization {
-  static async runInstances() {
+class StartUp {
+  static async restartInstances() {
     const instances = await Instance.readAll();
-    instances.forEach((instance) => {
-      if (instance.running) new Instance(instance);
+    instances.forEach(async (instance) => {
+      const pid = instance?.pid;
+
+      if (instance.running || pid) {
+        if (pid) await Instance.stopAndWait(instance.id);
+        if (instance.running) new Instance(instance);
+      }
     });
   }
 
@@ -23,4 +28,4 @@ class Initialization {
   }
 }
 
-export default Initialization;
+export default StartUp;

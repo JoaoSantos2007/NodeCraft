@@ -41,13 +41,13 @@ class List {
     list['player-idle-timeout'] = instance.idle;
     list['level-seed'] = instance.seed;
     list['motd'] = instance.motd;
-    list['server-port'] = 19132;
+    list['server-port'] = instance.port;
 
     if (instance.type === 'bedrock') {
       // Bedrock settings
       list['allow-cheats'] = instance.cheats;
       list['allow-list'] = instance.allowlist;
-      list['server-portv6'] = 19133;
+      list['server-portv6'] = null;
       list['enable-lan-visibility'] = false;
     } else if (instance.type === 'java') {
       // Java settings

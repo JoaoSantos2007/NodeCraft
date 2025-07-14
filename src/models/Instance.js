@@ -9,6 +9,11 @@ Instance.init({
     defaultValue: Sequelize.UUIDV4,
     primaryKey: true,
   },
+  pid: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+    allowNull: true,
+  },
   owner: {
     type: DataTypes.STRING,
     allowNull: false,
