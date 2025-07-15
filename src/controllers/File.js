@@ -1,4 +1,5 @@
 import Service from '../services/File.js';
+import Validator from '../validators/File.js';
 
 class File {
   static read(req, res, next) {
@@ -37,7 +38,9 @@ class File {
         });
       }
 
+      Validator(body);
       const result = Service.create(id, path, body);
+
       return res.status(201).json({ success: true, created: true, ...result });
     } catch (err) {
       return next(err);
@@ -51,7 +54,9 @@ class File {
       let path = req?.params?.path ?? '';
       path += req.params[0] || '';
 
+      Validator(body);
       const result = Service.update(id, path, body);
+
       return res.status(200).json({ success: true, updated: true, ...result });
     } catch (err) {
       return next(err);

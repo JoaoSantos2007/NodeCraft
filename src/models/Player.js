@@ -31,6 +31,7 @@ Player.init({
     type: DataTypes.STRING,
     values: ['always', 'monitored', 'never'],
     defaultValue: 'monitored',
+    allowNull: false,
   },
 
 }, {

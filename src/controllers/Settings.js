@@ -1,4 +1,5 @@
 import Service from '../services/Settings.js';
+import Validator from '../validators/Settings.js';
 
 class Settings {
   static read(req, res, next) {
@@ -14,6 +15,7 @@ class Settings {
   static update(req, res, next) {
     try {
       const data = req.body;
+      Validator(data);
       const settings = Service.update(data);
 
       return res.status(200).json({ success: true, updated: true, settings });

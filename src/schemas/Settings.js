@@ -25,12 +25,16 @@ const Settings = {
   minPort: {
     type: 'number',
     int: true,
-    min: 1,
+    min: 100,
   },
   maxPort: {
     type: 'number',
     int: true,
-    min: 2,
+    min: 101,
+  },
+  permissions: {
+    type: 'array',
+    internal: true,
   },
 };
 

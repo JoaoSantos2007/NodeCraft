@@ -36,7 +36,7 @@ class Instance {
       //   owner = user.id;
       // }
 
-      Validator(body);
+      Validator(body, false, true);
       const instance = await Service.create(body, user.id);
       Service.install(instance, true);
 
@@ -84,7 +84,7 @@ class Instance {
       const { id } = req.params;
       const { body } = req;
 
-      // Validator(body);
+      Validator(body, true);
       const instance = await Service.update(id, body);
 
       return res.status(200).json({ success: true, updated: true, instance });

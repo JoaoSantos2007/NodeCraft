@@ -4,11 +4,10 @@ import { Duplicate, BadRequest } from '../errors/index.js';
 import Instance from './Instance.js';
 
 class User {
-  // eslint-disable-next-line object-curly-newline
-  static async create({ name, email, password, gamertag }) {
+  static async create(data) {
     let user = await Model.findOne({
       where: {
-        email,
+        email: data.email,
       },
     });
 
@@ -18,10 +17,10 @@ class User {
     }
 
     user = await Model.create({
-      name,
-      email,
-      password: hashPassword(password),
-      gamertag,
+      name: data.name,
+      email: data.email,
+      password: hashPassword(data.password),
+      gamertag: data.gamertag,
       role: 'member',
     });
 

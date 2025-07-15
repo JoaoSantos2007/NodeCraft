@@ -1,5 +1,6 @@
 import Service from '../services/Member.js';
 import GroupService from '../services/Group.js';
+import Validator from '../validators/Member.js';
 
 class Member {
   static async readAll(req, res, next) {
@@ -34,6 +35,7 @@ class Member {
       const groupId = req?.params?.groupId;
       const data = req.body;
 
+      Validator(data, false, true);
       const group = await GroupService.readOne(groupId);
       const member = await Service.create(group, data);
 
@@ -49,6 +51,7 @@ class Member {
       const memberId = req?.params?.memberId;
       const data = req.body;
 
+      Validator(data, true);
       const group = await GroupService.readOne(groupId);
       const member = await Service.update(group, memberId, data);
 

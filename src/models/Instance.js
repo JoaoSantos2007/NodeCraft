@@ -220,6 +220,10 @@ Instance.init({
         args: [0],
         msg: 'idle field must be greater than or equal to -1!',
       },
+      max: {
+        args: [1440],
+        msg: 'idle field must be lower than or equal to 1440!',
+      },
     },
   },
   commandBlock: {
