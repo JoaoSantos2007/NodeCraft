@@ -15,29 +15,29 @@ class Instance {
       const { body, user } = req;
       let owner;
 
-      // if (body.group) {
-      //   const group = await GroupService.readOne(body.group);
+      if (body.group) {
+        const group = await GroupService.readOne(body.group);
 
-      //   // Verify if user has permission to create instance insade group
-      //   const userHasPermission = await AuthService.verifyUserHasPermissionInsideGroup(group, user, 'instance:create');
-      //   if (!userHasPermission) throw new Unathorized("User doesn't have this permission inside group!");
+        // Verify if user has permission to create instance insade group
+        const userHasPermission = await AuthService.verifyUserHasPermissionInsideGroup(group, user, 'instance:create');
+        if (!userHasPermission) throw new Unathorized("User doesn't have this permission inside group!");
 
-      //   // Verify Group max quota
-      //   const remainingQuota = await GroupService.getRemainingQuota(group.id);
-      //   if (remainingQuota <= 0) throw new BadRequest('Group has reached the maximum quota!');
+        // Verify Group max quota
+        const remainingQuota = await GroupService.getRemainingQuota(group.id);
+        if (remainingQuota <= 0) throw new BadRequest('Group has reached the maximum quota!');
 
-      //   delete body.group;
-      //   owner = group.id;
-      // } else {
-      //   // Verify User max quota
-      //   const remainingQuota = await UserService.getRemainingQuota(user.id);
-      //   if (remainingQuota <= 0 && user.admin !== true) throw new BadRequest('User has reached the maximum quota!');
+        delete body.group;
+        owner = group.id;
+      } else {
+        // Verify User max quota
+        const remainingQuota = await UserService.getRemainingQuota(user.id);
+        if (remainingQuota <= 0 && user.admin !== true) throw new BadRequest('User has reached the maximum quota!');
 
-      //   owner = user.id;
-      // }
+        owner = user.id;
+      }
 
       Validator(body, false, true);
-      const instance = await Service.create(body, user.id);
+      const instance = await Service.create(body, owner);
       Service.install(instance, true);
 
       return res.status(201).json({

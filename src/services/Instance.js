@@ -16,7 +16,7 @@ import Temp from './Temp.js';
 import AccessGuard from './AccessGuard.js';
 import download from '../utils/download.js';
 import List from './List.js';
-import getMinecraftVersion from '../utils/getMinecraftVersion.js';
+import getVersion from '../utils/getVersion.js';
 
 class Instance {
   constructor(doc, type = null) {
@@ -107,14 +107,14 @@ class Instance {
     };
 
     if (instance.type === 'bedrock') {
-      const { version = '', url = '' } = await getMinecraftVersion('bedrock');
+      const { version = '', url = '' } = await getVersion('bedrock');
 
       info.version = version;
       info.url = url;
     } if (instance.type === 'java') {
       const {
         version = '', build = 0, url = '',
-      } = await getMinecraftVersion(instance.software);
+      } = await getVersion(instance.software);
 
       info.version = version;
       info.build = build;

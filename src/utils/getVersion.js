@@ -1,4 +1,4 @@
-const getMinecraftVersion = async (software = 'vanilla') => {
+const getVersion = async (software = 'vanilla') => {
   // Minecraft Paper
   if (software === 'paper') {
     const firstResponse = await (await fetch('https://api.papermc.io/v2/projects/paper')).json();
@@ -57,4 +57,4 @@ const getMinecraftVersion = async (software = 'vanilla') => {
   return { version: '', build: 0, url: '' };
 };
 
-export default getMinecraftVersion;
+export default getVersion;

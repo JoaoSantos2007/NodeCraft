@@ -5,7 +5,6 @@ import user from './user.js';
 import auth from './auth.js';
 import instance from './instance.js';
 import group from './group.js';
-import settings from './settings.js';
 
 const routes = (app) => {
   app.get('/', (req, res) => {
@@ -34,7 +33,6 @@ const routes = (app) => {
     auth,
     instance,
     group,
-    settings,
   );
 };
 
