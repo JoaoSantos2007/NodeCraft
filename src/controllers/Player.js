@@ -1,11 +1,14 @@
 import Service from '../services/Player.js';
+import Validator from '../validators/Player.js';
 
 class Player {
-  static async add(req, res, next) {
+  static async create(req, res, next) {
     try {
       const { instanceId } = req.params;
       const data = req.body;
-      const player = await Service.add(instanceId, data);
+
+      Validator(data);
+      const player = await Service.create(instanceId, data);
 
       return res.status(201).json({ success: true, created: true, player });
     } catch (err) {
@@ -39,6 +42,8 @@ class Player {
     try {
       const { instanceId, playerId } = req.params;
       const data = req.body;
+
+      Validator(data, true);
       const player = await Service.update(instanceId, playerId, data);
 
       return res.status(200).json({ success: true, updated: true, player });

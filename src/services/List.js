@@ -1,11 +1,18 @@
-import { readFileSync, writeFileSync } from 'fs';
+/* eslint-disable dot-notation */
+/* eslint-disable no-param-reassign */
+import { readFileSync, rmSync, writeFileSync } from 'fs';
 import { ABSOLUTE_PATH } from '../../config/settings.js';
 
 class List {
-  static get(type) {
-    let path = `${ABSOLUTE_PATH}/config/bedrock.properties`;
-    if (type !== 'bedrock') path = `${ABSOLUTE_PATH}/config/java.properties`;
-    const data = readFileSync(path, 'utf8');
+  static get(path, doc) {
+    let data = null;
+
+    try {
+      data = readFileSync(`${path}/server.properties`, 'utf8');
+    } catch (err) {
+      if (doc.type === 'bedrock') data = readFileSync(`${ABSOLUTE_PATH}/config/bedrock.properties`, 'utf8');
+      else data = readFileSync(`${ABSOLUTE_PATH}/config/java.properties`, 'utf8');
+    }
 
     // Extract properties
     const lines = data.split('\n');
@@ -22,22 +29,41 @@ class List {
     return properties;
   }
 
-  static merge(propertiesListDB, propertiesListLocal) {
-    const properties = propertiesListDB;
+  static applyChanges(list, instance) {
+    list['server-name'] = instance.name;
+    list['gamemode'] = instance.gamemode;
+    list['force-gamemode'] = instance.forceGamemode;
+    list['difficulty'] = instance.difficulty;
+    list['max-players'] = instance.maxPlayers;
+    list['online-mode'] = instance.licensed;
+    list['server-port'] = instance.port;
+    list['view-distance'] = instance.viewDistance;
+    list['player-idle-timeout'] = instance.idle;
+    list['level-seed'] = instance.seed;
+    list['motd'] = instance.motd;
+    list['server-port'] = instance.port;
 
-    const keysProperties = Object.keys(properties);
-    const keysPropertiesListLocal = Object.keys(propertiesListLocal);
-
-    // Adiciona um campo se a lista remota não tiver
-    for (let index = 0; index < keysPropertiesListLocal.length; index += 1) {
-      const key = keysPropertiesListLocal[index];
-
-      if (keysProperties.indexOf(key) < 0) {
-        properties[key] = propertiesListLocal[key];
-      }
+    if (instance.type === 'bedrock') {
+      // Bedrock settings
+      list['allow-cheats'] = instance.cheats;
+      list['allow-list'] = instance.allowlist;
+      list['server-portv6'] = 0;
+      list['enable-lan-visibility'] = false;
+    } else if (instance.type === 'java') {
+      // Java settings
+      list['enable-command-block'] = instance.commandBlock;
+      list['enforce-secure-profile'] = instance.secureProfile;
+      list['pvp'] = instance.pvp;
+      list['allow-nether'] = instance.nether;
+      list['hardcore'] = instance.hardcore;
+      list['white-list'] = instance.allowlist;
+      list['spawn-npcs'] = instance.npcs;
+      list['spawn-animals'] = instance.animals;
+      list['level-type'] = instance.levelType;
+      list['spawn-monsters'] = instance.monsters;
+      list['enforce-whitelist'] = instance.allowlist;
+      list['spawn-protection'] = instance.spawn;
     }
-
-    return properties;
   }
 
   static convertToString(list) {
@@ -58,11 +84,15 @@ class List {
     writeFileSync(`${path}/server.properties`, listInString);
   }
 
-  static sync(path, settings) {
-    const propertiesListDB = settings.properties;
-    const propertiesListLocal = List.get(path);
-    const mergedList = List.merge(propertiesListDB, propertiesListLocal);
-    List.save(path, mergedList);
+  static sync(path, doc) {
+    const serverProperties = List.get(path, doc);
+    List.applyChanges(serverProperties, doc);
+    List.save(path, serverProperties);
+  }
+
+  static redefine(path, doc) {
+    rmSync(`${path}/server.properties`, { force: true });
+    List.sync(path, doc);
   }
 }
 

@@ -1,5 +1,6 @@
 import Service from '../services/Role.js';
 import GroupService from '../services/Group.js';
+import Validator from '../validators/Role.js';
 
 class Role {
   static async readAll(req, res, next) {
@@ -34,6 +35,7 @@ class Role {
       const groupId = req?.params?.groupId;
       const data = req.body;
 
+      Validator(data, false, true);
       const group = await GroupService.readOne(groupId);
       const role = await Service.create(group, data);
 
@@ -49,6 +51,7 @@ class Role {
       const roleId = req?.params?.roleId;
       const data = req.body;
 
+      Validator(data, true);
       const group = await GroupService.readOne(groupId);
       const role = await Service.update(group, roleId, data);
 

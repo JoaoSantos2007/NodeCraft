@@ -1,56 +1,50 @@
-import { randomUUID } from 'crypto';
-import playerValidator from '../validators/player.js';
-import Instance from './Instance.js';
-import NodeCraft from './NodeCraft.js';
+import Model from '../models/Player.js';
 import { BadRequest } from '../errors/index.js';
 
 class Player {
-  static async readAll(id) {
-    const instance = await Instance.readOne(id);
+  static async readAll(instanceId) {
+    const players = await Model.findAll({
+      where: {
+        instanceId,
+      },
+      raw: true,
+    });
 
-    return instance.players;
+    return players;
   }
 
   static async readOne(instanceId, playerId) {
-    const instance = await Instance.readOne(instanceId);
-    const player = instance.players[playerId];
+    const player = await Model.findOne({
+      where: {
+        id: playerId,
+        instanceId,
+      },
+    });
 
     if (!player) throw new BadRequest('Player not found!');
 
     return player;
   }
 
-  static async add(id, data) {
-    const instance = await Instance.readOne(id);
-    playerValidator(data);
+  static async create(instanceId, data) {
+    const player = await Model.create({
+      instanceId,
+      ...data,
+    });
 
-    const playerId = randomUUID();
-    instance.players[playerId] = data;
-    NodeCraft.save(instance);
-
-    return instance.players;
+    return player;
   }
 
   static async update(instanceId, playerId, data) {
-    const instance = await Instance.readOne(instanceId);
-    const player = instance.players[playerId];
-    if (!player) throw new BadRequest('Player not found!');
-    playerValidator(data, player);
-
-    // eslint-disable-next-line no-restricted-syntax
-    for (const [key, value] of Object.entries(data)) player[key] = value;
-    instance.players[playerId] = player;
-    NodeCraft.save(instance);
+    const player = await Player.readOne(instanceId, playerId);
+    await player.update(data);
 
     return player;
   }
 
   static async delete(instanceId, playerId) {
     const player = await Player.readOne(instanceId, playerId);
-
-    const instance = await Instance.readOne(instanceId);
-    delete instance.players[playerId];
-    NodeCraft.save(instance);
+    await player.destroy();
 
     return player;
   }

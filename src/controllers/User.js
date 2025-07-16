@@ -1,4 +1,5 @@
 import Service from '../services/User.js';
+import Validator from '../validators/User.js';
 
 class User {
   static async read(req, res, next) {
@@ -34,6 +35,8 @@ class User {
   static async create(req, res, next) {
     try {
       const data = req.body;
+
+      Validator(data, false, true);
       const user = await Service.create(data);
 
       return res.status(201).json({ success: true, created: true, user });
@@ -44,9 +47,14 @@ class User {
 
   static async update(req, res, next) {
     try {
-      const { name, gamertag } = req.body;
+      const data = req.body;
       const { user } = req;
-      const userUpdated = await Service.update(user.id, { name, gamertag });
+
+      Validator(data, true);
+      const userUpdated = await Service.update(user.id, {
+        name: data.name,
+        gamertag: data.gamertag,
+      });
 
       return res.status(200).json({ success: true, updated: true, user: userUpdated });
     } catch (err) {
@@ -56,12 +64,15 @@ class User {
 
   static async updateOther(req, res, next) {
     try {
-      // eslint-disable-next-line object-curly-newline
-      const { name, gamertag, quota, email } = req.body;
+      const data = req.body;
       const { id } = req.params;
 
-      // eslint-disable-next-line object-curly-newline
-      const user = await Service.update(id, { name, gamertag, quota, email });
+      Validator(data, true);
+      const user = await Service.update(id, {
+        name: data.name,
+        gamertag: data.gamertag,
+        quota: data.quota,
+      });
 
       return res.status(200).json({ success: true, updated: true, user });
     } catch (err) {

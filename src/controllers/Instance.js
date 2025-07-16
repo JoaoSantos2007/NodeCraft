@@ -1,11 +1,13 @@
+/* eslint-disable no-new */
 import Service from '../services/Instance.js';
 import UserService from '../services/User.js';
 import GroupService from '../services/Group.js';
 import MemberService from '../services/Member.js';
 import AuthService from '../services/Auth.js';
-import Bedrock from '../services/Bedrock.js';
-import Java from '../services/Java.js';
-import { BadRequest, Unathorized } from '../errors/index.js';
+import { BadRequest, Unathorized, InvalidRequest } from '../errors/index.js';
+import Validator from '../validators/Instance.js';
+import { INSTANCES_PATH, INSTANCES } from '../../config/settings.js';
+import ListService from '../services/List.js';
 
 class Instance {
   static async create(req, res, next) {
@@ -34,9 +36,9 @@ class Instance {
         owner = user.id;
       }
 
-      const instance = Service.create(body, owner);
-      if (body.type === 'bedrock') Bedrock.install(instance, true);
-      else Java.install(instance, true);
+      Validator(body, false, true);
+      const instance = await Service.create(body, owner);
+      Service.install(instance, true);
 
       return res.status(201).json({
         success: true, id: instance.id, building: true, instance,
@@ -52,12 +54,12 @@ class Instance {
       let instances = [];
       let allOwners = [user.id];
 
-      if (user.admin === true) instances = Service.readAll();
+      if (user.admin === true) instances = await Service.readAll();
       else {
         const groupsId = await MemberService.readAllGroupsByUser(user.id);
         allOwners = allOwners.concat(groupsId);
 
-        instances = Service.readAllByOwners(allOwners);
+        instances = await Service.readAllByOwners(allOwners);
       }
 
       return res.status(200).json({ success: true, instances });
@@ -66,10 +68,10 @@ class Instance {
     }
   }
 
-  static readOne(req, res, next) {
+  static async readOne(req, res, next) {
     try {
       const { id } = req.params;
-      const instance = Service.readOne(id);
+      const instance = await Service.readOne(id);
 
       return res.status(200).json({ success: true, instance });
     } catch (err) {
@@ -81,7 +83,9 @@ class Instance {
     try {
       const { id } = req.params;
       const { body } = req;
-      const instance = Service.update(id, body);
+
+      Validator(body, true);
+      const instance = await Service.update(id, body);
 
       return res.status(200).json({ success: true, updated: true, instance });
     } catch (err) {
@@ -92,9 +96,99 @@ class Instance {
   static async delete(req, res, next) {
     try {
       const { id } = req.params;
-      const instance = Service.delete(id);
+      const instance = await Service.delete(id);
 
       return res.status(200).json({ success: true, deleted: true, instance });
+    } catch (err) {
+      return next(err);
+    }
+  }
+
+  static async run(req, res, next) {
+    try {
+      const { id } = req.params;
+      const instance = await Service.readOne(id);
+
+      new Service(instance);
+
+      return res.status(200).json({ success: true, running: true, instance });
+    } catch (err) {
+      return next(err);
+    }
+  }
+
+  static async stop(req, res, next) {
+    try {
+      const { id } = req.params;
+      const instance = await Service.readOne(id);
+      if (!instance.running && instance.pid === 0 && !INSTANCES[id]) throw new InvalidRequest('Instance is not in progress!');
+
+      if (INSTANCES[id]) INSTANCES[id].stop();
+      else if (instance.pid) Service.stopAndWait(instance.id);
+
+      return res.status(200).json({ success: true, stopping: true, instance });
+    } catch (err) {
+      return next(err);
+    }
+  }
+
+  static async updateVersion(req, res, next) {
+    try {
+      const { id } = req.params;
+      const force = req?.query?.force === 'true';
+      const instance = await Service.readOne(id);
+
+      let info = { version: instance.version, build: instance.build, updated: false };
+      info = await Service.install(instance, force);
+
+      return res.status(200).json({
+        success: true,
+        version: info.version || null,
+        build: info.build || null,
+        msg: info.updating ? 'Updating Instance!' : 'No Update Available!',
+      });
+    } catch (err) {
+      return next(err);
+    }
+  }
+
+  static async redefineProperties(req, res, next) {
+    try {
+      const { id } = req.params;
+      const instance = await Service.readOne(id);
+
+      ListService.redefine(`${INSTANCES_PATH}/${instance.id}`, instance);
+
+      return res.status(200).json({ success: true, redefined: true });
+    } catch (err) {
+      return next(err);
+    }
+  }
+
+  static async remapPort(req, res, next) {
+    try {
+      const { id } = req.params;
+      const port = await Service.SelectPort();
+      const instance = await Service.update(id, { port });
+
+      return res.status(200).json({
+        success: true, remapped: true, port, instance,
+      });
+    } catch (err) {
+      return next(err);
+    }
+  }
+
+  static async remapAllPorts(req, res, next) {
+    try {
+      const instances = await Service.readAll();
+
+      instances.forEach(async (instance) => {
+        const port = await Service.SelectPort();
+        await Service.update(instance.id, { port });
+      });
+
+      return res.status(200).json({ success: true, remapped: true });
     } catch (err) {
       return next(err);
     }
