@@ -4,8 +4,9 @@ import { INSTANCES_PATH } from '../../config/settings.js';
 const storage = multer.diskStorage({
   destination(req, file, cb) {
     const { id } = req.params;
-    let path = req?.params?.path ?? '';
-    path += req.params[0] || '';
+    let path = req?.params?.path;
+    if (Array.isArray(path)) path = req.params.path.join('/');
+
     const absolutePath = `${INSTANCES_PATH}/${id}/${path}`;
     const pathSplited = path.split('/');
 
