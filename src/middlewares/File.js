@@ -28,8 +28,8 @@ class File {
   static verify(req, res, next, newPath = false) {
     try {
       const { id } = req.params;
-      let path = req?.params?.path ?? '';
-      path += req.params[0] || '';
+      let path = req?.params?.path;
+      if (Array.isArray(path)) path = req.params.path.join('/');
 
       if (!File.verifyUUID(id)) throw new InvalidRequest(`${id} is not a valid uuid!`);
       if (File.verifyTwoPoints(path)) throw new InvalidRequest('directory traversal is not valid!');

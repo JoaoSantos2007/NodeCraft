@@ -6,8 +6,8 @@ class File {
     try {
       const { id } = req.params;
       const { query } = req;
-      let path = req?.params?.path ?? '';
-      path += req.params[0] || '';
+      let path = req?.params?.path;
+      if (Array.isArray(path)) path = req.params.path.join('/');
 
       // Download file
       if (query.download === 'true') {
@@ -29,8 +29,8 @@ class File {
       const body = req?.body;
       const location = req?.location;
       const filename = req?.filename;
-      let path = req?.params?.path ?? '';
-      path += req.params[0] || '';
+      let path = req?.params?.path;
+      if (Array.isArray(path)) path = req.params.path.join('/');
 
       if (location || filename) {
         return res.status(201).json({
@@ -51,8 +51,8 @@ class File {
     try {
       const { id } = req.params;
       const { body } = req;
-      let path = req?.params?.path ?? '';
-      path += req.params[0] || '';
+      let path = req?.params?.path;
+      if (Array.isArray(path)) path = req.params.path.join('/');
 
       Validator(body);
       const result = Service.update(id, path, body);
@@ -66,8 +66,8 @@ class File {
   static delete(req, res, next) {
     try {
       const { id } = req.params;
-      let path = req?.params?.path ?? '';
-      path += req.params[0] || '';
+      let path = req?.params?.path;
+      if (Array.isArray(path)) path = req.params.path.join('/');
 
       const result = Service.delete(id, path);
       return res.status(200).json({ success: true, deleted: true, ...result });
@@ -79,8 +79,8 @@ class File {
   static async unzip(req, res, next) {
     try {
       const { id } = req.params;
-      let path = req?.params?.path ?? '';
-      path += req.params[0] || '';
+      let path = req?.params?.path;
+      if (Array.isArray(path)) path = req.params.path.join('/');
 
       const pathName = Service.unzip(id, path);
       return res.status(200).json({ success: true, unzipped: true, name: pathName });
@@ -92,11 +92,11 @@ class File {
   static async move(req, res, next) {
     try {
       const { id } = req.params;
-      let path = req?.params?.path ?? '';
-      path += req.params[0] || '';
+      let path = req?.params?.path;
+      if (Array.isArray(path)) path = req.params.path.join('/');
 
-      let destiny = req?.params?.destiny ?? '';
-      destiny += req.params[1] || '';
+      let destiny = req?.params?.destiny;
+      if (Array.isArray(destiny)) destiny = req.params.destiny.join('/');
 
       const result = Service.move(id, path, destiny);
 

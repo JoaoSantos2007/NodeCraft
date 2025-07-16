@@ -2,11 +2,11 @@ import path from 'path';
 import dotenv from 'dotenv';
 import { existsSync, mkdirSync } from 'fs';
 
-dotenv.config();
+dotenv.config({ quiet: true });
 
 const ABSOLUTE_PATH = path.resolve();
 const STAGE = process.env.STAGE || 'PROD';
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 9183;
 const SALT = process.env.SALT || '$2b$10$iXyVMT9A121GYTBibPIt6e';
 const SECRET = process.env.SECRET || '4246e8f9e71b0b086b3b194a4bcb5d07c94dd773dddb51752183f7e9c82c543f';
 const INSTANCES_PATH = process.env.INSTANCES_PATH || `${ABSOLUTE_PATH}/instances`;
