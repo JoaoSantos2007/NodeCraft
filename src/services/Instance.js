@@ -279,7 +279,7 @@ class Instance {
       args = ['-jar', 'server.jar', 'nogui'];
       writeFileSync(`${this.path}/eula.txt`, 'eula=true', 'utf8');
 
-      rmSync(`${this.path}/world/session.lock`, { recursive: true });
+      if (existsSync(`${this.path}/world/session.lock`)) rmSync(`${this.path}/world/session.lock`, { recursive: true });
     }
 
     INSTANCES[this.doc.id] = this;
