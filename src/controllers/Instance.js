@@ -137,15 +137,13 @@ class Instance {
       const { id } = req.params;
       const force = req?.query?.force === 'true';
       const instance = await Service.readOne(id);
-
-      let info = { version: instance.version, build: instance.build, updated: false };
-      info = await Service.install(instance, force);
+      const { info, updating } = await Service.install(instance, force);
 
       return res.status(200).json({
         success: true,
-        version: info.version || null,
-        build: info.build || null,
-        msg: info.updating ? 'Updating Instance!' : 'No Update Available!',
+        version: info.instanceVersion || null,
+        msg: updating ? 'Updating!' : 'No Update Available!',
+        info,
       });
     } catch (err) {
       return next(err);
@@ -168,7 +166,7 @@ class Instance {
   static async remapPort(req, res, next) {
     try {
       const { id } = req.params;
-      const port = await Service.SelectPort();
+      const port = await Service.selectPort();
       const instance = await Service.update(id, { port });
 
       return res.status(200).json({
@@ -184,7 +182,7 @@ class Instance {
       const instances = await Service.readAll();
 
       instances.forEach(async (instance) => {
-        const port = await Service.SelectPort();
+        const port = await Service.selectPort();
         await Service.update(instance.id, { port });
       });
 

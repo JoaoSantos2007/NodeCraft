@@ -54,6 +54,28 @@ const getVersion = async (software = 'vanilla') => {
     return { version, build: 0, url };
   }
 
+  // Minecraft Geyser
+  if (software === 'geyser') {
+    const response = await (await fetch('https://download.geysermc.org/v2/projects/geyser/versions/latest/builds/latest')).json();
+
+    const version = response?.version;
+    const build = response?.build;
+    const url = 'https://download.geysermc.org/v2/projects/geyser/versions/latest/builds/latest/downloads/spigot';
+
+    return { version, build, url };
+  }
+
+  // Minecraft Floodgate
+  if (software === 'floodgate') {
+    const response = await (await fetch('https://download.geysermc.org/v2/projects/floodgate/versions/latest/builds/latest')).json();
+
+    const version = response?.version;
+    const build = response?.build;
+    const url = 'https://download.geysermc.org/v2/projects/floodgate/versions/latest/builds/latest/downloads/spigot';
+
+    return { version, build, url };
+  }
+
   return { version: '', build: 0, url: '' };
 };
 

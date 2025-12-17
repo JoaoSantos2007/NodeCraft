@@ -106,6 +106,31 @@ Instance.init({
     allowNull: false,
     defaultValue: '',
   },
+  geyser: {
+    type: DataTypes.BOOLEAN,
+    allowNull: true,
+    defaultValue: false,
+  },
+  geyserVersion: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    defaultValue: '',
+  },
+  geyserBuild: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0,
+  },
+  floodgateVersion: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    defaultValue: '',
+  },
+  floodgateBuild: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0,
+  },
 
   // Properties
   gamemode: {
@@ -291,7 +316,7 @@ Instance.init({
     defaultValue: false,
   },
 }, {
-  tableName: 'instance',
+  tableName: 'Instance',
   sequelize: db,
   timestamps: false,
 });

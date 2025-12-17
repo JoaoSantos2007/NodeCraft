@@ -17,6 +17,8 @@ import AccessGuard from './AccessGuard.js';
 import download from '../utils/download.js';
 import List from './List.js';
 import getVersion from '../utils/getVersion.js';
+import getGeyserYml from '../../config/geyser.js';
+import getFloodgateYml from '../../config/floodgate.js';
 
 class Instance {
   constructor(doc, type = null) {
@@ -27,13 +29,14 @@ class Instance {
     this.online = 0;
     this.admins = 0;
     this.players = [];
+    this.geyser = doc.geyser;
     this.started = false;
     this.setup();
   }
 
   static async create(data, userId) {
     // Pick up a server port
-    const port = await Instance.SelectPort();
+    const port = await Instance.selectPort();
 
     // Create instance in the Database
     const instance = await Model.create({
@@ -101,77 +104,169 @@ class Instance {
     return INSTANCES[id];
   }
 
-  static async verifyNeedUpdate(instance) {
+  static async getInfo(instance) {
     const info = {
-      needUpdate: false, version: 0, build: 0, url: null,
+      needInstanceUpdate: false,
+      instanceVersion: '',
+      instanceBuild: 0,
+      instanceUrl: null,
+      needGeyserUpdate: false,
+      geyserVersion: '',
+      geyserBuild: 0,
+      geyserUrl: null,
+      needFloodgateUpdate: false,
+      floodgateVersion: '',
+      floodgateBuild: 0,
+      floodgateUrl: null,
     };
 
     if (instance.type === 'bedrock') {
-      const { version = '', url = '' } = await getVersion('bedrock');
+      // Get Bedrock latest info
+      const instanceInfo = await getVersion('bedrock');
 
-      info.version = version;
-      info.url = url;
-    } if (instance.type === 'java') {
-      const {
-        version = '', build = 0, url = '',
-      } = await getVersion(instance.software);
+      info.instanceVersion = instanceInfo?.version;
+      info.instanceUrl = instanceInfo?.url;
+    }
 
-      info.version = version;
-      info.build = build;
-      info.url = url;
+    if (instance.type === 'java') {
+      let geyserInfo;
+      let floodgateInfo;
+
+      // Get Java latest info
+      const instanceInfo = await getVersion(instance.software);
+
+      // Get Geyser and Floodgate latest info
+      if (instance.geyser === true) {
+        geyserInfo = await getVersion('geyser');
+        floodgateInfo = await getVersion('floodgate');
+      }
+
+      info.instanceVersion = instanceInfo?.version;
+      info.instanceBuild = instanceInfo?.build;
+      info.instanceUrl = instanceInfo?.url;
+
+      info.geyserVersion = geyserInfo?.version;
+      info.geyserBuild = geyserInfo?.build;
+      info.geyserUrl = geyserInfo?.url;
+
+      info.floodgateVersion = floodgateInfo?.version;
+      info.floodgateBuild = floodgateInfo?.build;
+      info.floodgateUrl = floodgateInfo?.url;
     }
 
     // Verify if instance needs updates
-    info.needUpdate = instance.version !== info.version;
-    if (!info.needUpdate && info.build) {
-      info.needUpdate = Number(instance.build) !== Number(info.build);
+    info.needInstanceUpdate = instance.version !== info.instanceVersion;
+    if (!info.needInstanceUpdate && info.instanceBuild) {
+      info.needInstanceUpdate = Number(instance.build) !== Number(info.instanceBuild);
     }
-    if (!instance.installed) info.needUpdate = true;
+    if (!instance.installed) {
+      info.needInstanceUpdate = true;
+    }
+
+    // Verify if geyser and floodgate needs updates
+    if (instance.geyser) {
+      info.needGeyserUpdate = instance.geyserVersion !== info.geyserVersion
+    || Number(instance.geyserBuild) !== Number(info.geyserBuild);
+
+      info.needFloodgateUpdate = instance.floodgateVersion !== info.floodgateVersion
+      || Number(instance.floodgateBuild) !== Number(info.floodgateBuild);
+    }
 
     return info;
   }
 
   static async install(instance, force = false) {
-    // Verify if instance needUpdates
-    const info = await Instance.verifyNeedUpdate(instance);
-    if (!info.needUpdate && !force) return { version: info.version, updated: false };
+    // Get Info updates
+    const info = await Instance.getInfo(instance);
+
+    // Verify neededUpdates
+    let neededUpdates = 0;
+    if (info.needInstanceUpdate) neededUpdates += 1;
+    if (info.needGeyserUpdate) neededUpdates += 1;
+    if (info.needFloodgateUpdate) neededUpdates += 1;
+
+    // Return if no one update is needed
+    if (neededUpdates === 0 && !force) return { info, updating: false };
 
     // Define variables for download process
+    const needRestart = instance.running; // Verify if the instance will need restart
     const instancePath = `${INSTANCES_PATH}/${instance.id}`;
-    const tempPath = Temp.create();
+    const pluginsPath = `${instancePath}/plugins`;
+    const tempPath = instance.type === 'bedrock' ? Temp.create() : '';
     const downloadCommand = instance.type === 'bedrock' ? `${tempPath}/bedrock.zip` : `${instancePath}/server.jar`;
+    let downloadsCompleted = 0;
 
-    // Start the download process in the background
-    download(downloadCommand, info.url).then(async () => {
-      // Verify if the instance will need restart
-      const needRestart = instance.running;
+    // Start the instance install process in the background
+    if (info.needInstanceUpdate) {
+      download(downloadCommand, info.instanceUrl).then(async () => {
+        // Stop and Wait Instance for update
+        await Instance.stopAndWait(instance.id);
 
-      // Stop and Wait Instance for update
-      await Instance.stopAndWait(instance.id);
+        // Extract installer.zip if instance is bedrock type
+        if (instance.type === 'bedrock') {
+          const zip = new AdmZip(`${tempPath}/bedrock.zip`);
+          zip.extractAllTo(instancePath, true);
+          Temp.delete(tempPath);
+        }
 
-      // Extract installer.zip if instance is bedrock type
-      if (instance.type === 'bedrock') {
-        const zip = new AdmZip(`${tempPath}/bedrock.zip`);
-        zip.extractAllTo(instancePath, true);
-        Temp.delete(tempPath);
-      }
+        // Update instance data
+        await Instance.update(instance.id, {
+          version: info.instanceVersion,
+          build: info.instanceBuild,
+          installed: true,
+        });
 
-      // Update instance data
-      await Instance.update(instance.id, {
-        version: info.version,
-        build: info.build,
-        installed: true,
+        // Restart instance if necessary
+        downloadsCompleted += 1;
+        if (neededUpdates === downloadsCompleted && needRestart) new Instance(instance);
       });
+    }
 
-      // Restart instance if necessary
-      if (needRestart) new Instance(instance);
-    });
+    if (info.needGeyserUpdate) {
+      if (!existsSync(pluginsPath)) mkdirSync(pluginsPath);
+
+      // Start the geyser install process in the background
+      download(`${pluginsPath}/Geyser.jar`, info.geyserUrl).then(async () => {
+        // Stop and Wait Instance for update
+        await Instance.stopAndWait(instance.id);
+
+        // Update instance data
+        await Instance.update(instance.id, {
+          geyserVersion: info.geyserVersion,
+          geyserBuild: info.geyserBuild,
+        });
+
+        // Restart instance if necessary
+        downloadsCompleted += 1;
+        if (neededUpdates === downloadsCompleted && needRestart) new Instance(instance);
+      });
+    }
+
+    if (info.needFloodgateUpdate) {
+      if (!existsSync(pluginsPath)) mkdirSync(pluginsPath);
+
+      // Start the floodgate install process in the background
+      download(`${pluginsPath}/Floodgate.jar`, info.floodgateUrl).then(async () => {
+        // Stop and Wait Instance for update
+        await Instance.stopAndWait(instance.id);
+
+        // Update instance data
+        await Instance.update(instance.id, {
+          floodgateVersion: info.floodgateVersion,
+          floodgateBuild: info.floodgateBuild,
+        });
+
+        // Restart instance if necessary
+        downloadsCompleted += 1;
+        if (neededUpdates === downloadsCompleted && needRestart) new Instance(instance);
+      });
+    }
 
     // Return the immediate response
-    return { version: info.version, updating: true };
+    return { info, updating: true };
   }
 
-  static async SelectPort() {
+  static async selectPort() {
     const instances = await Instance.readAll();
     const usedPorts = [];
     const availablePorts = [];
@@ -280,6 +375,16 @@ class Instance {
       writeFileSync(`${this.path}/eula.txt`, 'eula=true', 'utf8');
 
       if (existsSync(`${this.path}/world/session.lock`)) rmSync(`${this.path}/world/session.lock`, { recursive: true });
+
+      if (this.geyser) {
+        if (!existsSync(`${this.path}/plugins`)) mkdirSync(`${this.path}/plugins`);
+
+        if (!existsSync(`${this.path}/plugins/Geyser-Spigot`)) mkdirSync(`${this.path}/plugins/Geyser-Spigot`);
+        writeFileSync(`${this.path}/plugins/Geyser-Spigot/config.yml`, getGeyserYml(this.doc.name, this.doc.maxPlayers), 'utf8');
+
+        if (!existsSync(`${this.path}/plugins/floodgate`)) mkdirSync(`${this.path}/plugins/floodgate`);
+        writeFileSync(`${this.path}/plugins/floodgate/config.yml`, getFloodgateYml(), 'utf8');
+      }
     }
 
     INSTANCES[this.doc.id] = this;

@@ -61,6 +61,25 @@ const Instance = {
     type: 'string',
     internal: true,
   },
+  geyser: {
+    type: 'boolean',
+  },
+  geyserVersion: {
+    type: 'string',
+    internal: true,
+  },
+  geyserBuild: {
+    type: 'number',
+    internal: true,
+  },
+  floodgateVersion: {
+    type: 'string',
+    internal: true,
+  },
+  floodgateBuild: {
+    type: 'number',
+    internal: true,
+  },
 
   // Properties
   gamemode: {
