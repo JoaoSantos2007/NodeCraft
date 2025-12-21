@@ -3,10 +3,6 @@ const Instance = {
     type: 'string',
     internal: true,
   },
-  pid: {
-    type: 'string',
-    internal: true,
-  },
   owner: {
     type: 'string',
     internal: true,

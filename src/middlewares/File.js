@@ -3,6 +3,7 @@ import * as Path from 'path';
 import { BadRequest, InvalidRequest } from '../errors/index.js';
 import { INSTANCES_PATH } from '../../config/settings.js';
 import errorHandler from '../utils/errorHandler.js';
+import InstanceService from '../services/Instance.js';
 
 class File {
   static verifyTwoPoints(path) {
@@ -68,6 +69,19 @@ class File {
     [reqCopy.params[0]] = [req.params[1]];
 
     return File.verify(reqCopy, res, next, true);
+  }
+
+  static async verifyRunning(req, res, next) {
+    try {
+      const id = req?.params?.id;
+
+      const instance = await InstanceService.readOne(id);
+      if (instance.running) throw new InvalidRequest('You cannot do this while instance is running!');
+
+      return next();
+    } catch (err) {
+      return errorHandler(err, res);
+    }
   }
 }
 

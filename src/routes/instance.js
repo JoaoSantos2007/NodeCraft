@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import Controller from '../controllers/Instance.js';
-import Middleware from '../middlewares/Instance.js';
 import player from './player.js';
 import file from './file.js';
 import Auth from '../middlewares/Auth.js';
@@ -26,19 +25,16 @@ router
   .put(
     '/instance/:id',
     (req, res, next) => Auth.verifyAccess('instance:update', req, res, next),
-    Middleware.verifyInProgress,
     Controller.update,
   )
   .delete(
     '/instance/:id',
     (req, res, next) => Auth.verifyAccess('instance:delete', req, res, next),
-    Middleware.verifyInProgress,
     Controller.delete,
   )
   .post(
     '/instance/:id/run',
     (req, res, next) => Auth.verifyAccess('instance:execute', req, res, next),
-    Middleware.verifyInProgress,
     Controller.run,
   )
   .post(
@@ -50,11 +46,6 @@ router
     '/instance/:id/update',
     (req, res, next) => Auth.verifyAccess('instance:update', req, res, next),
     Controller.updateVersion,
-  )
-  .put(
-    '/instance/:id/redefine/properties',
-    (req, res, next) => Auth.verifyAccess('instance:update', req, res, next),
-    Controller.redefineProperties,
   )
   .put(
     '/instance/all/remap/port',

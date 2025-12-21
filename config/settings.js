@@ -45,7 +45,6 @@ const PERMISSIONS = [
   'group:member:update',
   'group:member:delete',
 ];
-const INSTANCES = {};
 
 if (!SALT || !SECRET) throw new Error('Enviroment Variables Are Missing In .ENV');
 if (!existsSync(`${ABSOLUTE_PATH}/instances`)) mkdirSync(`${ABSOLUTE_PATH}/instances`);
@@ -60,7 +59,6 @@ export {
   STAGE,
   SALT,
   SECRET,
-  INSTANCES,
   PERMISSIONS,
   MIN_PORT,
   MAX_PORT,

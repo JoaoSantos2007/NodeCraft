@@ -1,39 +1,19 @@
 /* eslint-disable consistent-return */
 /* eslint-disable no-new */
-import {
-  mkdirSync, rmSync, writeFileSync, chmodSync,
-  existsSync,
-} from 'fs';
-import { spawn } from 'child_process';
+import { mkdirSync, rmSync, existsSync } from 'fs';
 import { Op } from 'sequelize';
 import AdmZip from 'adm-zip';
-import {
-  INSTANCES_PATH, INSTANCES, MIN_PORT, MAX_PORT,
-} from '../../config/settings.js';
+import { INSTANCES_PATH, MIN_PORT, MAX_PORT } from '../../config/settings.js';
 import { Instance as Model, Player as PlayerModel } from '../models/index.js';
 import { BadRequest } from '../errors/index.js';
 import Temp from './Temp.js';
 import AccessGuard from './AccessGuard.js';
 import download from '../utils/download.js';
-import List from './List.js';
 import getVersion from '../utils/getVersion.js';
-import getGeyserYml from '../../config/geyser.js';
-import getFloodgateYml from '../../config/floodgate.js';
+import Container from './Container.js';
+import { syncFloodgate, syncGeyser, syncProperties } from '../utils/syncSettings.js';
 
 class Instance {
-  constructor(doc, type = null) {
-    this.id = doc.id;
-    this.doc = doc;
-    this.type = type || doc.type;
-    this.path = `${INSTANCES_PATH}/${doc.id}`;
-    this.online = 0;
-    this.admins = 0;
-    this.players = [];
-    this.geyser = doc.geyser;
-    this.started = false;
-    this.setup();
-  }
-
   static async create(data, userId) {
     // Pick up a server port
     const port = await Instance.selectPort();
@@ -100,10 +80,6 @@ class Instance {
     return instance;
   }
 
-  static verifyInProgess(id) {
-    return INSTANCES[id];
-  }
-
   static async getInfo(instance) {
     const info = {
       needInstanceUpdate: false,
@@ -166,7 +142,7 @@ class Instance {
     // Verify if geyser and floodgate needs updates
     if (instance.geyser) {
       info.needGeyserUpdate = instance.geyserVersion !== info.geyserVersion
-    || Number(instance.geyserBuild) !== Number(info.geyserBuild);
+      || Number(instance.geyserBuild) !== Number(info.geyserBuild);
 
       info.needFloodgateUpdate = instance.floodgateVersion !== info.floodgateVersion
       || Number(instance.floodgateBuild) !== Number(info.floodgateBuild);
@@ -295,141 +271,85 @@ class Instance {
     return randomPort;
   }
 
-  static stopAndWait(id) {
-    return new Promise((resolve, reject) => {
-      let resolved = false;
+  static setup(instance, path) {
+    // Sync database with server.properties
+    syncProperties(instance, path);
 
-      function safeResolve() {
-        if (!resolved) {
-          resolved = true;
-          resolve();
-        }
-      }
+    // Wipe allowlist and privilegies
+    AccessGuard.wipe(instance, path);
 
-      Instance.readOne(id)
-        .then((data) => {
-          const instance = data.get({ plain: true });
-          const pid = instance?.pid;
+    // Remove session.lock
+    if (existsSync(`${path}/world/session.lock`)) rmSync(`${path}/world/session.lock`, { recursive: true });
 
-          if (!pid || pid === 0 || !instance.running) return safeResolve();
-
-          // Verify if process is alive
-          try {
-            if (pid) process.kill(pid, 0); // Test if process is alive
-          } catch {
-            return safeResolve(); // Process already dead
-          }
-
-          // Kill process safetly
-          try {
-            if (pid) process.kill(pid, 'SIGTERM'); // Try to kill process
-          } catch (err) {
-            return safeResolve(); // Process already dead
-          }
-
-          // Check if the process is dead periodically in 1s
-          let timeout;
-          const interval = setInterval(() => {
-            try {
-              if (pid) process.kill(pid, 0); // Test if process is alive
-            } catch { // Process is dead, finish interval
-              clearInterval(interval);
-              clearTimeout(timeout);
-              return safeResolve();
-            }
-          }, 1000);
-
-          // Force kill a process after 20s
-          timeout = setTimeout(() => {
-            try {
-              if (pid) process.kill(pid, 'SIGKILL');
-            } catch (err) {
-              return safeResolve();
-            }
-            clearInterval(interval);
-            safeResolve();
-          }, 20000);
-        })
-        .catch((err) => reject(err));
-    });
-  }
-
-  async setup() {
-    List.sync(this.path, this.doc);
-    AccessGuard.wipe(this);
-    this.run();
-    this.setListeners();
-  }
-
-  run() {
-    let command;
-    let args;
-
-    if (this.type === 'bedrock') {
-      if (existsSync(`${this.path}/bedrock_server`)) chmodSync(`${this.path}/bedrock_server`, 0o755);
-      command = './bedrock_server';
-      args = [];
-    } else if (this.type === 'java') {
-      command = 'java';
-      args = ['-jar', 'server.jar', 'nogui'];
-      writeFileSync(`${this.path}/eula.txt`, 'eula=true', 'utf8');
-
-      if (existsSync(`${this.path}/world/session.lock`)) rmSync(`${this.path}/world/session.lock`, { recursive: true });
-
-      if (this.geyser) {
-        if (!existsSync(`${this.path}/plugins`)) mkdirSync(`${this.path}/plugins`);
-
-        if (!existsSync(`${this.path}/plugins/Geyser-Spigot`)) mkdirSync(`${this.path}/plugins/Geyser-Spigot`);
-        writeFileSync(`${this.path}/plugins/Geyser-Spigot/config.yml`, getGeyserYml(this.doc.name, this.doc.maxPlayers), 'utf8');
-
-        if (!existsSync(`${this.path}/plugins/floodgate`)) mkdirSync(`${this.path}/plugins/floodgate`);
-        writeFileSync(`${this.path}/plugins/floodgate/config.yml`, getFloodgateYml(), 'utf8');
-      }
-    }
-
-    INSTANCES[this.doc.id] = this;
-    this.terminal = spawn(command, args, {
-      cwd: this.path,
-      stdio: 'pipe',
-      detached: false,
-    });
-    Instance.update(this.id, { pid: this.terminal.pid, running: true });
-  }
-
-  setListeners() {
-    this.terminal.on('close', () => this.stop(true));
-    this.terminal.on('error', () => this.stop(true));
-    this.terminal.stdout.on('data', (output) => {
-      const msg = output.toString();
-      console.log(msg);
-      this.updateHistory(msg);
-      AccessGuard.analyzer(msg, this);
-    });
-  }
-
-  emitEvent(cmd) {
-    if (this.terminal && this.terminal.stdin && this.terminal.stdin.writable) this.terminal.stdin.write(`${cmd}\n`);
-  }
-
-  stop(ended = false) {
-    if (ended === false) {
-      this.emitEvent('stop');
-      this.emitEvent('/stop');
-
-      setTimeout(() => {
-        if (this.terminal && this.terminal.exitCode === null && !this.terminal.killed) this.terminal.kill('SIGKILL');
-      }, 10000);
-    } else if (ended === true && this.doc) {
-      Instance.update(this.id, { pid: 0, running: false });
-      INSTANCES[this.id] = null;
+    // Ensure geyser
+    if (instance.geyser) {
+      syncGeyser(instance, path);
+      syncFloodgate(instance, path);
     }
   }
 
-  async updateHistory(output) {
-    const instance = await Instance.readOne(this.doc.id);
+  static async run(id) {
+    // Read instance
+    const instance = await Instance.readOne(id);
+    const path = `${INSTANCES_PATH}/${id}`;
 
+    // Create container if not exists
+    let container;
+    container = await Container.get(id);
+    if (!container) container = await Container.create(instance, path);
+
+    // Verify if container is not running
+    const isRunning = await Container.isRunning(id);
+
+    if (!isRunning) {
+      // Run container
+      Instance.setup(instance, path); // Setup ambient to run instance
+      await container.start();
+    }
+
+    // Set listeners
+    await Instance.setListeners(instance);
+
+    await instance.update({ running: true });
+
+    return instance;
+  }
+
+  static async setListeners(instance) {
+    const container = await Container.get(instance.id);
+
+    const stream = await container.logs({
+      stdout: true,
+      stderr: true,
+      follow: true,
+    });
+
+    stream.on('data', async (chunk) => {
+      const output = chunk.toString();
+      console.log(output);
+
+      // AccessGuard.analyzer(output, this);
+      await Instance.updateHistory(instance, output);
+    });
+  }
+
+  static async stop(id) {
+    const instance = await Instance.readOne(id);
+    const container = await Container.get(id);
+
+    try {
+      await container.stop({ t: 20 }); // SIGTERM
+    } catch {
+      await container.kill(); // SIGKILL
+    }
+
+    await instance.update({ running: false });
+    return instance;
+  }
+
+  static async updateHistory(instance, output) {
     let msg = output;
-    let { history } = instance;
+    let history = instance?.history;
 
     if (!msg.endsWith('\n')) msg += '\n';
     history += msg;

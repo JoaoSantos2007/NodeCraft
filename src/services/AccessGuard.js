@@ -2,13 +2,13 @@
 import { writeFileSync } from 'fs';
 
 class AccessGuard {
-  static wipe(instance) {
+  static wipe(instance, path) {
     if (instance.type === 'bedrock') {
-      writeFileSync(`${instance.path}/permissions.json`, '[]', 'utf8');
-      writeFileSync(`${instance.path}/allowlist.json`, '[]', 'utf8');
+      writeFileSync(`${path}/permissions.json`, '[]', 'utf8');
+      writeFileSync(`${path}/allowlist.json`, '[]', 'utf8');
     } else if (instance.type === 'java') {
-      writeFileSync(`${instance.path}/ops.json`, '[]', 'utf8');
-      writeFileSync(`${instance.path}/whitelist.json`, '[]', 'utf8');
+      writeFileSync(`${path}/ops.json`, '[]', 'utf8');
+      writeFileSync(`${path}/whitelist.json`, '[]', 'utf8');
     }
   }
 

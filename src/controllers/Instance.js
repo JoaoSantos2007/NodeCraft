@@ -4,10 +4,8 @@ import UserService from '../services/User.js';
 import GroupService from '../services/Group.js';
 import MemberService from '../services/Member.js';
 import AuthService from '../services/Auth.js';
-import { BadRequest, Unathorized, InvalidRequest } from '../errors/index.js';
+import { BadRequest, Unathorized } from '../errors/index.js';
 import Validator from '../validators/Instance.js';
-import { INSTANCES_PATH, INSTANCES } from '../../config/settings.js';
-import ListService from '../services/List.js';
 
 class Instance {
   static async create(req, res, next) {
@@ -107,9 +105,7 @@ class Instance {
   static async run(req, res, next) {
     try {
       const { id } = req.params;
-      const instance = await Service.readOne(id);
-
-      new Service(instance);
+      const instance = await Service.run(id);
 
       return res.status(200).json({ success: true, running: true, instance });
     } catch (err) {
@@ -120,11 +116,7 @@ class Instance {
   static async stop(req, res, next) {
     try {
       const { id } = req.params;
-      const instance = await Service.readOne(id);
-      if (!instance.running && instance.pid === 0 && !INSTANCES[id]) throw new InvalidRequest('Instance is not in progress!');
-
-      if (INSTANCES[id]) INSTANCES[id].stop();
-      else if (instance.pid) Service.stopAndWait(instance.id);
+      const instance = await Service.stop(id);
 
       return res.status(200).json({ success: true, stopping: true, instance });
     } catch (err) {
@@ -145,19 +137,6 @@ class Instance {
         msg: updating ? 'Updating!' : 'No Update Available!',
         info,
       });
-    } catch (err) {
-      return next(err);
-    }
-  }
-
-  static async redefineProperties(req, res, next) {
-    try {
-      const { id } = req.params;
-      const instance = await Service.readOne(id);
-
-      ListService.redefine(`${INSTANCES_PATH}/${instance.id}`, instance);
-
-      return res.status(200).json({ success: true, redefined: true });
     } catch (err) {
       return next(err);
     }
