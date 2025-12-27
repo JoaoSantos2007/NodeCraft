@@ -45,6 +45,7 @@ const PERMISSIONS = [
   'group:member:update',
   'group:member:delete',
 ];
+const REGISTRY = {};
 
 if (!SALT || !SECRET) throw new Error('Enviroment Variables Are Missing In .ENV');
 if (!existsSync(`${ABSOLUTE_PATH}/instances`)) mkdirSync(`${ABSOLUTE_PATH}/instances`);
@@ -62,4 +63,5 @@ export {
   PERMISSIONS,
   MIN_PORT,
   MAX_PORT,
+  REGISTRY,
 };

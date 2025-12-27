@@ -33,17 +33,6 @@ Instance.init({
       },
     },
   },
-  type: {
-    type: DataTypes.STRING,
-    values: ['bedrock', 'java'],
-    allowNull: false,
-    validate: {
-      isIn: {
-        args: [['bedrock', 'java']],
-        msg: 'type field must be bedrock or java!',
-      },
-    },
-  },
   software: {
     type: DataTypes.STRING,
     values: ['vanilla', 'paper', 'purpur'],

@@ -13,13 +13,6 @@ const Instance = {
     min: 3,
     max: 32,
   },
-  type: {
-    type: 'string',
-    required: true,
-    values: ['bedrock', 'java'],
-    internal: true,
-    firstTime: true,
-  },
   software: {
     type: 'string',
     values: ['vanilla', 'paper', 'purpur'],

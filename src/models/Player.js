@@ -22,6 +22,10 @@ Player.init({
     type: DataTypes.STRING,
     allowNull: false,
   },
+  bedrockGamertag: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
   operator: {
     type: DataTypes.BOOLEAN,
     allowNull: false,

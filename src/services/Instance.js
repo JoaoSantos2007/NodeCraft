@@ -1,17 +1,22 @@
 /* eslint-disable consistent-return */
 /* eslint-disable no-new */
-import { mkdirSync, rmSync, existsSync } from 'fs';
+import {
+  mkdirSync,
+  rmSync,
+  existsSync,
+  writeFileSync,
+} from 'fs';
 import { Op } from 'sequelize';
-import AdmZip from 'adm-zip';
-import { INSTANCES_PATH, MIN_PORT, MAX_PORT } from '../../config/settings.js';
+import {
+  INSTANCES_PATH, MIN_PORT, MAX_PORT, REGISTRY,
+} from '../../config/settings.js';
 import { Instance as Model, Player as PlayerModel } from '../models/index.js';
-import { BadRequest } from '../errors/index.js';
-import Temp from './Temp.js';
-import AccessGuard from './AccessGuard.js';
+import { BadRequest, InvalidRequest } from '../errors/index.js';
 import download from '../utils/download.js';
 import getVersion from '../utils/getVersion.js';
 import Container from './Container.js';
 import { syncFloodgate, syncGeyser, syncProperties } from '../utils/syncSettings.js';
+import query from '../../config/query.js';
 
 class Instance {
   static async create(data, userId) {
@@ -96,39 +101,28 @@ class Instance {
       floodgateUrl: null,
     };
 
-    if (instance.type === 'bedrock') {
-      // Get Bedrock latest info
-      const instanceInfo = await getVersion('bedrock');
+    // Get Java latest info
+    const instanceInfo = await getVersion(instance.software);
+    let geyserInfo;
+    let floodgateInfo;
 
-      info.instanceVersion = instanceInfo?.version;
-      info.instanceUrl = instanceInfo?.url;
+    // Get Geyser and Floodgate latest info
+    if (instance.geyser === true) {
+      geyserInfo = await getVersion('geyser');
+      floodgateInfo = await getVersion('floodgate');
     }
 
-    if (instance.type === 'java') {
-      let geyserInfo;
-      let floodgateInfo;
+    info.instanceVersion = instanceInfo?.version;
+    info.instanceBuild = instanceInfo?.build;
+    info.instanceUrl = instanceInfo?.url;
 
-      // Get Java latest info
-      const instanceInfo = await getVersion(instance.software);
+    info.geyserVersion = geyserInfo?.version;
+    info.geyserBuild = geyserInfo?.build;
+    info.geyserUrl = geyserInfo?.url;
 
-      // Get Geyser and Floodgate latest info
-      if (instance.geyser === true) {
-        geyserInfo = await getVersion('geyser');
-        floodgateInfo = await getVersion('floodgate');
-      }
-
-      info.instanceVersion = instanceInfo?.version;
-      info.instanceBuild = instanceInfo?.build;
-      info.instanceUrl = instanceInfo?.url;
-
-      info.geyserVersion = geyserInfo?.version;
-      info.geyserBuild = geyserInfo?.build;
-      info.geyserUrl = geyserInfo?.url;
-
-      info.floodgateVersion = floodgateInfo?.version;
-      info.floodgateBuild = floodgateInfo?.build;
-      info.floodgateUrl = floodgateInfo?.url;
-    }
+    info.floodgateVersion = floodgateInfo?.version;
+    info.floodgateBuild = floodgateInfo?.build;
+    info.floodgateUrl = floodgateInfo?.url;
 
     // Verify if instance needs updates
     info.needInstanceUpdate = instance.version !== info.instanceVersion;
@@ -168,22 +162,13 @@ class Instance {
     const needRestart = instance.running; // Verify if the instance will need restart
     const instancePath = `${INSTANCES_PATH}/${instance.id}`;
     const pluginsPath = `${instancePath}/plugins`;
-    const tempPath = instance.type === 'bedrock' ? Temp.create() : '';
-    const downloadCommand = instance.type === 'bedrock' ? `${tempPath}/bedrock.zip` : `${instancePath}/server.jar`;
     let downloadsCompleted = 0;
 
     // Start the instance install process in the background
     if (info.needInstanceUpdate) {
-      download(downloadCommand, info.instanceUrl).then(async () => {
+      download(`${instancePath}/server.jar`, info.instanceUrl).then(async () => {
         // Stop and Wait Instance for update
-        await Instance.stopAndWait(instance.id);
-
-        // Extract installer.zip if instance is bedrock type
-        if (instance.type === 'bedrock') {
-          const zip = new AdmZip(`${tempPath}/bedrock.zip`);
-          zip.extractAllTo(instancePath, true);
-          Temp.delete(tempPath);
-        }
+        // await Instance.stopAndWait(instance.id);
 
         // Update instance data
         await Instance.update(instance.id, {
@@ -276,7 +261,8 @@ class Instance {
     syncProperties(instance, path);
 
     // Wipe allowlist and privilegies
-    AccessGuard.wipe(instance, path);
+    writeFileSync(`${path}/permissions.json`, '[]', 'utf8');
+    writeFileSync(`${path}/allowlist.json`, '[]', 'utf8');
 
     // Remove session.lock
     if (existsSync(`${path}/world/session.lock`)) rmSync(`${path}/world/session.lock`, { recursive: true });
@@ -288,10 +274,139 @@ class Instance {
     }
   }
 
-  static async run(id) {
+  static register(instance) {
+    REGISTRY[instance.id] = {
+      id: instance.id,
+      alive: false,
+      queryInterval: null,
+      stream: null,
+      state: {
+        playersOnline: 0,
+        adminsOnline: 0,
+        lastPolicyAppliedAt: 0,
+      },
+      monitor: {
+        running: false,
+        pending: false,
+        timer: null,
+        lastRun: 0,
+      },
+      rcon: null,
+    };
+  }
+
+  static async setStream(instance) {
+    const container = await Container.get(instance.id);
+    const since = Math.floor(Date.now() / 1000);
+
+    REGISTRY[instance.id].stream = await container.logs({
+      stdout: true,
+      stderr: true,
+      follow: true,
+      since,
+      timestamps: false,
+    });
+
+    // Set stdout listener
+    REGISTRY[instance.id].stream.on('data', async (chunk) => {
+      const output = chunk.toString();
+      await Instance.updateHistory(instance, output);
+
+      if (
+        output.includes('joined the game')
+        || output.includes('left the game')
+      ) {
+        Instance.scheduleMonitor(instance, 400);
+      }
+
+      // Review
+      console.log(output);
+    });
+  }
+
+  static scheduleMonitor(instance, delay = 1000) {
+    // Verify if monitor is in registry
+    const registry = REGISTRY[instance.id];
+    if (!registry?.monitor) return;
+    const { monitor } = registry;
+
+    // Calculate elapsed time
+    const now = Date.now();
+    const elapsed = now - monitor.lastRun;
+
+    // If monitor is running mark as pending
+    if (monitor.running) {
+      monitor.pending = true;
+      return;
+    }
+
+    // If time is greater than delay run monitor
+    if (elapsed >= delay) {
+      // If is a timer set, clean it
+      if (monitor.timer) {
+        clearTimeout(monitor.timer);
+        monitor.timer = null;
+      }
+
+      // Run monitor
+      Instance.monitor(instance);
+      return;
+    }
+
+    // Set pending to run monitor
+    monitor.pending = true;
+
+    // If is not timer definied, set one
+    if (!monitor.timer) {
+      // Set a timer with delay - elapsed
+      monitor.timer = setTimeout(() => {
+        monitor.timer = null; // Clean timeout
+
+        // Verify if pending monitor was not executed and run monitor
+        if (monitor.pending) Instance.monitor(instance);
+      }, delay - elapsed);
+    }
+  }
+
+  static async monitor(instance) {
+    const registry = REGISTRY[instance.id];
+    if (!registry?.monitor) return;
+
+    const { monitor } = registry;
+
+    monitor.running = true;
+    monitor.pending = false;
+    monitor.lastRun = Date.now();
+
+    try {
+      const state = await query(instance);
+      const players = instance.players ?? [];
+
+      const onlineAdmins = 0;
+
+      registry.state = {
+        online: state.online,
+        onlinePlayers: state.onlinePlayers,
+        onlineAdmins,
+        players,
+      };
+    } catch (err) {
+      // console.error('[MONITOR]', instance, err);
+    } finally {
+      monitor.running = false;
+
+      if (monitor.pending) {
+        Instance.scheduleMonitor(instance);
+      }
+    }
+  }
+
+  static async run(id, internal = false) {
     // Read instance
     const instance = await Instance.readOne(id);
     const path = `${INSTANCES_PATH}/${id}`;
+
+    if (!internal && instance.running) throw new InvalidRequest('Instance is already running!');
 
     // Create container if not exists
     let container;
@@ -307,35 +422,29 @@ class Instance {
       await container.start();
     }
 
-    // Set listeners
-    await Instance.setListeners(instance);
+    // Registry instance
+    Instance.register(instance);
+
+    // Set stream stdout data
+    await Instance.setStream(instance);
+
+    // Run first monitor
+    Instance.monitor(instance);
+
+    // Set instance monitoring
+    REGISTRY[instance.id].interval = setInterval(() => Instance.scheduleMonitor(instance), 10000);
 
     await instance.update({ running: true });
 
     return instance;
   }
 
-  static async setListeners(instance) {
-    const container = await Container.get(instance.id);
-
-    const stream = await container.logs({
-      stdout: true,
-      stderr: true,
-      follow: true,
-    });
-
-    stream.on('data', async (chunk) => {
-      const output = chunk.toString();
-      console.log(output);
-
-      // AccessGuard.analyzer(output, this);
-      await Instance.updateHistory(instance, output);
-    });
-  }
-
   static async stop(id) {
     const instance = await Instance.readOne(id);
     const container = await Container.get(id);
+
+    const isRunning = await Container.isRunning(id);
+    if (!isRunning) throw new InvalidRequest('Instance is not running!');
 
     try {
       await container.stop({ t: 20 }); // SIGTERM

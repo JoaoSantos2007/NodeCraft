@@ -3,27 +3,24 @@ import { INSTANCES_PATH } from '../../config/settings.js';
 
 class Container {
   static async create(instance) {
-    // Select docker image
-    const image = instance.type === 'bedrock' ? 'itzg/minecraft-bedrock-server' : 'itzg/minecraft-server';
-
-    // Set container enviroment
-    const enviroment = instance.type === 'java'
-      ? [
+    const container = await docker.createContainer({
+      name: `Nodecraft_${instance.id}`,
+      Image: 'itzg/minecraft-server',
+      Env: [
         'EULA=TRUE',
         'TYPE=CUSTOM',
         'CUSTOM_SERVER=server.jar',
-      ]
-      : [];
-
-    const container = await docker.createContainer({
-      name: `Nodecraft_${instance.id}`,
-      Image: image,
-      Env: enviroment,
+      ],
 
       HostConfig: {
         Binds: [`${INSTANCES_PATH}/${instance.id}:/data`],
         PortBindings: {
-          '25565/tcp': [{ HostPort: String(instance.port) }],
+          '25565/tcp': [
+            { HostPort: String(instance.port) },
+          ],
+          '25565/udp': [
+            { HostPort: String(instance.port) },
+          ],
         },
         Memory: 2048 * 1024 * 1024, // MB
         NanoCpus: 2 * 1e9,

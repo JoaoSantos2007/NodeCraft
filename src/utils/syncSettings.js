@@ -1,50 +1,7 @@
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
 
 const syncProperties = (instance, path) => {
-  let settings;
-
-  if (instance.type === 'bedrock') {
-    settings = `
-server-name=${instance.name}
-gamemode=${instance.gamemode}
-force-gamemode=${instance.forceGamemode}
-difficulty=${instance.difficulty}
-allow-cheats=${instance.cheats}
-max-players=${instance.maxPlayers}
-online-mode=${instance.licensed}
-allow-list=${instance.allowlist}
-server-port=25565
-server-portv6=25565
-enable-lan-visibility=false
-view-distance=${instance.viewDistance}
-tick-distance=4
-player-idle-timeout=${instance.idle}
-max-threads=8
-level-name=world
-level-seed=${instance.seed}
-default-player-permission-level=member
-texturepack-required=false
-content-log-file-enabled=false
-compression-threshold=1
-compression-algorithm=zlib
-server-authoritative-movement=server-auth
-player-movement-score-threshold=20
-player-movement-action-direction-threshold=0.85
-player-movement-distance-threshold=0.3
-player-movement-duration-threshold-in-ms=500
-correct-player-movement=false
-server-authoritative-block-breaking=false
-chat-restriction=None
-disable-player-interaction=false
-client-side-chunk-generation-enabled=true
-block-network-ids-are-hashes=true
-disable-persona=false
-disable-custom-skins=false
-server-build-radius-ratio=Disabled
-motd=${instance.motd}
-    `;
-  } else if (instance.type === 'java') {
-    settings = `
+  const settings = `
 server-name=${instance.name}
 enable-jmx-monitoring=false
 rcon.port=25575
@@ -104,7 +61,6 @@ spawn-protection=${instance.spawn}
 resource-pack-sha1=
 max-world-size=29999984  
     `;
-  }
 
   writeFileSync(`${path}/server.properties`, settings, 'utf8');
 };
