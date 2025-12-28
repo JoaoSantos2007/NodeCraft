@@ -1,41 +1,16 @@
 /* eslint-disable no-new */
 import Service from '../services/Instance.js';
-import UserService from '../services/User.js';
-import GroupService from '../services/Group.js';
-import MemberService from '../services/Member.js';
-import AuthService from '../services/Auth.js';
-import { BadRequest, Unathorized } from '../errors/index.js';
 import Validator from '../validators/Instance.js';
 
 class Instance {
   static async create(req, res, next) {
     try {
       const { body, user } = req;
-      let owner;
 
-      if (body.group) {
-        const group = await GroupService.readOne(body.group);
-
-        // Verify if user has permission to create instance insade group
-        const userHasPermission = await AuthService.verifyUserHasPermissionInsideGroup(group, user, 'instance:create');
-        if (!userHasPermission) throw new Unathorized("User doesn't have this permission inside group!");
-
-        // Verify Group max quota
-        const remainingQuota = await GroupService.getRemainingQuota(group.id);
-        if (remainingQuota <= 0) throw new BadRequest('Group has reached the maximum quota!');
-
-        delete body.group;
-        owner = group.id;
-      } else {
-        // Verify User max quota
-        const remainingQuota = await UserService.getRemainingQuota(user.id);
-        if (remainingQuota <= 0 && user.admin !== true) throw new BadRequest('User has reached the maximum quota!');
-
-        owner = user.id;
-      }
+      // Verify user plan
 
       Validator(body, false, true);
-      const instance = await Service.create(body, owner);
+      const instance = await Service.create(body, user.id);
       Service.install(instance, true);
 
       return res.status(201).json({
@@ -49,16 +24,7 @@ class Instance {
   static async readAll(req, res, next) {
     try {
       const { user } = req;
-      let instances = [];
-      let allOwners = [user.id];
-
-      if (user.admin === true) instances = await Service.readAll();
-      else {
-        const groupsId = await MemberService.readAllGroupsByUser(user.id);
-        allOwners = allOwners.concat(groupsId);
-
-        instances = await Service.readAllByOwners(allOwners);
-      }
+      const instances = await Service.personalRead(user);
 
       return res.status(200).json({ success: true, instances });
     } catch (err) {
@@ -151,21 +117,6 @@ class Instance {
       return res.status(200).json({
         success: true, remapped: true, port, instance,
       });
-    } catch (err) {
-      return next(err);
-    }
-  }
-
-  static async remapAllPorts(req, res, next) {
-    try {
-      const instances = await Service.readAll();
-
-      instances.forEach(async (instance) => {
-        const port = await Service.selectPort();
-        await Service.update(instance.id, { port });
-      });
-
-      return res.status(200).json({ success: true, remapped: true });
     } catch (err) {
       return next(err);
     }

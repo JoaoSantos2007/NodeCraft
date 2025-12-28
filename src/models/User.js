@@ -9,6 +9,11 @@ User.init({
     defaultValue: Sequelize.UUIDV4,
     primaryKey: true,
   },
+  admin: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+  },
   name: {
     type: DataTypes.STRING,
     allowNull: false,
@@ -41,33 +46,46 @@ User.init({
     type: DataTypes.STRING,
     allowNull: false,
   },
-  gamertag: {
+  verified: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+  },
+  javaGamertag: {
     type: DataTypes.STRING,
     allowNull: true,
     validate: {
       len: {
         args: [0, 80],
-        msg: 'gamertag must have a length under 80!',
+        msg: 'java gamertag must have a length under 80!',
       },
     },
   },
-  admin: {
-    type: DataTypes.BOOLEAN,
-    allowNull: false,
-    defaultValue: false,
-  },
-  quota: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    defaultValue: 0,
+  bedrockGamertag: {
+    type: DataTypes.STRING,
+    allowNull: true,
     validate: {
-      isInt: {
-        msg: 'quota must be a integer number!',
+      len: {
+        args: [0, 80],
+        msg: 'bedrock gamertag must have a length under 80!',
       },
     },
+  },
+  gender: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  birthDate: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+  timePlayed: {
+    type: DataTypes.NUMBER,
+    allowNull: true,
+    defaultValue: 0,
   },
 }, {
-  tableName: 'User',
+  tableName: 'user',
   sequelize: db,
   timestamps: false,
   defaultScope: {

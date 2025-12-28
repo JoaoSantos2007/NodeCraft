@@ -1,7 +1,7 @@
 import { scheduleJob } from 'node-schedule';
 import Instance from '../services/Instance.js';
 
-const restartInstances = async () => {
+const attachInstances = async () => {
   const instances = await Instance.readAll();
 
   instances.forEach(async (instance) => {
@@ -21,4 +21,4 @@ const scheduleUpdates = () => {
   });
 };
 
-export { restartInstances, scheduleUpdates };
+export { attachInstances, scheduleUpdates };

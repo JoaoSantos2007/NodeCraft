@@ -1,7 +1,6 @@
-import Model from '../models/User.js';
+import { User as Model } from '../models/index.js';
 import hashPassword from '../utils/hashPassword.js';
 import { Duplicate, BadRequest } from '../errors/index.js';
-import Instance from './Instance.js';
 
 class User {
   static async create(data) {
@@ -20,8 +19,10 @@ class User {
       name: data.name,
       email: data.email,
       password: hashPassword(data.password),
-      gamertag: data.gamertag,
-      role: 'member',
+      javaGamertag: data.javaGamertag,
+      bedrockGamertag: data.bedrockGamertag,
+      gender: data.gender,
+      birthDate: data.birthDate,
     });
 
     return user;
@@ -57,16 +58,6 @@ class User {
     await user.destroy();
 
     return user;
-  }
-
-  static async getRemainingQuota(id) {
-    const user = await User.readOne(id);
-    const instances = Instance.readAllByOwner(id);
-    const instancesNumber = instances.length;
-
-    const remainingQuota = user.quota - instancesNumber;
-
-    return remainingQuota;
   }
 }
 

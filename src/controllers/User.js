@@ -1,5 +1,7 @@
 import Service from '../services/User.js';
+import AuthService from '../services/Auth.js';
 import Validator from '../validators/User.js';
+import { STAGE } from '../../config/settings.js';
 
 class User {
   static async read(req, res, next) {
@@ -51,10 +53,7 @@ class User {
       const { user } = req;
 
       Validator(data, true);
-      const userUpdated = await Service.update(user.id, {
-        name: data.name,
-        gamertag: data.gamertag,
-      });
+      const userUpdated = await Service.update(user.id, data);
 
       return res.status(200).json({ success: true, updated: true, user: userUpdated });
     } catch (err) {
@@ -68,11 +67,7 @@ class User {
       const { id } = req.params;
 
       Validator(data, true);
-      const user = await Service.update(id, {
-        name: data.name,
-        gamertag: data.gamertag,
-        quota: data.quota,
-      });
+      const user = await Service.update(id, data);
 
       return res.status(200).json({ success: true, updated: true, user });
     } catch (err) {
@@ -102,7 +97,23 @@ class User {
     }
   }
 
-  static async;
+  static async login(req, res, next) {
+    try {
+      const data = req.body;
+
+      const user = await AuthService.login(data);
+      const accessToken = await AuthService.generateAccessToken(user);
+      res.cookie('accessToken', accessToken, {
+        httpOnly: true,
+        secure: STAGE !== 'DEV',
+        sameSite: STAGE === 'DEV' ? 'Lax' : 'strict',
+      });
+
+      return res.status(200).json({ success: true, logged: true });
+    } catch (err) {
+      return next(err);
+    }
+  }
 }
 
 export default User;

@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import Controller from '../controllers/Instance.js';
-import player from './player.js';
 import file from './file.js';
+import link from './link.js';
 import Auth from '../middlewares/Auth.js';
 
 const router = Router();
@@ -48,16 +48,11 @@ router
     Controller.updateVersion,
   )
   .put(
-    '/instance/all/remap/port',
-    (req, res, next) => Auth.verifyAccess('admin', req, res, next),
-    Controller.remapAllPorts,
-  )
-  .put(
     '/instance/:id/remap/port',
     (req, res, next) => Auth.verifyAccess('instance:update', req, res, next),
     Controller.remapPort,
   )
-  .use('/instance', player)
-  .use('/instance', file);
+  .use('/instance', file)
+  .use('/instance', link);
 
 export default router;

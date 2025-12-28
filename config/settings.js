@@ -33,17 +33,6 @@ const PERMISSIONS = [
   'instance:file:update',
   'instance:file:delete',
   'instance:file:move',
-  'group:read',
-  'group:update',
-  'group:delete',
-  'group:role:read',
-  'group:role:create',
-  'group:role:update',
-  'group:role:delete',
-  'group:member:read',
-  'group:member:create',
-  'group:member:update',
-  'group:member:delete',
 ];
 const REGISTRY = {};
 

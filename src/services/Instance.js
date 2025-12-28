@@ -1,16 +1,13 @@
-/* eslint-disable consistent-return */
-/* eslint-disable no-new */
 import {
   mkdirSync,
   rmSync,
   existsSync,
   writeFileSync,
 } from 'fs';
-import { Op } from 'sequelize';
 import {
   INSTANCES_PATH, MIN_PORT, MAX_PORT, REGISTRY,
 } from '../../config/settings.js';
-import { Instance as Model, Player as PlayerModel } from '../models/index.js';
+import { Instance as Model, Link as LinkModel, User as UserModel } from '../models/index.js';
 import { BadRequest, InvalidRequest } from '../errors/index.js';
 import download from '../utils/download.js';
 import getVersion from '../utils/getVersion.js';
@@ -33,41 +30,45 @@ class Instance {
     // Create instance path in the System
     mkdirSync(`${INSTANCES_PATH}/${instance.id}`);
 
+    // Create docker container
+
     return instance;
   }
 
   static async readAll() {
-    const instances = await Model.findAll({ include: { model: PlayerModel, as: 'players' } });
-    return instances;
-  }
-
-  static async readOne(id) {
-    const instance = await Model.findByPk(id, { include: { model: PlayerModel, as: 'players' } });
-    if (!instance) throw new BadRequest('Instance not found!');
-
-    return instance;
-  }
-
-  static async readAllByOwner(ownerId) {
     const instances = await Model.findAll({
-      where: {
-        owner: ownerId,
-      },
-    });
-
-    return instances;
-  }
-
-  static async readAllByOwners(ownerIds) {
-    const instances = await Model.findAll({
-      where: {
-        owner: {
-          [Op.in]: ownerIds,
+      include: {
+        model: LinkModel,
+        as: 'players',
+        include: {
+          model: UserModel,
+          as: 'user',
+          required: false,
         },
       },
     });
-
     return instances;
+  }
+
+  static async personalRead() {
+
+  }
+
+  static async readOne(id) {
+    const instance = await Model.findByPk(id, {
+      include: {
+        model: LinkModel,
+        as: 'players',
+        include: {
+          model: UserModel,
+          as: 'user',
+          required: false,
+        },
+      },
+    });
+    if (!instance) throw new BadRequest('Instance not found!');
+
+    return instance;
   }
 
   static async update(id, data) {
@@ -324,58 +325,11 @@ class Instance {
     });
   }
 
-  static scheduleMonitor(instance, delay = 1000) {
-    // Verify if monitor is in registry
-    const registry = REGISTRY[instance.id];
-    if (!registry?.monitor) return;
-    const { monitor } = registry;
-
-    // Calculate elapsed time
-    const now = Date.now();
-    const elapsed = now - monitor.lastRun;
-
-    // If monitor is running mark as pending
-    if (monitor.running) {
-      monitor.pending = true;
-      return;
-    }
-
-    // If time is greater than delay run monitor
-    if (elapsed >= delay) {
-      // If is a timer set, clean it
-      if (monitor.timer) {
-        clearTimeout(monitor.timer);
-        monitor.timer = null;
-      }
-
-      // Run monitor
-      Instance.monitor(instance);
-      return;
-    }
-
-    // Set pending to run monitor
-    monitor.pending = true;
-
-    // If is not timer definied, set one
-    if (!monitor.timer) {
-      // Set a timer with delay - elapsed
-      monitor.timer = setTimeout(() => {
-        monitor.timer = null; // Clean timeout
-
-        // Verify if pending monitor was not executed and run monitor
-        if (monitor.pending) Instance.monitor(instance);
-      }, delay - elapsed);
-    }
-  }
-
   static async monitor(instance) {
     const registry = REGISTRY[instance.id];
     if (!registry?.monitor) return;
 
     const { monitor } = registry;
-
-    monitor.running = true;
-    monitor.pending = false;
     monitor.lastRun = Date.now();
 
     try {
@@ -392,12 +346,6 @@ class Instance {
       };
     } catch (err) {
       // console.error('[MONITOR]', instance, err);
-    } finally {
-      monitor.running = false;
-
-      if (monitor.pending) {
-        Instance.scheduleMonitor(instance);
-      }
     }
   }
 
@@ -432,7 +380,7 @@ class Instance {
     Instance.monitor(instance);
 
     // Set instance monitoring
-    REGISTRY[instance.id].interval = setInterval(() => Instance.scheduleMonitor(instance), 10000);
+    REGISTRY[instance.id].interval = setInterval(() => Instance.monitor(instance), 5000);
 
     await instance.update({ running: true });
 

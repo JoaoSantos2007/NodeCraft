@@ -10,12 +10,17 @@ Instance.init({
     primaryKey: true,
   },
   owner: {
-    type: DataTypes.STRING,
+    type: DataTypes.UUID,
     allowNull: false,
+    references: {
+      model: 'user',
+      key: 'id',
+    },
+    onDelete: 'CASCADE',
     validate: {
       isUUID: {
         args: 4,
-        msg: 'owner field must be a user id or a group id!',
+        msg: 'owner field must be a user id!',
       },
     },
   },
@@ -300,7 +305,7 @@ Instance.init({
     defaultValue: false,
   },
 }, {
-  tableName: 'Instance',
+  tableName: 'instance',
   sequelize: db,
   timestamps: false,
 });

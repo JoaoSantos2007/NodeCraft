@@ -43,6 +43,10 @@ router
     '/user/:id',
     (req, res, next) => Auth.verifyAccess('admin', req, res, next),
     Controller.deleteOther,
+  )
+  .post(
+    '/user/login',
+    Controller.login,
   );
 
 export default router;
