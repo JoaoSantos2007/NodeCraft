@@ -1,4 +1,3 @@
-/* eslint-disable no-new */
 import Service from '../services/Instance.js';
 import Validator from '../validators/Instance.js';
 

@@ -1,4 +1,4 @@
-import { User as Model } from '../models/index.js';
+import { User as Model, Link as LinkModel } from '../models/index.js';
 import hashPassword from '../utils/hashPassword.js';
 import { Duplicate, BadRequest } from '../errors/index.js';
 
@@ -38,6 +38,10 @@ class User {
     const user = await Model.findOne({
       where: {
         id,
+      },
+      include: {
+        model: LinkModel,
+        as: 'instances',
       },
     });
 

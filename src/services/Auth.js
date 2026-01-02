@@ -4,6 +4,7 @@ import hashPassword from '../utils/hashPassword.js';
 import Instance from './Instance.js';
 import { ACCESS_TOKEN_LIFETIME, SECRET } from '../../config/settings.js';
 import { Unathorized } from '../errors/index.js';
+import Link from './Link.js';
 
 class Auth {
   static async login({ email, password }) {
@@ -61,6 +62,9 @@ class Auth {
       if (instance.owner === user.id) return true;
 
       // Verify if user has any link with instance
+      const permissions = await Link.readUserPermissions(user.id, id);
+      if (!permissions) return false;
+      if (permissions?.includes(permission)) return true;
 
       return false;
     }

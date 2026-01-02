@@ -5,7 +5,7 @@ import Unathorized from '../errors/Unathorized.js';
 class Auth {
   static async verifyAccess(permission, req, res, next) {
     try {
-      const id = req?.params?.id || req?.params?.instanceId || req?.params?.groupId;
+      const id = req?.params?.id || req?.params?.instanceId;
 
       // Get access token from request
       const accessToken = await Service.verifyToken(req);

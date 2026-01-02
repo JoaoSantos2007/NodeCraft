@@ -4,6 +4,7 @@ import {
   existsSync,
   writeFileSync,
 } from 'fs';
+import { Op } from 'sequelize';
 import {
   INSTANCES_PATH, MIN_PORT, MAX_PORT, REGISTRY,
 } from '../../config/settings.js';
@@ -14,6 +15,7 @@ import getVersion from '../utils/getVersion.js';
 import Container from './Container.js';
 import { syncFloodgate, syncGeyser, syncProperties } from '../utils/syncSettings.js';
 import query from '../../config/query.js';
+import Link from './Link.js';
 
 class Instance {
   static async create(data, userId) {
@@ -50,8 +52,26 @@ class Instance {
     return instances;
   }
 
-  static async personalRead() {
+  static async personalRead(user) {
+    if (user.admin) return Instance.readAll();
 
+    const userInstances = await Model.findAll({
+      where: {
+        owner: user.id,
+      },
+    });
+
+    const instancesId = await Link.readInstancesIdByUserLink(user.id);
+
+    const linkInstances = await Model.findAll({
+      where: {
+        id: { [Op.in]: instancesId },
+      },
+    });
+
+    const instances = [...userInstances, ...linkInstances];
+
+    return instances;
   }
 
   static async readOne(id) {
