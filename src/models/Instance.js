@@ -50,10 +50,15 @@ Instance.init({
       },
     },
   },
+  bedrock: {
+    type: DataTypes.BOOLEAN,
+    allowNull: true,
+    defaultValue: false,
+  },
   maxHistory: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    defaultValue: 20,
+    defaultValue: 150,
     validate: {
       min: {
         args: [0],
@@ -85,6 +90,16 @@ Instance.init({
     allowNull: false,
     defaultValue: 0,
   },
+  geyserBuild: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0,
+  },
+  floodgateBuild: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0,
+  },
   running: {
     type: DataTypes.BOOLEAN,
     allowNull: false,
@@ -94,31 +109,6 @@ Instance.init({
     type: DataTypes.TEXT,
     allowNull: false,
     defaultValue: '',
-  },
-  geyser: {
-    type: DataTypes.BOOLEAN,
-    allowNull: true,
-    defaultValue: false,
-  },
-  geyserVersion: {
-    type: DataTypes.STRING,
-    allowNull: true,
-    defaultValue: '',
-  },
-  geyserBuild: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    defaultValue: 0,
-  },
-  floodgateVersion: {
-    type: DataTypes.STRING,
-    allowNull: true,
-    defaultValue: '',
-  },
-  floodgateBuild: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    defaultValue: 0,
   },
 
   // Properties

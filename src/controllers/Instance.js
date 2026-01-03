@@ -6,7 +6,7 @@ class Instance {
     try {
       const { body, user } = req;
 
-      // Verify user plan
+      // Verify user plan(future)
 
       Validator(body, false, true);
       const instance = await Service.create(body, user.id);
@@ -99,7 +99,7 @@ class Instance {
       return res.status(200).json({
         success: true,
         version: info.instanceVersion || null,
-        msg: updating ? 'Updating!' : 'No Update Available!',
+        msg: updating ? 'Updating!' : 'All in date!',
         info,
       });
     } catch (err) {

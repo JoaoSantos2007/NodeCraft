@@ -61,4 +61,51 @@ const getVersion = async (software = 'vanilla') => {
   return { version: '', build: 0, url: '' };
 };
 
-export default getVersion;
+const getInfo = async (instance) => {
+  // Get Java latest info
+  const instanceInfo = await getVersion(instance.software);
+  let geyserInfo;
+  let floodgateInfo;
+  // Get Geyser and Floodgate latest info
+  if (instance.bedrock === true) {
+    geyserInfo = await getVersion('geyser');
+    floodgateInfo = await getVersion('floodgate');
+  }
+
+  const info = {
+    needInstanceUpdate: false,
+    instanceVersion: instanceInfo?.version || '',
+    instanceBuild: instanceInfo?.build || 0,
+    instanceUrl: instanceInfo?.url || null,
+    needGeyserUpdate: false,
+    geyserVersion: geyserInfo?.version || '',
+    geyserBuild: geyserInfo?.build || 0,
+    geyserUrl: geyserInfo?.url || null,
+    needFloodgateUpdate: false,
+    floodgateVersion: floodgateInfo?.version || '',
+    floodgateBuild: floodgateInfo?.build || 0,
+    floodgateUrl: floodgateInfo?.url || null,
+    neededUpdates: 0,
+  };
+
+  // Verify if instance needs updates
+  info.needInstanceUpdate = instance.version !== info.instanceVersion;
+  if (!info.needInstanceUpdate && info.instanceBuild) {
+    info.needInstanceUpdate = Number(instance.build) !== Number(info.instanceBuild);
+  }
+  if (!instance.installed) info.needInstanceUpdate = true;
+  // Verify if geyser and floodgate needs updates
+  if (instance.bedrock) {
+    info.needGeyserUpdate = Number(instance.geyserBuild) !== Number(info.geyserBuild);
+    info.needFloodgateUpdate = Number(instance.floodgateBuild) !== Number(info.floodgateBuild);
+  }
+
+  // Count neededUpdates
+  if (info.needInstanceUpdate) info.neededUpdates += 1;
+  if (info.needGeyserUpdate) info.neededUpdates += 1;
+  if (info.needFloodgateUpdate) info.neededUpdates += 1;
+
+  return info;
+};
+
+export { getVersion, getInfo };

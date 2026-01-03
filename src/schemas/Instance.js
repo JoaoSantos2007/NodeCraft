@@ -20,6 +20,9 @@ const Instance = {
     internal: true,
     firstTime: true,
   },
+  bedrock: {
+    type: 'boolean',
+  },
   maxHistory: {
     type: 'number',
     int: true,
@@ -42,31 +45,22 @@ const Instance = {
     int: true,
     internal: true,
   },
+  geyserBuild: {
+    type: 'number',
+    int: true,
+    internal: true,
+  },
+  floodgateBuild: {
+    type: 'number',
+    int: true,
+    internal: true,
+  },
   running: {
     type: 'boolean',
     internal: true,
   },
   history: {
     type: 'string',
-    internal: true,
-  },
-  geyser: {
-    type: 'boolean',
-  },
-  geyserVersion: {
-    type: 'string',
-    internal: true,
-  },
-  geyserBuild: {
-    type: 'number',
-    internal: true,
-  },
-  floodgateVersion: {
-    type: 'string',
-    internal: true,
-  },
-  floodgateBuild: {
-    type: 'number',
     internal: true,
   },
 
