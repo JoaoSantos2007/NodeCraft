@@ -10,7 +10,6 @@ class Instance {
 
       Validator(body, false, true);
       const instance = await Service.create(body, user.id);
-      Service.install(instance, true);
 
       return res.status(201).json({
         success: true, id: instance.id, building: true, instance,

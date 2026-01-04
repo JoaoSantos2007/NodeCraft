@@ -9,7 +9,7 @@ import {
   INSTANCES_PATH, MIN_PORT, MAX_PORT, REGISTRY,
 } from '../../config/settings.js';
 import { Instance as Model, Link as LinkModel, User as UserModel } from '../models/index.js';
-import { BadRequest, InvalidRequest } from '../errors/index.js';
+import { BadRequest } from '../errors/index.js';
 import download from '../utils/download.js';
 import { getInfo } from '../utils/getVersion.js';
 import Container from './Container.js';
@@ -33,6 +33,10 @@ class Instance {
     mkdirSync(`${INSTANCES_PATH}/${instance.id}`);
 
     // Create docker container
+    await Container.create(instance);
+
+    // Install instance
+    Instance.install(instance, true);
 
     return instance;
   }
@@ -178,13 +182,60 @@ class Instance {
     return randomPort;
   }
 
+  static async run(id) {
+    // Read instance
+    const instance = await Instance.readOne(id);
+    const path = `${INSTANCES_PATH}/${id}`;
+
+    // Read container or create one
+    const container = await Container.getOrCreate(instance);
+
+    // Setup ambient to run instance
+    Instance.setup(instance, path);
+
+    // Run container if it is not running
+    await Container.run(container);
+
+    // Registry instance
+    Instance.register(instance);
+
+    // Set stream stdout data
+    await Instance.setStream(id, container);
+
+    // Set instance monitoring
+    Instance.setMonitoring(id);
+
+    // Update instance running status
+    await instance.update({ running: true });
+
+    return instance;
+  }
+
+  static async stop(id) {
+    const instance = await Instance.readOne(id);
+    const container = await Container.get(id);
+
+    const isRunning = await Container.isRunning(id);
+
+    if (isRunning) {
+      try {
+        await container.stop({ t: 20 }); // SIGTERM
+      } catch {
+        await container.kill(); // SIGKILL
+      }
+    }
+
+    await instance.update({ running: false });
+    return instance;
+  }
+
   static setup(instance, path) {
     // Sync database with server.properties
     syncProperties(instance, path);
 
     // Wipe allowlist and privilegies
-    writeFileSync(`${path}/permissions.json`, '[]', 'utf8');
-    writeFileSync(`${path}/allowlist.json`, '[]', 'utf8');
+    writeFileSync(`${path}/whitelist.json`, '[]', 'utf8');
+    writeFileSync(`${path}/ops.json`, '[]', 'utf8');
 
     // Remove session.lock
     if (existsSync(`${path}/world/session.lock`)) rmSync(`${path}/world/session.lock`, { recursive: true });
@@ -200,7 +251,7 @@ class Instance {
     REGISTRY[instance.id] = {
       id: instance.id,
       alive: false,
-      queryInterval: null,
+      interval: null,
       stream: null,
       state: {
         playersOnline: 0,
@@ -217,33 +268,25 @@ class Instance {
     };
   }
 
-  static async setStream(instance) {
-    const container = await Container.get(instance.id);
-    const since = Math.floor(Date.now() / 1000);
-
-    REGISTRY[instance.id].stream = await container.logs({
-      stdout: true,
-      stderr: true,
-      follow: true,
-      since,
-      timestamps: false,
-    });
+  static async setStream(id, container) {
+    // Get container stream
+    REGISTRY[id].stream = await Container.getStream(container);
 
     // Set stdout listener
-    REGISTRY[instance.id].stream.on('data', async (chunk) => {
+    REGISTRY[id].stream.on('data', async (chunk) => {
       const output = chunk.toString();
-      await Instance.updateHistory(instance, output);
 
-      if (
-        output.includes('joined the game')
-        || output.includes('left the game')
-      ) {
-        Instance.scheduleMonitor(instance, 400);
-      }
-
-      // Review
-      console.log(output);
+      // Update instance history
+      await Instance.updateHistory(id, output);
     });
+  }
+
+  static setMonitoring(id) {
+    // First monitor
+    Instance.monitor(id);
+
+    // Set instance monitoring
+    REGISTRY[id].interval = setInterval(() => Instance.monitor(id), 5000);
   }
 
   static async monitor(instance) {
@@ -268,62 +311,6 @@ class Instance {
     } catch (err) {
       // console.error('[MONITOR]', instance, err);
     }
-  }
-
-  static async run(id, internal = false) {
-    // Read instance
-    const instance = await Instance.readOne(id);
-    const path = `${INSTANCES_PATH}/${id}`;
-
-    if (!internal && instance.running) throw new InvalidRequest('Instance is already running!');
-
-    // Create container if not exists
-    let container;
-    container = await Container.get(id);
-    if (!container) container = await Container.create(instance, path);
-
-    // Verify if container is not running
-    const isRunning = await Container.isRunning(id);
-
-    if (!isRunning) {
-      // Run container
-      Instance.setup(instance, path); // Setup ambient to run instance
-      await container.start();
-    }
-
-    // Registry instance
-    Instance.register(instance);
-
-    // Set stream stdout data
-    await Instance.setStream(instance);
-
-    // Run first monitor
-    Instance.monitor(instance);
-
-    // Set instance monitoring
-    REGISTRY[instance.id].interval = setInterval(() => Instance.monitor(instance), 5000);
-
-    await instance.update({ running: true });
-
-    return instance;
-  }
-
-  static async stop(id) {
-    const instance = await Instance.readOne(id);
-    const container = await Container.get(id);
-
-    const isRunning = await Container.isRunning(id);
-
-    if (isRunning) {
-      try {
-        await container.stop({ t: 20 }); // SIGTERM
-      } catch {
-        await container.kill(); // SIGKILL
-      }
-    }
-
-    await instance.update({ running: false });
-    return instance;
   }
 
   static async updateHistory(instance, output) {

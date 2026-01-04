@@ -47,6 +47,16 @@ class Container {
     }
   }
 
+  static async getOrCreate(instance) {
+    // Read container
+    let container = await Container.get(instance.id);
+
+    // Create container if not exists
+    if (!container) container = await Container.create(instance);
+
+    return container;
+  }
+
   static async isRunning(id) {
     try {
       const container = await Container.get(id);
@@ -56,6 +66,38 @@ class Container {
     } catch {
       return false;
     }
+  }
+
+  static async verifyRunning(container) {
+    try {
+      const info = await container.inspect();
+
+      return info.State.Running;
+    } catch {
+      return false;
+    }
+  }
+
+  static async run(container) {
+    // Verify if container is not running
+    const isRunning = await Container.verifyRunning(container);
+
+    // Run container if it is not running
+    if (!isRunning) await container.start();
+  }
+
+  static async getStream(container) {
+    const since = Math.floor(Date.now() / 1000);
+
+    const stream = await container.logs({
+      stdout: true,
+      stderr: true,
+      follow: true,
+      since,
+      timestamps: false,
+    });
+
+    return stream;
   }
 }
 
