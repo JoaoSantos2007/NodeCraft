@@ -2,10 +2,12 @@ const Instance = {
   id: {
     type: 'string',
     internal: true,
+    isUUID: true,
   },
   owner: {
     type: 'string',
     internal: true,
+    isUUID: true,
   },
   name: {
     type: 'string',

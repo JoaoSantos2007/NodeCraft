@@ -14,7 +14,7 @@ import Path from 'path';
 import AdmZip from 'adm-zip';
 import { randomUUID } from 'crypto';
 import { INSTANCES_PATH } from '../../config/settings.js';
-import Temp from '../utils/Temp.js';
+import { createTemp } from '../utils/temp.js';
 import { Base, InvalidRequest } from '../errors/index.js';
 
 class File {
@@ -112,7 +112,7 @@ class File {
     if (type === 'file') return absolutePath;
 
     // Path
-    const tempPath = Temp.create(true);
+    const tempPath = createTemp();
     const pathTo = `${tempPath}/${randomUUID()}.zip`;
     File.zip(absolutePath, pathTo);
     return pathTo;

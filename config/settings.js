@@ -35,6 +35,8 @@ const PERMISSIONS = [
   'instance:file:move',
 ];
 const REGISTRY = {};
+const TEMPORARY_MAX_AGE = process.env.TEMPORARY_MAX_AGE || 5 * 60 * 1000;
+const UPDATE_TIME_CHECK = process.env.UPDATE_TIME_CHECK || 5 * 60 * 1000;
 
 if (!SALT || !SECRET) throw new Error('Enviroment Variables Are Missing In .ENV');
 if (!existsSync(`${ABSOLUTE_PATH}/instances`)) mkdirSync(`${ABSOLUTE_PATH}/instances`);
@@ -53,4 +55,6 @@ export {
   MIN_PORT,
   MAX_PORT,
   REGISTRY,
+  TEMPORARY_MAX_AGE,
+  UPDATE_TIME_CHECK,
 };

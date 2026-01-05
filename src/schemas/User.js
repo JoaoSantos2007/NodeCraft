@@ -2,6 +2,7 @@ const User = {
   id: {
     type: 'string',
     internal: true,
+    isUUID: true,
   },
   name: {
     type: 'string',

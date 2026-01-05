@@ -102,6 +102,15 @@ class Instance {
     return instance;
   }
 
+  static async updateAll() {
+    const instances = await Instance.readAll();
+
+    instances.forEach(async (instance) => {
+      if (!instance.updateAlways) return;
+      await Instance.install(instance);
+    });
+  }
+
   static async delete(id) {
     const instance = await Instance.readOne(id);
     await instance.destroy();
@@ -199,8 +208,8 @@ class Instance {
     // Registry instance
     Instance.register(instance);
 
-    // Set stream stdout data
-    await Instance.setStream(id, container);
+    // Set container listen
+    Instance.setListening(id);
 
     // Set instance monitoring
     Instance.setMonitoring(id);
@@ -225,8 +234,25 @@ class Instance {
       }
     }
 
+    // Clean intervals and wipe registry
+    if (REGISTRY[id]) {
+      clearInterval(REGISTRY[id].interval);
+      Container.removeStream(id);
+      delete REGISTRY[id];
+    }
+
+    // Update running instance status
     await instance.update({ running: false });
+
     return instance;
+  }
+
+  static async attachAll() {
+    const instances = await Instance.readAll();
+
+    instances.forEach(async (instance) => {
+      if (instance.running) await Instance.run(instance.id);
+    });
   }
 
   static setup(instance, path) {
@@ -250,34 +276,28 @@ class Instance {
   static register(instance) {
     REGISTRY[instance.id] = {
       id: instance.id,
-      alive: false,
-      interval: null,
-      stream: null,
       state: {
+        alive: false,
         playersOnline: 0,
         adminsOnline: 0,
         lastPolicyAppliedAt: 0,
       },
-      monitor: {
-        running: false,
-        pending: false,
-        timer: null,
-        lastRun: 0,
-      },
+      lastMonitoringRun: 0,
+      instance,
+      stream: null,
+      interval: null,
       rcon: null,
+      buffer: '',
     };
   }
 
-  static async setStream(id, container) {
-    // Get container stream
-    REGISTRY[id].stream = await Container.getStream(container);
+  static setListening(id) {
+    Container.listen(id, async (msg) => {
+      Instance.updateHistory(id, msg);
 
-    // Set stdout listener
-    REGISTRY[id].stream.on('data', async (chunk) => {
-      const output = chunk.toString();
-
-      // Update instance history
-      await Instance.updateHistory(id, output);
+      if (msg.includes('joined the game') || msg.includes('left the game')) {
+        Instance.monitor(id);
+      }
     });
   }
 
@@ -289,8 +309,12 @@ class Instance {
     REGISTRY[id].interval = setInterval(() => Instance.monitor(id), 5000);
   }
 
-  static async monitor(instance) {
-    const registry = REGISTRY[instance.id];
+  static async monitor(id) {
+    const registry = REGISTRY[id];
+    const instance = registry?.instance;
+    if (!instance) return;
+
+    // Verify last run
     if (!registry?.monitor) return;
 
     const { monitor } = registry;
@@ -313,21 +337,25 @@ class Instance {
     }
   }
 
-  static async updateHistory(instance, output) {
-    let msg = output;
-    let history = instance?.history;
+  static async updateHistory(id, message) {
+    // Get instance in registry
+    const instance = REGISTRY[id]?.instance;
+    if (!instance) return;
 
-    if (!msg.endsWith('\n')) msg += '\n';
-    history += msg;
+    // Copy instance history array
+    let history = [...instance.history];
+    history.push(message);
 
-    // Verify and slice old lines
-    const lines = history.split('\n');
-    if (lines.length > instance.maxHistory) {
-      const trimmedLines = lines.slice(lines.length - instance.maxHistory);
-      history = trimmedLines.join('\n');
+    // Wipe old lines
+    const historyLength = history.length;
+    const maxHistoryLength = instance.maxHistory || 0;
+    if (historyLength > maxHistoryLength) {
+      history = history.slice(historyLength - maxHistoryLength);
     }
 
     await instance.update({ history });
+
+    console.log(message);
   }
 }
 

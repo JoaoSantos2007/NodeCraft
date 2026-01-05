@@ -106,9 +106,20 @@ Instance.init({
     defaultValue: false,
   },
   history: {
-    type: DataTypes.TEXT,
+    type: DataTypes.JSON,
     allowNull: false,
-    defaultValue: '',
+    defaultValue: [],
+    validate: {
+      isValidArray(value) {
+        if (!Array.isArray(value)) {
+          throw new Error('History field must be an array!');
+        }
+
+        if (!value.every((item) => typeof item === 'string')) {
+          throw new Error('History must contain only strings!');
+        }
+      },
+    },
   },
 
   // Properties
