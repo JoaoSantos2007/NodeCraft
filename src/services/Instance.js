@@ -3,10 +3,13 @@ import {
   rmSync,
   existsSync,
   writeFileSync,
+  readFileSync,
+  readdirSync,
 } from 'fs';
 import { Op } from 'sequelize';
 import {
   INSTANCES_PATH, MIN_PORT, MAX_PORT, REGISTRY,
+  INSTANCE_MAX_AGE,
 } from '../../config/settings.js';
 import { Instance as Model, Link as LinkModel, User as UserModel } from '../models/index.js';
 import { BadRequest } from '../errors/index.js';
@@ -114,7 +117,7 @@ class Instance {
   static async delete(id) {
     const instance = await Instance.readOne(id);
     await instance.destroy();
-    rmSync(`${INSTANCES_PATH}/${id}`, { recursive: true });
+    rmSync(`${INSTANCES_PATH}/${id}`, { recursive: true, force: true });
 
     return instance;
   }
@@ -252,6 +255,46 @@ class Instance {
 
     instances.forEach(async (instance) => {
       if (instance.running) await Instance.run(instance.id);
+    });
+  }
+
+  static async verifyLost() {
+    const instancesId = readdirSync(INSTANCES_PATH);
+    if (!instancesId) return;
+
+    instancesId.forEach(async (id) => {
+      const pendingDeletePath = `${INSTANCES_PATH}/${id}/.delete-pending.json`;
+      const existsPendingDelete = existsSync(pendingDeletePath);
+
+      try {
+        const instance = await Model.findByPk(id);
+
+        // Verify if instances exists in database, delete pending process and return
+        if (instance) {
+          rmSync(pendingDeletePath, { recursive: true, force: true });
+          return;
+        }
+      } catch (err) {
+        return;
+      }
+
+      // Verify if pending delete process exists
+      if (existsPendingDelete) {
+        // Try to read .delete-pending.json
+        const rawData = readFileSync(`${INSTANCES_PATH}/${id}/.delete-pending.json`, 'utf8');
+        const data = JSON.parse(rawData);
+
+        const time = Number(data?.time);
+        const now = Date.now();
+
+        if (!time || now - time >= INSTANCE_MAX_AGE) {
+          // Delete pending instance
+          rmSync(`${INSTANCES_PATH}/${id}`, { recursive: true, force: true });
+        }
+      } else {
+        // Write .delete-pending.json
+        writeFileSync(pendingDeletePath, `{"time":${Date.now()}}`, 'utf8');
+      }
     });
   }
 

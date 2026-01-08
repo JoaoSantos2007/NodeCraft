@@ -1,5 +1,9 @@
 import Instance from '../services/Instance.js';
-import { TEMPORARY_MAX_AGE, UPDATE_TIME_CHECK } from '../../config/settings.js';
+import {
+  TEMPORARY_MAX_AGE,
+  TIME_VERIFY_LOST,
+  UPDATE_TIME_CHECK,
+} from '../../config/settings.js';
 import { removeOldTemp } from './temp.js';
 
 // Execute some functions on start-up
@@ -36,13 +40,18 @@ const scheduleTemp = () => {
   setInterval(removeOldTemp, TEMPORARY_MAX_AGE);
 };
 
-const scheduleInstances = () => {
+// Remove instances without registry in database
+const scheduleLost = () => {
+  // First run
+  Instance.verifyLost();
 
+  // Set periodically
+  setInterval(Instance.verifyLost, TIME_VERIFY_LOST);
 };
 
 export {
   onStart,
   scheduleUpdates,
   scheduleTemp,
-  scheduleInstances,
+  scheduleLost,
 };

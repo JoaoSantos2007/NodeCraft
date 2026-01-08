@@ -4,12 +4,12 @@ import {
   onStart,
   scheduleUpdates,
   scheduleTemp,
-  scheduleInstances,
+  scheduleLost,
 } from './src/utils/scheduleJobs.js';
 
 app.listen(PORT, () => {
   onStart();
   scheduleUpdates();
   scheduleTemp();
-  scheduleInstances();
+  scheduleLost();
 });
