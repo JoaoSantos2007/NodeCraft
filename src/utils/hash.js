@@ -1,6 +1,11 @@
 import bcrypt from 'bcrypt';
-import { SALT } from '../../config/settings.js';
+import crypto from 'crypto';
 
-const hash = (text) => bcrypt.hashSync(text, SALT);
+const hashPassword = (password) => bcrypt.hashSync(password, 12);
 
-export default hash;
+const hashToken = (token) => crypto.createHash('sha256').update(token).digest('hex');
+
+export {
+  hashPassword,
+  hashToken,
+};

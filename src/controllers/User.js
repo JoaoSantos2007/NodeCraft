@@ -1,9 +1,8 @@
 import Service from '../services/User.js';
-import Auth from '../services/Auth.js';
 import Validator from '../validators/User.js';
-import { API_URL, STAGE } from '../../config/settings.js';
-import { BadRequest, Email } from '../errors/index.js';
-import sendEmail from '../utils/sendEmail.js';
+import { STAGE } from '../../config/settings.js';
+import { InvalidRequest } from '../errors/index.js';
+import { generateAccessToken } from '../utils/tokens.js';
 
 class User {
   static async read(req, res, next) {
@@ -103,49 +102,28 @@ class User {
     try {
       const data = req.body;
 
-      const user = await Auth.authenticate(data.email, data.password);
-      const accessToken = Auth.generateAccessToken(user);
+      const user = await Service.authenticate(data.email, data.password);
+      const accessToken = generateAccessToken(user.id);
+
+      // Set accessToken in response cookie
       res.cookie('accessToken', accessToken, {
         httpOnly: true,
         secure: STAGE !== 'DEV',
         sameSite: STAGE === 'DEV' ? 'Lax' : 'strict',
       });
 
-      return res.status(200).json({ success: true, logged: true });
+      return res.status(200).json({ success: true, authenticated: true });
     } catch (err) {
       return next(err);
     }
   }
 
-  static async verifyEmail(req, res, next) {
+  static async sendVerification(req, res, next) {
     try {
       const { user } = req;
+      if (user.verified) throw new InvalidRequest('User is already verified!');
 
-      // Verify if user is already verified!
-      if (user.verified) throw new BadRequest('User is already verified!');
-
-      // Generate Email token
-      const token = Auth.generateEmailToken(user);
-
-      // Save Email token on database
-      await User.saveToken(user.id, token, 'email');
-
-      // Send email
-      try {
-        const link = `${API_URL}/user/validate?token=${token}`;
-        await sendEmail({
-          to: user.email,
-          subject: 'Verify your Nodecraft Account!',
-          html: `
-        <h2>Bem-vindo!</h2>
-        <p>Clique no link abaixo para verificar sua conta:</p>
-        <a href="${link}">Verificar conta</a>
-        <p>Este link expira em 24 horas.</p>
-        `,
-        });
-      } catch (err) {
-        throw new Email();
-      }
+      await Service.sendVerification(user);
 
       return res.status(200).json({ success: true, msg: `Account verification sent to ${user.email}` });
     } catch (err) {
@@ -157,7 +135,7 @@ class User {
     try {
       const token = req?.query?.token;
 
-      await Auth.validateAccount(token);
+      await Service.validateAccount(token);
 
       return res.status(200).json({ success: true, msg: 'Account Verified!' });
     } catch (err) {

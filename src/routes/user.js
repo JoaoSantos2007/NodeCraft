@@ -1,18 +1,18 @@
 import { Router } from 'express';
 import Controller from '../controllers/User.js';
-import Auth from '../middlewares/Auth.js';
+import auth from '../middlewares/auth.js';
 
 const router = Router();
 
 router
   .get(
     '/user',
-    (req, res, next) => Auth.verifyAccess('logged', req, res, next),
+    (req, res, next) => auth('logged', req, res, next),
     Controller.read,
   )
   .get(
     '/user/all',
-    (req, res, next) => Auth.verifyAccess('admin', req, res, next),
+    (req, res, next) => auth('admin', req, res, next),
     Controller.readAll,
   )
   .get(
@@ -21,7 +21,7 @@ router
   )
   .get(
     '/user/:id',
-    (req, res, next) => Auth.verifyAccess('logged', req, res, next),
+    (req, res, next) => auth('logged', req, res, next),
     Controller.readById,
   )
   .post(
@@ -30,22 +30,22 @@ router
   )
   .put(
     '/user',
-    (req, res, next) => Auth.verifyAccess('logged', req, res, next),
+    (req, res, next) => auth('logged', req, res, next),
     Controller.update,
   )
   .put(
     '/user/:id',
-    (req, res, next) => Auth.verifyAccess('admin', req, res, next),
+    (req, res, next) => auth('admin', req, res, next),
     Controller.updateOther,
   )
   .delete(
     '/user',
-    (req, res, next) => Auth.verifyAccess('logged', req, res, next),
+    (req, res, next) => auth('logged', req, res, next),
     Controller.delete,
   )
   .delete(
     '/user/:id',
-    (req, res, next) => Auth.verifyAccess('admin', req, res, next),
+    (req, res, next) => auth('admin', req, res, next),
     Controller.deleteOther,
   )
   .post(
@@ -54,8 +54,8 @@ router
   )
   .post(
     '/user/verify',
-    (req, res, next) => Auth.verifyAccess('logged', req, res, next),
-    Controller.verifyEmail,
+    (req, res, next) => auth('logged', req, res, next),
+    Controller.sendVerification,
   );
 
 export default router;

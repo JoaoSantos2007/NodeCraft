@@ -4,7 +4,7 @@ import Duplicate from './Duplicate.js';
 import InvalidRequest from './InvalidRequest.js';
 import Unathorized from './Unathorized.js';
 import Email from './Email.js';
-import Token from './Token.js';
+import InvalidToken from './InvalidToken.js';
 
 export {
   BadRequest,
@@ -13,5 +13,5 @@ export {
   InvalidRequest,
   Unathorized,
   Email,
-  Token,
+  InvalidToken,
 };
