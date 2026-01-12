@@ -16,6 +16,10 @@ router
     Controller.readAll,
   )
   .get(
+    '/user/validate',
+    Controller.validateAccount,
+  )
+  .get(
     '/user/:id',
     (req, res, next) => Auth.verifyAccess('logged', req, res, next),
     Controller.readById,
@@ -47,6 +51,11 @@ router
   .post(
     '/user/login',
     Controller.login,
+  )
+  .post(
+    '/user/verify',
+    (req, res, next) => Auth.verifyAccess('logged', req, res, next),
+    Controller.verifyEmail,
   );
 
 export default router;

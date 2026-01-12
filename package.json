@@ -28,6 +28,7 @@
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.1",
+    "nodemailer": "^7.0.12",
     "sequelize": "^6.37.7",
     "sqlite3": "^5.1.7"
   },

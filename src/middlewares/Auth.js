@@ -1,6 +1,6 @@
 import errorHandler from '../utils/errorHandler.js';
 import Service from '../services/Auth.js';
-import Unathorized from '../errors/Unathorized.js';
+import { Unathorized } from '../errors/index.js';
 
 class Auth {
   static async verifyAccess(permission, req, res, next) {
@@ -8,16 +8,17 @@ class Auth {
       const id = req?.params?.id || req?.params?.instanceId;
 
       // Get access token from request
-      const accessToken = await Service.verifyToken(req);
+      const accessToken = req?.cookies?.accessToken;
+      if (!accessToken) throw new Unathorized('Invalid Access Token!');
 
       // Get user by access token
-      const user = await Service.verifyUser(accessToken);
+      const user = await Service.verifyAccessToken(accessToken);
       req.user = user;
 
-      if (permission === 'logged') return next();
-
-      // Check if has permission
+      // Check if user has permission
       if (await Service.checkPermission(user, permission, id)) return next();
+
+      // If no return, throw Unathorized error
       throw new Unathorized("You don't have permission to access this route!");
     } catch (err) {
       return errorHandler(err, res);

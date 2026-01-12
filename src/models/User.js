@@ -84,13 +84,21 @@ User.init({
     allowNull: true,
     defaultValue: 0,
   },
+  emailToken: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+  },
+  passwordToken: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+  },
 }, {
   tableName: 'user',
   sequelize: db,
   timestamps: false,
   defaultScope: {
     attributes: {
-      exclude: ['password'],
+      exclude: ['password', 'emailToken', 'passwordToken'],
     },
   },
 });

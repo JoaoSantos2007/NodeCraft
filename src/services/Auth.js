@@ -1,56 +1,89 @@
 import jwt from 'jsonwebtoken';
-import User from '../models/User.js';
-import hashPassword from '../utils/hashPassword.js';
+import hash from '../utils/hash.js';
 import Instance from './Instance.js';
-import { ACCESS_TOKEN_LIFETIME, SECRET } from '../../config/settings.js';
-import { Unathorized } from '../errors/index.js';
+import {
+  ACCESS_TOKEN_LIFETIME,
+  EMAIL_TOKEN_LIFETIME,
+  SECRET,
+} from '../../config/settings.js';
+import { BadRequest, Token, Unathorized } from '../errors/index.js';
 import Link from './Link.js';
+import User from './User.js';
 
 class Auth {
-  static async login({ email, password }) {
-    const user = await User.findOne({
-      attributes: ['id', 'email', 'password'],
-      where: {
-        email,
-      },
-    });
+  static async authenticate(email, password) {
+    const user = await User.readWithPassword(email);
 
     if (!user) throw new Unathorized('Email or Password is invalid!');
-
-    const equalPasswords = hashPassword(password) === user.password;
-
-    if (!equalPasswords) throw new Unathorized('Email or Password is invalid!');
+    if (hash(password) !== user.password) throw new Unathorized('Email or Password is invalid!');
 
     return user;
   }
 
-  static async generateAccessToken({ id, email }) {
-    const accessToken = jwt.sign({
-      id,
-      email,
-    }, SECRET, {
-      expiresIn: ACCESS_TOKEN_LIFETIME,
-    });
+  static async validateAccount(token) {
+    const payload = Auth.verifyEmailToken(token);
+
+    const user = await User.readWithTokens(payload.userId);
+    if (!user || hash(token) !== hash(user?.emailToken)) throw new BadRequest('Email token is invalid!');
+
+    // Set verified and wipe tokens
+    await User.update(user.id, { verified: true });
+    await User.wipeToken(user.id, 'email');
+  }
+
+  static generateAccessToken(user) {
+    const accessToken = jwt.sign(
+      {
+        sub: user.id,
+        email: user.email,
+        purpose: 'access',
+      },
+      SECRET,
+      {
+        expiresIn: ACCESS_TOKEN_LIFETIME,
+        audience: 'api',
+      },
+    );
 
     return accessToken;
   }
 
-  static async verifyToken(req) {
-    if (!req.cookies) throw new Unathorized('Invalid Access Token!');
-    const { accessToken } = req.cookies;
-    if (!accessToken) throw new Unathorized('Invalid Access Token!');
+  static generateEmailToken(user) {
+    const emailToken = jwt.sign(
+      {
+        sub: user.id,
+        purpose: 'email_verification',
+      },
+      SECRET,
+      {
+        expiresIn: EMAIL_TOKEN_LIFETIME,
+      },
+    );
 
-    return accessToken;
+    return emailToken;
   }
 
-  static async verifyUser(accessToken) {
-    const { id } = jwt.verify(accessToken, SECRET);
-    const user = await User.findByPk(id);
+  static async verifyAccessToken(token) {
+    try {
+      const payload = jwt.verify(token, SECRET);
+      const user = await User.readOne(payload.sub);
+      return user;
+    } catch (err) {
+      throw new Token();
+    }
+  }
 
-    return user;
+  static verifyEmailToken(token) {
+    try {
+      const payload = jwt.verify(token, SECRET);
+      return payload;
+    } catch (err) {
+      throw new Token();
+    }
   }
 
   static async checkPermission(user, permission, id) {
+    if (permission === 'logged') return true;
     if (user.admin) return true;
     if (permission === 'admin') return false;
 

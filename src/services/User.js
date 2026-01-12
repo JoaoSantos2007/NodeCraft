@@ -1,5 +1,5 @@
 import { User as Model, Link as LinkModel } from '../models/index.js';
-import hashPassword from '../utils/hashPassword.js';
+import hash from '../utils/hash.js';
 import { Duplicate, BadRequest } from '../errors/index.js';
 
 class User {
@@ -18,7 +18,7 @@ class User {
     user = await Model.create({
       name: data.name,
       email: data.email,
-      password: hashPassword(data.password),
+      password: hash(data.password),
       javaGamertag: data.javaGamertag,
       bedrockGamertag: data.bedrockGamertag,
       gender: data.gender,
@@ -48,6 +48,36 @@ class User {
     if (!user) throw new BadRequest('User not found!');
 
     return user;
+  }
+
+  static async readWithPassword(email) {
+    const user = await Model.findOne({
+      attributes: ['id', 'email', 'password'],
+      where: {
+        email,
+      },
+    });
+
+    return user;
+  }
+
+  static async readWithTokens(id) {
+    const user = await Model.findByPk(id, {
+      attributes: ['id', 'passwordToken', 'emailToken'],
+    });
+
+    return user;
+  }
+
+  static async saveToken(id, token, type = 'email') {
+    const hashToken = hash(token);
+    if (type === 'email') await User.update(id, { emailToken: hashToken });
+    else if (type === 'password') await User.update(id, { passwordToken: hashToken });
+  }
+
+  static async wipeToken(id, type = 'email') {
+    if (type === 'email') await User.update(id, { emailToken: null });
+    else if (type === 'password') await User.update(id, { passwordToken: null });
   }
 
   static async update(id, data) {
