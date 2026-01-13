@@ -16,10 +16,6 @@ router
     Controller.readAll,
   )
   .get(
-    '/user/validate',
-    Controller.validateAccount,
-  )
-  .get(
     '/user/:id',
     (req, res, next) => auth('logged', req, res, next),
     Controller.readById,
@@ -56,6 +52,18 @@ router
     '/user/verify',
     (req, res, next) => auth('logged', req, res, next),
     Controller.sendVerification,
+  )
+  .post(
+    '/user/validate',
+    Controller.validateAccount,
+  )
+  .post(
+    '/user/forgot',
+    Controller.forgotPassword,
+  )
+  .post(
+    '/user/reset',
+    Controller.resetPassword,
   );
 
 export default router;

@@ -41,6 +41,7 @@ const UPDATE_TIME_CHECK = process.env.UPDATE_TIME_CHECK || 5 * 60 * 1000;
 const INSTANCE_MAX_AGE = process.env.INSTANCE_MAX_AGE || 2 * 24 * 60 * 60 * 1000;
 const TIME_VERIFY_LOST = process.env.TIME_VERIFY_LOST || 60 * 60 * 1000;
 const EMAIL_TOKEN_LIFETIME = process.env.EMAIL_TOKEN_LIFETIME || '24h';
+const RESET_TOKEN_LIFETIME = process.env.RESET_TOKEN_LIFETIME || '1h';
 const SMTP_HOST = process.env.SMTP_HOST || null;
 const SMTP_PORT = process.env.SMTP_PORT || null;
 const SMTP_SECURE = process.env.SMTP_SECURE || null;
@@ -70,6 +71,7 @@ export {
   INSTANCE_MAX_AGE,
   TIME_VERIFY_LOST,
   EMAIL_TOKEN_LIFETIME,
+  RESET_TOKEN_LIFETIME,
   SMTP_HOST,
   SMTP_PORT,
   SMTP_SECURE,

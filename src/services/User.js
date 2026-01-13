@@ -8,10 +8,10 @@ import {
   Email,
   InvalidToken,
 } from '../errors/index.js';
-import { generateEmailToken, verifyToken } from '../utils/tokens.js';
+import { generateEmailToken, generatePasswordToken, verifyToken } from '../utils/tokens.js';
 import sendEmail from '../utils/sendEmail.js';
-import { API_URL } from '../../config/settings.js';
-import { renderVerifyTemplate } from '../utils/templates.js';
+import { API_URL, RESET_TOKEN_LIFETIME } from '../../config/settings.js';
+import renderTemplate from '../utils/renderTemplate.js';
 
 class User {
   static async create(data) {
@@ -63,7 +63,7 @@ class User {
 
   static async readWithPassword(email) {
     const user = await Model.findOne({
-      attributes: ['id', 'email', 'password'],
+      attributes: ['id', 'name', 'email', 'password'],
       where: {
         email,
       },
@@ -124,13 +124,19 @@ class User {
 
     // Send Email
     try {
-      const link = `${API_URL}/user/validate?token=${token}`;
-      const html = renderVerifyTemplate(link, user.name);
+      const link = `${API_URL}/user`;
+      const html = renderTemplate('verify.html', {
+        name: user.name || 'usuário',
+        link,
+        token,
+        year: new Date().getFullYear(),
+      });
 
       await sendEmail({
         to: user.email,
         subject: 'Verify your Nodecraft Account!',
         html,
+        text: `Link: ${link} | Token: ${token}`,
       });
     } catch (err) {
       // Catch email system error
@@ -150,6 +156,52 @@ class User {
     // Set verified account and wipe tokens
     await User.update(user.id, { verified: true });
     await User.wipeToken(user.id, 'email');
+  }
+
+  static async forgotPassword(email) {
+    const user = await User.readWithPassword(email);
+    if (!user) throw new BadRequest('User not found!');
+
+    const token = generatePasswordToken(user.id, user.email);
+
+    // Save the reset password token in the database
+    await User.saveToken(user.id, token, 'password');
+
+    // Send Email
+    try {
+      const link = `${API_URL}/user`;
+      const html = renderTemplate('reset.html', {
+        name: user.name || 'usuário',
+        link,
+        token,
+        expires: RESET_TOKEN_LIFETIME,
+        year: new Date().getFullYear(),
+      });
+
+      await sendEmail({
+        to: user.email,
+        subject: 'Reset your Nodecraft account password!',
+        html,
+        text: `Link: ${link} | Token: ${token}`,
+      });
+    } catch (err) {
+      // Catch email system error
+      throw new Email();
+    }
+  }
+
+  static async resetPassword(token, password) {
+    const payload = verifyToken(token);
+
+    const user = await User.readWithTokens(payload.sub);
+    if (!user || !user?.passwordToken) throw new InvalidToken('Reset password token is invalid!');
+
+    const hashedToken = hashToken(token);
+    if (!token || hashedToken !== user.passwordToken) throw new InvalidToken('Reset password token is invalid!');
+
+    // Change password and wipe tokens
+    await User.update(user.id, { password: hashPassword(password) });
+    await User.wipeToken(user.id, 'password');
   }
 }
 

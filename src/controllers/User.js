@@ -1,7 +1,7 @@
 import Service from '../services/User.js';
 import Validator from '../validators/User.js';
 import { STAGE } from '../../config/settings.js';
-import { InvalidRequest } from '../errors/index.js';
+import { InvalidRequest, InvalidToken } from '../errors/index.js';
 import { generateAccessToken } from '../utils/tokens.js';
 
 class User {
@@ -133,11 +133,40 @@ class User {
 
   static async validateAccount(req, res, next) {
     try {
-      const token = req?.query?.token;
+      const token = req?.body?.token;
+      if (typeof token !== 'string') throw new InvalidToken();
 
-      await Service.validateAccount(token);
+      await Service.validateAccount(token.trim());
 
       return res.status(200).json({ success: true, msg: 'Account Verified!' });
+    } catch (err) {
+      return next(err);
+    }
+  }
+
+  static async forgotPassword(req, res, next) {
+    try {
+      const email = req?.body?.email;
+
+      await Service.forgotPassword(email);
+
+      return res.status(200).json({ success: true, msg: `Reset password sent to ${email}` });
+    } catch (err) {
+      return next(err);
+    }
+  }
+
+  static async resetPassword(req, res, next) {
+    try {
+      const token = req?.body?.token;
+      const password = req?.body?.password;
+
+      if (typeof token !== 'string') throw new InvalidToken();
+      if (!password) throw new InvalidRequest('Password cannot be null!');
+
+      await Service.resetPassword(token.trim(), password);
+
+      return res.status(200).json({ success: true, msg: 'Password reseted!' });
     } catch (err) {
       return next(err);
     }
