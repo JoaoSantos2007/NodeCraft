@@ -111,7 +111,26 @@ class Auth {
     const passwordsAreEqual = await bcrypt.compare(password, user.password);
     if (!passwordsAreEqual) throw new Unathorized('Email or Password is invalid!');
 
-    return user;
+    const accessToken = Auth.generateAccessToken(user.id);
+    const refreshToken = Auth.generateRandomToken();
+    await Auth.saveToken(user.id, refreshToken, 'refresh');
+
+    return { user, accessToken, refreshToken };
+  }
+
+  static async refreshAuthentication(token) {
+    const hashedToken = Auth.hashToken(token);
+    const user = await User.readAllAttributes(null, null, hashedToken, 'refresh');
+
+    if (!user || !user?.refreshTokenHash) throw new InvalidToken('Refresh token is invalid!');
+    if (hashedToken !== user.refreshTokenHash) throw new InvalidToken('Refresh token is invalid!');
+    if (user.refreshTokenExpires < Date.now()) throw new InvalidToken('Refresh token expiried!');
+
+    const accessToken = Auth.generateAccessToken(user.id);
+    const refreshToken = Auth.generateRandomToken();
+    await Auth.saveToken(user.id, refreshToken, 'refresh');
+
+    return { user, accessToken, refreshToken };
   }
 
   static async sendVerification(user) {

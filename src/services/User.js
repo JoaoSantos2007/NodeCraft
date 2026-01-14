@@ -63,7 +63,7 @@ class User {
         where.emailTokenHash = token;
       } else if (tokenType === 'password') {
         where.resetPasswordTokenHash = token;
-      } else if (tokenType === 'reset') {
+      } else if (tokenType === 'refresh') {
         where.refreshTokenHash = token;
       }
     }

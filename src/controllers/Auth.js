@@ -7,14 +7,21 @@ class Auth {
     try {
       const data = req.body;
 
-      const user = await Service.authenticate(data.email, data.password);
-      const accessToken = Service.generateAccessToken(user.id);
+      const { accessToken, refreshToken } = await Service.authenticate(data.email, data.password);
 
       // Set accessToken in response cookie
       res.cookie('accessToken', accessToken, {
         httpOnly: true,
         secure: config.app.stage !== 'DEV',
         sameSite: config.app.stage === 'DEV' ? 'Lax' : 'strict',
+      });
+
+      // Set refreshToken in response cookie
+      res.cookie('refreshToken', refreshToken, {
+        httpOnly: true,
+        secure: config.app.stage !== 'DEV',
+        sameSite: config.app.stage === 'DEV' ? 'Lax' : 'strict',
+        path: '/auth/refresh',
       });
 
       return res.status(200).json({ success: true, authenticated: true });
@@ -25,7 +32,44 @@ class Auth {
 
   static async refresh(req, res, next) {
     try {
+      // Get refresh token from request
+      const token = req?.cookies?.refreshToken;
+      if (!token) throw new InvalidToken('Refresh token is null!');
+
+      const { accessToken, refreshToken } = await Service.refreshAuthentication(token);
+
+      // Set accessToken in response cookie
+      res.cookie('accessToken', accessToken, {
+        httpOnly: true,
+        secure: config.app.stage !== 'DEV',
+        sameSite: config.app.stage === 'DEV' ? 'Lax' : 'strict',
+      });
+
+      // Set refreshToken in response cookie
+      res.cookie('refreshToken', refreshToken, {
+        httpOnly: true,
+        secure: config.app.stage !== 'DEV',
+        sameSite: config.app.stage === 'DEV' ? 'Lax' : 'strict',
+        path: '/auth/refresh',
+      });
+
       return res.status(200).json({ success: true, refreshed: true });
+    } catch (err) {
+      return next(err);
+    }
+  }
+
+  static async logout(req, res, next) {
+    try {
+      const { user } = req;
+
+      await Service.wipeToken(user.id, 'refresh');
+      res.clearCookie('accessToken');
+      res.clearCookie('refreshToken', {
+        path: '/auth/refresh',
+      });
+
+      return res.status(200).json({ success: true, disconnected: true });
     } catch (err) {
       return next(err);
     }

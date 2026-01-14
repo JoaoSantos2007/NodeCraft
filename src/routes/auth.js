@@ -14,6 +14,11 @@ router
     Controller.refresh,
   )
   .post(
+    '/auth/logout',
+    (req, res, next) => auth('logged', req, res, next),
+    Controller.logout,
+  )
+  .post(
     '/auth/verify',
     (req, res, next) => auth('logged', req, res, next),
     Controller.sendVerification,
