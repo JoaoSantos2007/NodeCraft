@@ -84,12 +84,28 @@ User.init({
     allowNull: true,
     defaultValue: 0,
   },
-  emailToken: {
+  emailTokenHash: {
     type: DataTypes.TEXT,
     allowNull: true,
   },
-  passwordToken: {
+  emailTokenExpires: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+  resetPasswordTokenHash: {
     type: DataTypes.TEXT,
+    allowNull: true,
+  },
+  resetPasswordTokenExpires: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+  refreshTokenHash: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+  },
+  refreshTokenExpires: {
+    type: DataTypes.DATE,
     allowNull: true,
   },
 }, {
@@ -98,7 +114,15 @@ User.init({
   timestamps: false,
   defaultScope: {
     attributes: {
-      exclude: ['password', 'emailToken', 'passwordToken'],
+      exclude: [
+        'password',
+        'emailTokenHash',
+        'emailTokenExpires',
+        'resetPasswordTokenHash',
+        'resetPasswordTokenExpires',
+        'refreshTokenHash',
+        'refreshTokenExpires',
+      ],
     },
   },
 });

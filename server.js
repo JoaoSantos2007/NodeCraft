@@ -1,5 +1,5 @@
 import app from './src/app.js';
-import { PORT } from './config/settings.js';
+import config from './config/index.js';
 import {
   onStart,
   scheduleUpdates,
@@ -7,7 +7,7 @@ import {
   scheduleLost,
 } from './src/utils/scheduleJobs.js';
 
-app.listen(PORT, () => {
+app.listen(config.app.port, () => {
   onStart();
   scheduleUpdates();
   scheduleTemp();

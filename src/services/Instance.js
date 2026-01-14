@@ -7,10 +7,6 @@ import {
   readdirSync,
 } from 'fs';
 import { Op } from 'sequelize';
-import {
-  INSTANCES_PATH, MIN_PORT, MAX_PORT, REGISTRY,
-  INSTANCE_MAX_AGE,
-} from '../../config/settings.js';
 import { Instance as Model, Link as LinkModel, User as UserModel } from '../models/index.js';
 import { BadRequest } from '../errors/index.js';
 import download from '../utils/download.js';
@@ -19,6 +15,8 @@ import Container from './Container.js';
 import { syncFloodgate, syncGeyser, syncProperties } from '../utils/syncSettings.js';
 import query from '../../config/query.js';
 import Link from './Link.js';
+import REGISTRY from '../../config/registry.js';
+import config from '../../config/index.js';
 
 class Instance {
   static async create(data, userId) {
@@ -33,7 +31,7 @@ class Instance {
     });
 
     // Create instance path in the System
-    mkdirSync(`${INSTANCES_PATH}/${instance.id}`);
+    mkdirSync(`${config.instance.path}/${instance.id}`);
 
     // Create docker container
     await Container.create(instance);
@@ -117,7 +115,7 @@ class Instance {
   static async delete(id) {
     const instance = await Instance.readOne(id);
     await instance.destroy();
-    rmSync(`${INSTANCES_PATH}/${id}`, { recursive: true, force: true });
+    rmSync(`${config.instance.path}/${id}`, { recursive: true, force: true });
 
     return instance;
   }
@@ -129,7 +127,7 @@ class Instance {
 
     // Define variables for download process
     const needRestart = instance.running; // Verify if the instance will need restart
-    const instancePath = `${INSTANCES_PATH}/${instance.id}`;
+    const instancePath = `${config.instance.path}/${instance.id}`;
     const pluginsPath = `${instancePath}/plugins`;
     let downloadsCompleted = 0;
 
@@ -178,7 +176,7 @@ class Instance {
     });
 
     // Find available ports
-    for (let port = MIN_PORT; port <= MAX_PORT; port += 1) {
+    for (let port = config.instance.minPort; port <= config.instance.maxPort; port += 1) {
       if (!usedPorts.includes(port)) {
         availablePorts.push(port);
       }
@@ -197,7 +195,7 @@ class Instance {
   static async run(id) {
     // Read instance
     const instance = await Instance.readOne(id);
-    const path = `${INSTANCES_PATH}/${id}`;
+    const path = `${config.instance.path}/${id}`;
 
     // Read container or create one
     const container = await Container.getOrCreate(instance);
@@ -259,11 +257,11 @@ class Instance {
   }
 
   static async verifyLost() {
-    const instancesId = readdirSync(INSTANCES_PATH);
+    const instancesId = readdirSync(config.instance.path);
     if (!instancesId) return;
 
     instancesId.forEach(async (id) => {
-      const pendingDeletePath = `${INSTANCES_PATH}/${id}/.delete-pending.json`;
+      const pendingDeletePath = `${config.instance.path}/${id}/.delete-pending.json`;
       const existsPendingDelete = existsSync(pendingDeletePath);
 
       try {
@@ -281,15 +279,15 @@ class Instance {
       // Verify if pending delete process exists
       if (existsPendingDelete) {
         // Try to read .delete-pending.json
-        const rawData = readFileSync(`${INSTANCES_PATH}/${id}/.delete-pending.json`, 'utf8');
+        const rawData = readFileSync(`${config.instance.path}/${id}/.delete-pending.json`, 'utf8');
         const data = JSON.parse(rawData);
 
         const time = Number(data?.time);
         const now = Date.now();
 
-        if (!time || now - time >= INSTANCE_MAX_AGE) {
+        if (!time || now - time >= config.instance.lifetime) {
           // Delete pending instance
-          rmSync(`${INSTANCES_PATH}/${id}`, { recursive: true, force: true });
+          rmSync(`${config.instance.path}/${id}`, { recursive: true, force: true });
         }
       } else {
         // Write .delete-pending.json

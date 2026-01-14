@@ -4,11 +4,11 @@ import {
   readdirSync,
   rmSync,
 } from 'fs';
-import { TEMPORARY_MAX_AGE, TEMPORARY_PATH } from '../../config/settings.js';
+import config from '../../config/index.js';
 
 const createTemp = () => {
   const timestamp = new Date().getTime();
-  const tempPath = `${TEMPORARY_PATH}/${timestamp}`;
+  const tempPath = `${config.temp.path}/${timestamp}`;
 
   mkdirSync(tempPath);
   return tempPath;
@@ -18,10 +18,10 @@ const createTemp = () => {
 const removeOldTemp = () => {
   try {
     // Verify if temporary path exists
-    if (!existsSync(TEMPORARY_PATH)) return;
+    if (!existsSync(config.temp.path)) return;
 
     // Read temporary path items
-    const items = readdirSync(TEMPORARY_PATH);
+    const items = readdirSync(config.temp.path);
 
     // Get timestamp
     const now = Date.now();
@@ -30,13 +30,13 @@ const removeOldTemp = () => {
       // Verify if item name is a timestamp
       const createdAt = Number(item);
       if (Number.isInteger(createdAt) && createdAt > 0) {
-        if (now - createdAt >= TEMPORARY_MAX_AGE) rmSync(`${TEMPORARY_PATH}/${item}`, { recursive: true, force: true });
+        if (now - createdAt >= config.temp.lifetime) rmSync(`${config.temp.path}/${item}`, { recursive: true, force: true });
       } else {
-        rmSync(`${TEMPORARY_PATH}/${item}`, { recursive: true, force: true });
+        rmSync(`${config.temp.path}/${item}`, { recursive: true, force: true });
       }
     });
   } catch (err) {
-    console.error(err);
+    // Catch error
   }
 };
 

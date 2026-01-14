@@ -1,0 +1,61 @@
+{
+  "app" : {
+    "port": 9183,
+    "stage": "PROD"
+  },
+  "interval": {
+    "checkUpdate": 300000,
+    "checkLost": 3600000,
+    "checkTemp": 300000
+  },
+  "email": {
+    "enable": false,
+    "host": null,
+    "port": null,
+    "secure": null,
+    "user": null,
+    "password": null
+  },
+  "site": {
+    "url": null,
+    "validateUrl": null,
+    "resetUrl": null
+  },
+  "token": {
+    "jwtSecret": "4246e8f9e71b0b086b3b194a4bcb5d07c94dd773dddb51752183f7e9c82c543f",
+    "accessLifetime": 900000,
+    "emailLifetime": 86400000,
+    "resetPasswordLifetime": 1200000,
+    "refreshLifetime": 259200000
+  },
+  "instance": {
+    "path": null,
+    "minPort": 5621,
+    "maxPort": 5671,
+    "lifetime": 172800000,
+    "permissions": [
+      "instance:read",
+      "instance:create",
+      "instance:update",
+      "instance:delete",
+      "instance:status",
+      "instance:run",
+      "instance:properties:read",
+      "instance:properties:update",
+      "instance:player:read",
+      "instance:player:create",
+      "instance:player:update",
+      "instance:player:delete",
+      "instance:file:read",
+      "instance:file:unzip",
+      "instance:file:create",
+      "instance:file:update",
+      "instance:file:delete",
+      "instance:file:move"
+    ]
+  },
+  "temp": {
+    "path": null,
+    "lifetime": 300000
+  }
+}

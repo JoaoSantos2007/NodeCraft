@@ -1,5 +1,5 @@
 import multer from 'multer';
-import { INSTANCES_PATH } from '../../config/settings.js';
+import config from '../../config/index.js';
 
 const storage = multer.diskStorage({
   destination(req, file, cb) {
@@ -7,7 +7,7 @@ const storage = multer.diskStorage({
     let path = req?.params?.path;
     if (Array.isArray(path)) path = req.params.path.join('/');
 
-    const absolutePath = `${INSTANCES_PATH}/${id}/${path}`;
+    const absolutePath = `${config.instance.path}/${id}/${path}`;
     const pathSplited = path.split('/');
 
     const filename = pathSplited[pathSplited.length - 1];

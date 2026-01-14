@@ -1,6 +1,6 @@
 import { Sequelize, DataTypes, Model } from 'sequelize';
 import db from '../../config/sequelize.js';
-import { PERMISSIONS } from '../../config/settings.js';
+import config from '../../config/index.js';
 
 class Link extends Model { }
 
@@ -48,7 +48,7 @@ Link.init({
         }
 
         value.forEach((item) => {
-          if (!PERMISSIONS.includes(item)) {
+          if (!config.instance.permissions.includes(item)) {
             throw new Error(`${item} is an invalid permission!`);
           }
         });

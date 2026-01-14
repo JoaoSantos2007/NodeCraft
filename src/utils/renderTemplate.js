@@ -1,8 +1,8 @@
 import { readFileSync } from 'fs';
-import { ABSOLUTE_PATH } from '../../config/settings.js';
+import config from '../../config/index.js';
 
 const renderTemplate = (templateName, variables = {}) => {
-  const filePath = `${ABSOLUTE_PATH}/src/templates/emails/${templateName}`;
+  const filePath = `${config.absoutePath}/src/templates/emails/${templateName}`;
   let html = readFileSync(filePath, 'utf8');
 
   // eslint-disable-next-line no-restricted-syntax

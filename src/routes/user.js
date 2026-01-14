@@ -43,27 +43,6 @@ router
     '/user/:id',
     (req, res, next) => auth('admin', req, res, next),
     Controller.deleteOther,
-  )
-  .post(
-    '/user/login',
-    Controller.login,
-  )
-  .post(
-    '/user/verify',
-    (req, res, next) => auth('logged', req, res, next),
-    Controller.sendVerification,
-  )
-  .post(
-    '/user/validate',
-    Controller.validateAccount,
-  )
-  .post(
-    '/user/forgot',
-    Controller.forgotPassword,
-  )
-  .post(
-    '/user/reset',
-    Controller.resetPassword,
   );
 
 export default router;

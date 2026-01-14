@@ -1,8 +1,7 @@
 import User from '../services/User.js';
 import errorHandler from '../utils/errorHandler.js';
 import { Unathorized } from '../errors/index.js';
-import checkPermission from '../utils/checkPermission.js';
-import { verifyToken } from '../utils/tokens.js';
+import Service from '../services/Auth.js';
 
 const auth = async (permission, req, res, next) => {
   try {
@@ -16,7 +15,7 @@ const auth = async (permission, req, res, next) => {
     if (!token) throw new Unathorized('Invalid Access Token!');
 
     // Get token payload
-    const payload = verifyToken(token);
+    const payload = Service.verifyJWTToken(token);
 
     // Get user by token
     const user = await User.readOne(payload.sub);
@@ -25,7 +24,7 @@ const auth = async (permission, req, res, next) => {
     req.user = user;
 
     // Check if user has permission
-    const authorized = await checkPermission(user, permission, id);
+    const authorized = await Service.checkPermission(user, permission, id);
     if (authorized) return next();
 
     // Throw unathorized error if user is not authorized

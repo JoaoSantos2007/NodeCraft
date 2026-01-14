@@ -1,7 +1,7 @@
 import { existsSync, realpathSync } from 'fs';
 import * as Path from 'path';
 import { BadRequest, InvalidRequest } from '../errors/index.js';
-import { INSTANCES_PATH } from '../../config/settings.js';
+import config from '../../config/index.js';
 import errorHandler from '../utils/errorHandler.js';
 import InstanceService from '../services/Instance.js';
 
@@ -14,7 +14,7 @@ class File {
   }
 
   static validateAllowedPath(id, path) {
-    const instancePath = realpathSync(`${INSTANCES_PATH}/${id}`);
+    const instancePath = realpathSync(`${config.instance.path}/${id}`);
 
     if (path.includes('nodecraft.json')) return false;
     if (path.startsWith(instancePath)) return true;
@@ -38,11 +38,11 @@ class File {
       let realPath;
 
       if (newPath) {
-        if (existsSync(`${INSTANCES_PATH}/${id}/${path}`)) throw new InvalidRequest(`${path} already exists!`);
+        if (existsSync(`${config.instance.path}/${id}/${path}`)) throw new InvalidRequest(`${path} already exists!`);
 
-        realPath = realpathSync(`${INSTANCES_PATH}/${id}/${Path.dirname(path)}`);
+        realPath = realpathSync(`${config.instance.path}/${id}/${Path.dirname(path)}`);
       } else {
-        realPath = realpathSync(`${INSTANCES_PATH}/${id}/${path}`);
+        realPath = realpathSync(`${config.instance.path}/${id}/${path}`);
       }
 
       if (!File.validateAllowedPath(id, realPath)) throw new InvalidRequest(`${path} is forbidden!`);

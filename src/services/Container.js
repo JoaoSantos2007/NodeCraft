@@ -1,6 +1,7 @@
 import { PassThrough } from 'stream';
 import docker from '../../config/docker.js';
-import { INSTANCES_PATH, REGISTRY } from '../../config/settings.js';
+import REGISTRY from '../../config/registry.js';
+import config from '../../config/index.js';
 
 class Container {
   static async create(instance) {
@@ -14,7 +15,7 @@ class Container {
       ],
 
       HostConfig: {
-        Binds: [`${INSTANCES_PATH}/${instance.id}:/data`],
+        Binds: [`${config.instance.path}/${instance.id}:/data`],
         PortBindings: {
           '25565/tcp': [
             { HostPort: String(instance.port) },

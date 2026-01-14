@@ -13,7 +13,7 @@ import {
 import Path from 'path';
 import AdmZip from 'adm-zip';
 import { randomUUID } from 'crypto';
-import { INSTANCES_PATH } from '../../config/settings.js';
+import config from '../../config/index.js';
 import { createTemp } from '../utils/temp.js';
 import { Base, InvalidRequest } from '../errors/index.js';
 
@@ -29,7 +29,7 @@ class File {
   }
 
   static read(id, path = '', info = '') {
-    const absolutePath = `${INSTANCES_PATH}/${id}/${path}`;
+    const absolutePath = `${config.instance.path}/${id}/${path}`;
     const type = info || File.verifyType(absolutePath);
     let content;
 
@@ -53,7 +53,7 @@ class File {
 
   static create(id, path, data) {
     const { type } = data;
-    const absolutePath = `${INSTANCES_PATH}/${id}/${path}`;
+    const absolutePath = `${config.instance.path}/${id}/${path}`;
     let content = '';
 
     if (type === 'dir') {
@@ -71,7 +71,7 @@ class File {
   }
 
   static update(id, path, data) {
-    const absolutePath = `${INSTANCES_PATH}/${id}/${path}`;
+    const absolutePath = `${config.instance.path}/${id}/${path}`;
     const type = File.verifyType(absolutePath);
     if (type === 'file') writeFileSync(absolutePath, data.content, 'utf8');
 
@@ -80,7 +80,7 @@ class File {
 
   static delete(id, path) {
     const info = File.read(id, path);
-    rmSync(`${INSTANCES_PATH}/${id}/${path}`, { recursive: true });
+    rmSync(`${config.instance.path}/${id}/${path}`, { recursive: true });
 
     return info;
   }
@@ -105,7 +105,7 @@ class File {
   }
 
   static download(id, path) {
-    const absolutePath = `${INSTANCES_PATH}/${id}/${path}`;
+    const absolutePath = `${config.instance.path}/${id}/${path}`;
     const type = File.verifyType(absolutePath);
 
     // File
@@ -133,7 +133,7 @@ class File {
   }
 
   static unzip(id, path) {
-    const absolutePath = `${INSTANCES_PATH}/${id}/${path}`;
+    const absolutePath = `${config.instance.path}/${id}/${path}`;
     const type = File.verifyType(absolutePath);
 
     // Validate
@@ -153,8 +153,8 @@ class File {
   }
 
   static move(id, path, destiny) {
-    const absolutePath = `${INSTANCES_PATH}/${id}/${path}`;
-    const absoluteDestiny = `${INSTANCES_PATH}/${id}/${destiny}`;
+    const absolutePath = `${config.instance.path}/${id}/${path}`;
+    const absoluteDestiny = `${config.instance.path}/${id}/${destiny}`;
 
     renameSync(absolutePath, absoluteDestiny);
 

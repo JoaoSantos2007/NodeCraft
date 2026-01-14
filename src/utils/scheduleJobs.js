@@ -1,10 +1,6 @@
 import Instance from '../services/Instance.js';
-import {
-  TEMPORARY_MAX_AGE,
-  TIME_VERIFY_LOST,
-  UPDATE_TIME_CHECK,
-} from '../../config/settings.js';
 import { removeOldTemp } from './temp.js';
+import config from '../../config/index.js';
 
 // Execute some functions on start-up
 const onStart = () => {
@@ -28,7 +24,7 @@ const scheduleUpdates = () => {
       // Update all instances function
       Instance.updateAll();
     }
-  }, UPDATE_TIME_CHECK);
+  }, config.interval.checkUpdate);
 };
 
 // Remove old temp paths
@@ -37,7 +33,7 @@ const scheduleTemp = () => {
   removeOldTemp();
 
   // Set periodically
-  setInterval(removeOldTemp, TEMPORARY_MAX_AGE);
+  setInterval(removeOldTemp, config.interval.checkTemp);
 };
 
 // Remove instances without registry in database
@@ -46,7 +42,7 @@ const scheduleLost = () => {
   Instance.verifyLost();
 
   // Set periodically
-  setInterval(Instance.verifyLost, TIME_VERIFY_LOST);
+  setInterval(Instance.verifyLost, config.interval.checkLost);
 };
 
 export {
