@@ -119,6 +119,18 @@ class Instance {
       return next(err);
     }
   }
+
+  static async backup(req, res, next) {
+    try {
+      const { id } = req.params;
+
+      await Service.backup(id);
+
+      return res.status(200).json({ success: true });
+    } catch (err) {
+      return next(err);
+    }
+  }
 }
 
 export default Instance;

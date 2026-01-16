@@ -35,27 +35,22 @@
     "lifetime": 172800000,
     "permissions": [
       "instance:read",
-      "instance:create",
       "instance:update",
-      "instance:delete",
-      "instance:status",
-      "instance:run",
-      "instance:properties:read",
-      "instance:properties:update",
-      "instance:player:read",
-      "instance:player:create",
-      "instance:player:update",
-      "instance:player:delete",
-      "instance:file:read",
-      "instance:file:unzip",
-      "instance:file:create",
-      "instance:file:update",
-      "instance:file:delete",
-      "instance:file:move"
+      "instance:execute",
+      "instance:backup"
     ]
   },
   "temp": {
     "path": null,
     "lifetime": 300000
+  },
+  "storage": {
+    "enable": false,
+    "bucket": "",
+    "region": "",
+    "endpoint": "",
+    "forcePathStyle": false,
+    "accessKeyId": "",
+    "secretAccessKey": ""
   }
 }

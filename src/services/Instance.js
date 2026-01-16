@@ -17,6 +17,8 @@ import query from '../../config/query.js';
 import Link from './Link.js';
 import REGISTRY from '../../config/registry.js';
 import config from '../../config/index.js';
+import Storage from './Storage.js';
+import File from './File.js';
 
 class Instance {
   static async create(data, userId) {
@@ -397,6 +399,19 @@ class Instance {
     await instance.update({ history });
 
     console.log(message);
+  }
+
+  static async backup(id) {
+    // Stop minecraft saving
+
+    // Make backup locally
+    const backupPath = await File.makeBackup(id);
+
+    // Delete old backups locally
+    File.deleteOldBackups(id, backupPath);
+
+    // Send backup to bucket
+    if (config.storage.enable) await Storage.backup(id, backupPath);
   }
 }
 

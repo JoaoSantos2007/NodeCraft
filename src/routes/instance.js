@@ -47,6 +47,11 @@ router
     (req, res, next) => auth('instance:update', req, res, next),
     Controller.updateVersion,
   )
+  .post(
+    '/instance/:id/backup',
+    (req, res, next) => auth('instance:backup', req, res, next),
+    Controller.backup,
+  )
   .put(
     '/instance/:id/remap/port',
     (req, res, next) => auth('instance:update', req, res, next),

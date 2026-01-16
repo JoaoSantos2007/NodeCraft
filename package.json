@@ -18,7 +18,9 @@
   "author": "João Pedro Tomaz dos Santos",
   "license": "ISC",
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.969.0",
     "adm-zip": "^0.5.16",
+    "archiver": "^7.0.1",
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
     "dockerode": "^4.0.9",
