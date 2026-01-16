@@ -4,7 +4,45 @@ import REGISTRY from '../../config/registry.js';
 import config from '../../config/index.js';
 
 class Container {
+  static ensureImage(imageName) {
+    return new Promise((resolve, reject) => {
+      docker.getImage(imageName).inspect()
+        .then(() => resolve())
+        .catch(() => {
+          docker.pull(imageName, (err, stream) => {
+            if (err) return reject(err);
+
+            return docker.modem.followProgress(
+              stream,
+              (errProgress) => (errProgress ? reject(errProgress) : resolve()),
+            );
+          });
+        });
+    });
+  }
+
+  static async ensureNetwork(networkName) {
+    const networks = await docker.listNetworks();
+
+    let exists = false;
+    networks.forEach((net) => {
+      if (net.Name === networkName) exists = true;
+    });
+
+    if (exists) return;
+
+    await docker.createNetwork({
+      Name: networkName,
+      Driver: 'bridge',
+      Internal: false,
+      Attachable: false,
+    });
+  }
+
   static async create(instance) {
+    await Container.ensureImage('itzg/minecraft-server');
+    await Container.ensureNetwork('nodecraft-net');
+
     const container = await docker.createContainer({
       name: `Nodecraft_${instance.id}`,
       Image: 'itzg/minecraft-server',
@@ -12,6 +50,11 @@ class Container {
         'EULA=TRUE',
         'TYPE=CUSTOM',
         'CUSTOM_SERVER=server.jar',
+
+        // RCON
+        'ENABLE_RCON=true',
+        'RCON_PASSWORD=nodecraft',
+        'RCON_PORT=25575',
       ],
 
       HostConfig: {
@@ -24,13 +67,16 @@ class Container {
             { HostPort: String(instance.port) },
           ],
         },
+
+        NetworkMode: 'nodecraft-net',
+
         Memory: 2048 * 1024 * 1024, // MB
         NanoCpus: 2 * 1e9,
-        RestartPolicy: { Name: 'no' },
 
         // Secure
         // ReadonlyRootfs: true,
         // CapDrop: ['ALL'],
+        RestartPolicy: { Name: 'no' },
         SecurityOpt: ['no-new-privileges'],
       },
     });
@@ -77,6 +123,17 @@ class Container {
       return info.State.Running;
     } catch {
       return false;
+    }
+  }
+
+  static async getIpAddress(container) {
+    try {
+      const inspect = await container.inspect();
+      const network = inspect.NetworkSettings.Networks['nodecraft-net'];
+
+      return network.IPAddress;
+    } catch {
+      return '';
     }
   }
 

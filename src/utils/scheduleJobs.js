@@ -1,17 +1,25 @@
 import Instance from '../services/Instance.js';
+import Container from '../services/Container.js';
 import { removeOldTemp } from './temp.js';
 import config from '../../config/index.js';
 
 // Execute some functions on start-up
-const onStart = () => {
-  Instance.attachAll();
+const onStart = async () => {
+  try {
+    await Container.ensureImage('itzg/minecraft-server');
+    await Container.ensureNetwork('nodecraft-net');
+
+    Instance.attachAll();
+  } catch {
+    // Throw error
+  }
 };
 
 // Update instances on 3 hour
 const scheduleUpdates = () => {
   let lastRunDate = null;
 
-  setInterval(() => {
+  setInterval(async () => {
     // Read time
     const now = new Date();
     const isThreeAM = now.getHours() === 3;
@@ -22,7 +30,8 @@ const scheduleUpdates = () => {
       lastRunDate = today;
 
       // Update all instances function
-      Instance.updateAll();
+      await Instance.updateAll();
+      await Instance.backupAll();
     }
   }, config.interval.checkUpdate);
 };

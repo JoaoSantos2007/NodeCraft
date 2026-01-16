@@ -7,6 +7,7 @@ import {
   readdirSync,
 } from 'fs';
 import { Op } from 'sequelize';
+import { Rcon } from 'rcon-client';
 import { Instance as Model, Link as LinkModel, User as UserModel } from '../models/index.js';
 import { BadRequest } from '../errors/index.js';
 import download from '../utils/download.js';
@@ -122,6 +123,28 @@ class Instance {
     return instance;
   }
 
+  static async backup(id) {
+    // Stop minecraft saving
+
+    // Make backup locally
+    const backupPath = await File.makeBackup(id);
+
+    // Delete old backups locally
+    File.deleteOldBackups(id, backupPath);
+
+    // Send backup to bucket
+    if (config.storage.enable) await Storage.backup(id, backupPath);
+  }
+
+  static async backupAll() {
+    const instances = await Instance.readAll();
+
+    instances.forEach(async (instance) => {
+      if (!instance.backup) return;
+      await Instance.backup(instance.id);
+    });
+  }
+
   static async install(instance, force = false) {
     // Get Info updates and verify if need updates
     const info = await getInfo(instance);
@@ -195,27 +218,31 @@ class Instance {
   }
 
   static async run(id) {
-    // Read instance
     const instance = await Instance.readOne(id);
     const path = `${config.instance.path}/${id}`;
 
-    // Read container or create one
     const container = await Container.getOrCreate(instance);
 
     // Setup ambient to run instance
     Instance.setup(instance, path);
 
-    // Run container if it is not running
     await Container.run(container);
-
-    // Registry instance
     Instance.register(instance);
 
     // Set container listen
-    Instance.setListening(id);
+    Container.listen(id, (msg) => {
+      Instance.updateHistory(id, msg);
 
-    // Set instance monitoring
-    Instance.setMonitoring(id);
+      if (msg.includes('joined the game') || msg.includes('left the game')) {
+        Instance.monitor(id);
+      }
+    });
+
+    // Set instance interval monitoring
+    REGISTRY[id].interval = setInterval(() => Instance.monitor(id), 5000);
+
+    // Set instance rcon
+    Instance.setRcon(id, container);
 
     // Update instance running status
     await instance.update({ running: true });
@@ -334,28 +361,26 @@ class Instance {
     };
   }
 
-  static setListening(id) {
-    Container.listen(id, async (msg) => {
-      Instance.updateHistory(id, msg);
+  static async setRcon(id, container) {
+    const containerIpAddress = await Container.getIpAddress(container);
 
-      if (msg.includes('joined the game') || msg.includes('left the game')) {
-        Instance.monitor(id);
-      }
+    const rcon = await Rcon.connect({
+      host: containerIpAddress,
+      port: 25575,
+      password: 'nodecraft',
     });
-  }
 
-  static setMonitoring(id) {
-    // First monitor
-    Instance.monitor(id);
+    await rcon.send('say Servidor controlado pela API!');
 
-    // Set instance monitoring
-    REGISTRY[id].interval = setInterval(() => Instance.monitor(id), 5000);
+    REGISTRY[id].rcon = rcon;
   }
 
   static async monitor(id) {
     const registry = REGISTRY[id];
     const instance = registry?.instance;
     if (!instance) return;
+
+    registry?.rcon.send('say Servidor controlado pela API!');
 
     // Verify last run
     if (!registry?.monitor) return;
@@ -399,19 +424,6 @@ class Instance {
     await instance.update({ history });
 
     console.log(message);
-  }
-
-  static async backup(id) {
-    // Stop minecraft saving
-
-    // Make backup locally
-    const backupPath = await File.makeBackup(id);
-
-    // Delete old backups locally
-    File.deleteOldBackups(id, backupPath);
-
-    // Send backup to bucket
-    if (config.storage.enable) await Storage.backup(id, backupPath);
   }
 }
 
