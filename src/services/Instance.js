@@ -7,19 +7,17 @@ import {
   readdirSync,
 } from 'fs';
 import { Op } from 'sequelize';
-import { Rcon } from 'rcon-client';
 import { Instance as Model, Link as LinkModel, User as UserModel } from '../models/index.js';
 import { BadRequest } from '../errors/index.js';
 import download from '../utils/download.js';
 import { getInfo } from '../utils/getVersion.js';
 import Container from './Container.js';
-import { syncFloodgate, syncGeyser, syncProperties } from '../utils/syncSettings.js';
-import queryMinecraft from '../utils/queryMinecraft.js';
 import Link from './Link.js';
 import REGISTRY from '../../config/registry.js';
 import config from '../../config/index.js';
 import Storage from './Storage.js';
 import File from './File.js';
+import Control from './Control.js';
 
 class Instance {
   static async create(data, userId) {
@@ -219,30 +217,23 @@ class Instance {
 
   static async run(id) {
     const instance = await Instance.readOne(id);
-    const path = `${config.instance.path}/${id}`;
-
     const container = await Container.getOrCreate(instance);
 
     // Setup ambient to run instance
-    Instance.setup(instance, path);
+    REGISTRY[id] = new Control(instance);
 
-    await Container.run(container);
-    Instance.register(instance);
+    // Try to run instance
+    try {
+      // Run instance
+      await Container.run(container);
+    } catch (err) {
+      // Unmount instance
+      Control.unmount(id);
 
-    // Set container listen
-    Container.listen(id, (msg) => {
-      Instance.updateHistory(id, msg);
+      throw err;
+    }
 
-      if (msg.includes('joined the game') || msg.includes('left the game')) {
-        Instance.monitor(id);
-      }
-
-      console.log(msg);
-    });
-
-    // Set instance rcon
-    Instance.verifyRcon(id);
-
+    // Set instance running
     await instance.update({ running: true });
 
     return instance;
@@ -253,7 +244,6 @@ class Instance {
     const container = await Container.get(id);
 
     const isRunning = await Container.isRunning(id);
-
     if (isRunning) {
       try {
         await container.stop({ t: 20 }); // SIGTERM
@@ -263,11 +253,7 @@ class Instance {
     }
 
     // Clean intervals and wipe registry
-    if (REGISTRY[id]) {
-      clearInterval(REGISTRY[id].interval);
-      Container.removeStream(id);
-      delete REGISTRY[id];
-    }
+    Control.unmount(id);
 
     // Update running instance status
     await instance.update({ running: false });
@@ -321,184 +307,6 @@ class Instance {
         writeFileSync(pendingDeletePath, `{"time":${Date.now()}}`, 'utf8');
       }
     });
-  }
-
-  static setup(instance, path) {
-    // Sync database with server.properties
-    syncProperties(instance, path);
-
-    // Wipe allowlist and privilegies
-    writeFileSync(`${path}/whitelist.json`, '[]', 'utf8');
-    writeFileSync(`${path}/ops.json`, '[]', 'utf8');
-
-    // Remove session.lock
-    if (existsSync(`${path}/world/session.lock`)) rmSync(`${path}/world/session.lock`, { recursive: true });
-
-    // Ensure bedrock
-    if (instance.bedrock) {
-      syncGeyser(instance, path);
-      syncFloodgate(instance, path);
-    }
-  }
-
-  static register(instance) {
-    REGISTRY[instance.id] = {
-      id: instance.id,
-      state: {
-        alive: false,
-        onlinePlayers: 0,
-        players: [],
-        ping: null,
-      },
-      barrier: {
-        authorizedGamertags: [],
-        superGamertags: [],
-        allowMonitored: false,
-        needUpdate: true,
-        applyRules: true,
-      },
-      lastMonitoringRun: 0,
-      instance,
-      stream: null,
-      interval: setInterval(() => Instance.monitor(instance.id), 5000),
-      rcon: null,
-      buffer: '',
-    };
-  }
-
-  static async verifyRcon(id) {
-    try {
-      if (REGISTRY[id].rcon) return;
-
-      const containerIpAddress = await Container.getIpAddress(id);
-      const rcon = await Rcon.connect({
-        host: containerIpAddress,
-        port: 25575,
-        password: 'nodecraft',
-      });
-
-      REGISTRY[id].rcon = rcon;
-    } catch {
-      REGISTRY[id].rcon = null;
-    }
-  }
-
-  static async verifyBarrier(id) {
-    const registry = REGISTRY[id];
-    if (!registry) return;
-
-    const { barrier, instance, state } = registry;
-    const { authorizedGamertags, superGamertags } = barrier;
-    const { players } = state;
-    const instancePlain = instance.get({ plain: true });
-
-    if (barrier.needUpdate) {
-      // Wipe barrier gamertags
-      barrier.authorizedGamertags = [];
-      barrier.superGamertags = [];
-
-      const links = instancePlain.players || [];
-      links.forEach((link) => {
-        const user = link.user || null;
-        const access = link?.access;
-        const gamertags = [];
-
-        if (user) gamertags.push(...[user?.javaGamertag, user?.bedrockGamertag]);
-        else gamertags.push(...[link.javaGamertag, link.bedrockGamertag]);
-
-        if (access === 'super') {
-          authorizedGamertags.push(...gamertags);
-          superGamertags.push(...gamertags);
-        } else if (access === 'always') {
-          authorizedGamertags.push(...gamertags);
-        } else if (access === 'monitored') {
-          if (barrier.allowMonitored) authorizedGamertags.push(...gamertags);
-        }
-      });
-
-      barrier.needUpdate = false;
-      barrier.applyRules = true;
-    }
-
-    // Get rcon
-    const rcon = registry?.rcon;
-    if (!rcon) return;
-
-    if (barrier.applyRules) {
-      // Wipe allowlist
-
-      // Set allowlist
-
-      // Wipe privileges
-
-      // Set privileges
-    }
-
-    // Kick players without authorized gamertag
-    players.forEach((player) => {
-      if (!authorizedGamertags.includes(player)) console.log('Kick player');
-    });
-  }
-
-  static async updateState(id) {
-    const registry = REGISTRY[id];
-    if (!registry) return;
-
-    const state = await queryMinecraft(registry.instance.port);
-    const { players } = state;
-    const { barrier } = registry;
-    const { superGamertags } = barrier;
-
-    // Verify barrier need update state
-    const allowMonitored = superGamertags.some((gamertag) => players.includes(gamertag));
-    if (allowMonitored !== barrier.allowMonitored) barrier.needUpdate = true;
-    barrier.allowMonitored = allowMonitored;
-
-    registry.state = {
-      alive: state.online,
-      onlinePlayers: state.onlinePlayers,
-      players: state.players,
-      ping: state.ping,
-    };
-  }
-
-  static async monitor(id) {
-    const registry = REGISTRY[id];
-    if (!registry) return;
-
-    // Verify last run
-
-    try {
-      await Instance.verifyRcon(id);
-      await Instance.updateState(id);
-      await Instance.verifyBarrier(id);
-
-      console.log('ok');
-    } catch (err) {
-      console.log(err);
-      // console.error('[MONITOR]', err);
-    }
-  }
-
-  static async updateHistory(id, message) {
-    // Get instance in registry
-    const instance = REGISTRY[id]?.instance;
-    if (!instance) return;
-
-    // Copy instance history array
-    let history = [...instance.history];
-    history.push(message);
-
-    // Wipe old lines
-    const historyLength = history.length;
-    const maxHistoryLength = instance.maxHistory || 0;
-    if (historyLength > maxHistoryLength) {
-      history = history.slice(historyLength - maxHistoryLength);
-    }
-
-    await instance.update({ history });
-
-    console.log(message);
   }
 }
 

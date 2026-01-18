@@ -142,7 +142,7 @@ class Auth {
     // Send Email
     try {
       const link = `${config.site.validateUrl}?token=${token}`;
-      const html = renderTemplate('verify.html', {
+      const html = renderTemplate('email/verify.html', {
         name: user.name || 'usuário',
         link,
         token,
@@ -186,7 +186,7 @@ class Auth {
     // Send Email
     try {
       const link = `${config.site.resetUrl}?token=${token}`;
-      const html = renderTemplate('reset.html', {
+      const html = renderTemplate('email/reset.html', {
         name: user.name || 'usuário',
         link,
         token,
