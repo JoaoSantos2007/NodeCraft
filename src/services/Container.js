@@ -126,8 +126,9 @@ class Container {
     }
   }
 
-  static async getIpAddress(container) {
+  static async getIpAddress(id) {
     try {
+      const container = docker.getContainer(`Nodecraft_${id}`);
       const inspect = await container.inspect();
       const network = inspect.NetworkSettings.Networks['nodecraft-net'];
 

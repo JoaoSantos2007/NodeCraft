@@ -79,11 +79,6 @@ User.init({
     type: DataTypes.DATE,
     allowNull: true,
   },
-  timePlayed: {
-    type: DataTypes.NUMBER,
-    allowNull: true,
-    defaultValue: 0,
-  },
   emailTokenHash: {
     type: DataTypes.TEXT,
     allowNull: true,

@@ -62,7 +62,7 @@ Link.init({
   },
   access: {
     type: DataTypes.STRING,
-    values: ['always', 'monitored'],
+    values: ['super', 'always', 'monitored'],
     defaultValue: 'always',
     allowNull: false,
   },

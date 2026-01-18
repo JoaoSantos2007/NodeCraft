@@ -14,7 +14,7 @@ import download from '../utils/download.js';
 import { getInfo } from '../utils/getVersion.js';
 import Container from './Container.js';
 import { syncFloodgate, syncGeyser, syncProperties } from '../utils/syncSettings.js';
-import query from '../../config/query.js';
+import queryMinecraft from '../utils/queryMinecraft.js';
 import Link from './Link.js';
 import REGISTRY from '../../config/registry.js';
 import config from '../../config/index.js';
@@ -236,15 +236,13 @@ class Instance {
       if (msg.includes('joined the game') || msg.includes('left the game')) {
         Instance.monitor(id);
       }
+
+      console.log(msg);
     });
 
-    // Set instance interval monitoring
-    REGISTRY[id].interval = setInterval(() => Instance.monitor(id), 5000);
-
     // Set instance rcon
-    Instance.setRcon(id, container);
+    Instance.verifyRcon(id);
 
-    // Update instance running status
     await instance.update({ running: true });
 
     return instance;
@@ -348,60 +346,137 @@ class Instance {
       id: instance.id,
       state: {
         alive: false,
-        playersOnline: 0,
-        adminsOnline: 0,
-        lastPolicyAppliedAt: 0,
+        onlinePlayers: 0,
+        players: [],
+        ping: null,
+      },
+      barrier: {
+        authorizedGamertags: [],
+        superGamertags: [],
+        allowMonitored: false,
+        needUpdate: true,
+        applyRules: true,
       },
       lastMonitoringRun: 0,
       instance,
       stream: null,
-      interval: null,
+      interval: setInterval(() => Instance.monitor(instance.id), 5000),
       rcon: null,
       buffer: '',
     };
   }
 
-  static async setRcon(id, container) {
-    const containerIpAddress = await Container.getIpAddress(container);
+  static async verifyRcon(id) {
+    try {
+      if (REGISTRY[id].rcon) return;
 
-    const rcon = await Rcon.connect({
-      host: containerIpAddress,
-      port: 25575,
-      password: 'nodecraft',
+      const containerIpAddress = await Container.getIpAddress(id);
+      const rcon = await Rcon.connect({
+        host: containerIpAddress,
+        port: 25575,
+        password: 'nodecraft',
+      });
+
+      REGISTRY[id].rcon = rcon;
+    } catch {
+      REGISTRY[id].rcon = null;
+    }
+  }
+
+  static async verifyBarrier(id) {
+    const registry = REGISTRY[id];
+    if (!registry) return;
+
+    const { barrier, instance, state } = registry;
+    const { authorizedGamertags, superGamertags } = barrier;
+    const { players } = state;
+    const instancePlain = instance.get({ plain: true });
+
+    if (barrier.needUpdate) {
+      // Wipe barrier gamertags
+      barrier.authorizedGamertags = [];
+      barrier.superGamertags = [];
+
+      const links = instancePlain.players || [];
+      links.forEach((link) => {
+        const user = link.user || null;
+        const access = link?.access;
+        const gamertags = [];
+
+        if (user) gamertags.push(...[user?.javaGamertag, user?.bedrockGamertag]);
+        else gamertags.push(...[link.javaGamertag, link.bedrockGamertag]);
+
+        if (access === 'super') {
+          authorizedGamertags.push(...gamertags);
+          superGamertags.push(...gamertags);
+        } else if (access === 'always') {
+          authorizedGamertags.push(...gamertags);
+        } else if (access === 'monitored') {
+          if (barrier.allowMonitored) authorizedGamertags.push(...gamertags);
+        }
+      });
+
+      barrier.needUpdate = false;
+      barrier.applyRules = true;
+    }
+
+    // Get rcon
+    const rcon = registry?.rcon;
+    if (!rcon) return;
+
+    if (barrier.applyRules) {
+      // Wipe allowlist
+
+      // Set allowlist
+
+      // Wipe privileges
+
+      // Set privileges
+    }
+
+    // Kick players without authorized gamertag
+    players.forEach((player) => {
+      if (!authorizedGamertags.includes(player)) console.log('Kick player');
     });
+  }
 
-    await rcon.send('say Servidor controlado pela API!');
+  static async updateState(id) {
+    const registry = REGISTRY[id];
+    if (!registry) return;
 
-    REGISTRY[id].rcon = rcon;
+    const state = await queryMinecraft(registry.instance.port);
+    const { players } = state;
+    const { barrier } = registry;
+    const { superGamertags } = barrier;
+
+    // Verify barrier need update state
+    const allowMonitored = superGamertags.some((gamertag) => players.includes(gamertag));
+    if (allowMonitored !== barrier.allowMonitored) barrier.needUpdate = true;
+    barrier.allowMonitored = allowMonitored;
+
+    registry.state = {
+      alive: state.online,
+      onlinePlayers: state.onlinePlayers,
+      players: state.players,
+      ping: state.ping,
+    };
   }
 
   static async monitor(id) {
     const registry = REGISTRY[id];
-    const instance = registry?.instance;
-    if (!instance) return;
-
-    registry?.rcon.send('say Servidor controlado pela API!');
+    if (!registry) return;
 
     // Verify last run
-    if (!registry?.monitor) return;
-
-    const { monitor } = registry;
-    monitor.lastRun = Date.now();
 
     try {
-      const state = await query(instance);
-      const players = instance.players ?? [];
+      await Instance.verifyRcon(id);
+      await Instance.updateState(id);
+      await Instance.verifyBarrier(id);
 
-      const onlineAdmins = 0;
-
-      registry.state = {
-        online: state.online,
-        onlinePlayers: state.onlinePlayers,
-        onlineAdmins,
-        players,
-      };
+      console.log('ok');
     } catch (err) {
-      // console.error('[MONITOR]', instance, err);
+      console.log(err);
+      // console.error('[MONITOR]', err);
     }
   }
 

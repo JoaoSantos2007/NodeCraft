@@ -1,10 +1,10 @@
 import { GameDig } from 'gamedig';
 
-const query = async (instance) => new Promise((resolve) => {
+const queryMinecraft = async (port) => new Promise((resolve) => {
   GameDig.query({
     type: 'minecraft',
     host: '127.0.0.1',
-    port: instance.port,
+    port,
     timeout: 2000,
   }).then((state) => {
     resolve({
@@ -25,4 +25,4 @@ const query = async (instance) => new Promise((resolve) => {
   });
 });
 
-export default query;
+export default queryMinecraft;
