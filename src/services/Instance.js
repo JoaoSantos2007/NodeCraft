@@ -219,11 +219,11 @@ class Instance {
     const instance = await Instance.readOne(id);
     const container = await Container.getOrCreate(instance);
 
-    // Setup ambient to run instance
-    REGISTRY[id] = new Control(instance);
-
     // Try to run instance
     try {
+      // Setup ambient to run instance
+      REGISTRY[id] = new Control(instance);
+
       // Run instance
       await Container.run(container);
     } catch (err) {
@@ -259,6 +259,13 @@ class Instance {
     await instance.update({ running: false });
 
     return instance;
+  }
+
+  static async updateBarrier(id) {
+    if (REGISTRY[id]) {
+      REGISTRY[id].barrier.needUpdate = true;
+      REGISTRY[id].instance = await Instance.readOne(id);
+    }
   }
 
   static async attachAll() {

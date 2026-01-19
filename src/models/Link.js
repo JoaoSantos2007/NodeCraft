@@ -1,6 +1,7 @@
 import { Sequelize, DataTypes, Model } from 'sequelize';
 import db from '../../config/sequelize.js';
 import config from '../../config/index.js';
+import InstanceService from '../services/Instance.js';
 
 class Link extends Model { }
 
@@ -70,6 +71,18 @@ Link.init({
   tableName: 'link',
   sequelize: db,
   timestamps: false,
+});
+
+Link.addHook('afterCreate', (link) => {
+  InstanceService.updateBarrier(link.instanceId);
+});
+
+Link.addHook('afterDestroy', (link) => {
+  InstanceService.updateBarrier(link.instanceId);
+});
+
+Link.addHook('afterUpdate', (link) => {
+  InstanceService.updateBarrier(link.instanceId);
 });
 
 export default Link;

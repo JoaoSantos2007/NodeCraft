@@ -14,7 +14,15 @@
         "import/extensions": [
             "error",
             "ignorePackages"
-        ]
+        ],
+        "no-restricted-syntax": [
+            "error",
+            {
+                "selector": "ForInStatement",
+                "message": "for..in is not allowed"
+            }
+        ],
+        "no-await-in-loop": "off"
     }
   }
   

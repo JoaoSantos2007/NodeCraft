@@ -1,4 +1,4 @@
-import fs from 'fs';
+import fs, { rmSync } from 'fs';
 import { Rcon } from 'rcon-client';
 import Path from 'path';
 import Container from './Container.js';
@@ -9,16 +9,19 @@ import REGISTRY from '../../config/registry.js';
 
 class Control {
   constructor(instance) {
+    const instancePath = Path.join(config.instance.path, instance.id);
+
     this.id = instance.id;
     this.instance = instance;
     this.paths = {
-      instance: Path.resolve(config.instance.path, instance.id),
-      allowlist: Path.resolve(this.paths.instance, 'whitelist.json'),
-      ops: Path.resolve(this.paths.instance, 'ops.json'),
-      properties: Path.resolve(this.paths.instance, 'server.properties'),
-      geyser: Path.resolve(this.paths.instance, 'plugins', 'Geyser-Spigot', 'config.yml'),
-      floodgate: Path.resolve(this.paths.instance, 'plugins', 'floodgate', 'config.yml'),
-      sessionLock: Path.resolve(this.paths.instance, 'world', 'session.lock'),
+      instance: instancePath,
+      allowlist: Path.join(instancePath, 'whitelist.json'),
+      ops: Path.join(instancePath, 'ops.json'),
+      properties: Path.join(instancePath, 'server.properties'),
+      geyser: Path.join(instancePath, 'plugins', 'Geyser-Spigot', 'config.yml'),
+      floodgate: Path.join(instancePath, 'plugins', 'floodgate', 'config.yml'),
+      sessionLock: Path.join(instancePath, 'world', 'session.lock'),
+      usercache: Path.join(instancePath, 'usercache.json'),
     };
     this.state = {
       alive: false,
@@ -49,9 +52,9 @@ class Control {
 
   async wipeAllowlist() {
     fs.writeFileSync(this.paths.allowlist, '[]', 'utf8');
+    rmSync(this.paths.usercache, { recursive: true, force: true });
 
-    if (!this.rcon) return;
-    await this.rcon.send('whitelist reload');
+    if (this.rcon) await this.rcon.send('whitelist reload');
   }
 
   async wipeOps() {
@@ -156,13 +159,18 @@ class Control {
     this.barrier.superGamertags = [];
 
     const links = instancePlain.players || [];
-    links.forEach((link) => {
+    for (const link of links) {
       const user = link.user || null;
       const access = link?.access;
       const gamertags = [];
 
-      if (user) gamertags.push(...[user?.javaGamertag, user?.bedrockGamertag]);
-      else gamertags.push(...[link.javaGamertag, link.bedrockGamertag]);
+      if (user) {
+        if (user?.javaGamertag) gamertags.push(user.javaGamertag);
+        if (user?.javaGamertag) gamertags.push(user.bedrockGamertag);
+      } else {
+        if (link.javaGamertag) gamertags.push(link.javaGamertag);
+        if (link.bedrockGamertag) gamertags.push(link.bedrockGamertag);
+      }
 
       if (access === 'super') {
         this.barrier.allowedGamertags.push(...gamertags);
@@ -176,7 +184,7 @@ class Control {
       if (link.privileges) {
         this.barrier.opGamertags.push(...gamertags);
       }
-    });
+    }
 
     this.barrier.needUpdate = false;
     this.barrier.updating = false;
@@ -191,43 +199,52 @@ class Control {
       await this.wipeAllowlist();
 
       // Set allowlist
-      this.barrier.allowedGamertags.forEach(async (gamertag) => {
+      for (const gamertag of this.barrier.allowedGamertags) {
         await this.rcon.send(`whitelist add ${gamertag}`);
-      });
+      }
 
+      // Reload whitelist
       await this.rcon.send('whitelist reload');
 
       // Wipe privileges
       await this.wipeOps();
 
       // Set privileges
-      this.barrier.opGamertags.forEach(async (gamertag) => {
+      for (const gamertag of this.barrier.opGamertags) {
         await this.rcon.send(`op ${gamertag}`);
-      });
+      }
+
+      this.barrier.applyRules = false;
     }
 
     if (!this.barrier.updating) {
-      const { players } = this.state;
-
       // Kick players without authorized gamertag
-      players.forEach(async (player) => {
-        if (!this.barrier.allowedGamertags.includes(player)) {
-          await this.rcon.send(`kick ${player}`);
+      for (const player of this.state.players) {
+        if (!this.barrier.allowedGamertags.includes(player.name)) {
+          await this.rcon.send(`kick ${player.name}`);
         }
-      });
+      }
     }
   }
 
   async updateState() {
     const state = await queryMinecraft(this.instance.port);
-    const { players } = state;
     const { barrier } = this;
     const { superGamertags } = barrier;
 
-    // Verify barrier need update state
-    const allowMonitored = superGamertags.some((gamertag) => players.includes(gamertag));
-    if (allowMonitored !== barrier.allowMonitored) barrier.needUpdate = true;
-    barrier.allowMonitored = allowMonitored;
+    // Verify allow monitored and barrier need update
+    let allowMonitored = false;
+    for (const player of state.players) {
+      if (superGamertags.includes(player.name)) {
+        allowMonitored = true;
+        break;
+      }
+    }
+
+    if (allowMonitored !== barrier.allowMonitored) {
+      barrier.needUpdate = true;
+      barrier.allowMonitored = allowMonitored;
+    }
 
     this.state = {
       alive: state.online,
@@ -245,8 +262,6 @@ class Control {
       await this.updateState();
       if (this.barrier.needUpdate) await this.updateBarrier();
       await this.applyBarrier();
-
-      console.log('ok');
     } catch (err) {
       console.log(err);
     }
@@ -284,7 +299,7 @@ class Control {
     this.removeSessionLock();
 
     // Set monitoring
-    this.monitor.interval = setInterval(this.toMonitor(), 5000);
+    this.monitor.interval = setInterval(() => this.toMonitor(), 5000);
 
     // Set container listen
     Container.listen(this.id, (msg) => {

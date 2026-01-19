@@ -50,11 +50,6 @@ class Container {
         'EULA=TRUE',
         'TYPE=CUSTOM',
         'CUSTOM_SERVER=server.jar',
-
-        // RCON
-        'ENABLE_RCON=true',
-        'RCON_PASSWORD=nodecraft',
-        'RCON_PORT=25575',
       ],
 
       HostConfig: {

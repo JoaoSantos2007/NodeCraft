@@ -43,6 +43,11 @@ router
     Controller.stop,
   )
   .post(
+    '/instance/:id/restart',
+    (req, res, next) => auth('instance:execute', req, res, next),
+    Controller.restart,
+  )
+  .post(
     '/instance/:id/update',
     (req, res, next) => auth('instance:update', req, res, next),
     Controller.updateVersion,

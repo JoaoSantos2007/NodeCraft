@@ -88,6 +88,18 @@ class Instance {
     }
   }
 
+  static async restart(req, res, next) {
+    try {
+      const { id } = req.params;
+      await Service.stop(id);
+      const instance = await Service.run(id);
+
+      return res.status(200).json({ success: true, restarting: true, instance });
+    } catch (err) {
+      return next(err);
+    }
+  }
+
   static async updateVersion(req, res, next) {
     try {
       const { id } = req.params;

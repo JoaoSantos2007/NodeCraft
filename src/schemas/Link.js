@@ -30,7 +30,7 @@ const Link = {
   },
   access: {
     type: 'string',
-    values: ['always', 'monitored'],
+    values: ['super', 'always', 'monitored'],
   },
 };
 
