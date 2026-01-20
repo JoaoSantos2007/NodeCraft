@@ -1,7 +1,7 @@
 import { Sequelize, DataTypes, Model } from 'sequelize';
 import db from '../../config/sequelize.js';
 import config from '../../config/index.js';
-import InstanceService from '../services/Instance.js';
+import instancesRunning from '../runtime/instancesRunning.js';
 
 class Link extends Model { }
 
@@ -73,16 +73,23 @@ Link.init({
   timestamps: false,
 });
 
-Link.addHook('afterCreate', (link) => {
-  InstanceService.updateBarrier(link.instanceId);
+const updateBarrier = async (id) => {
+  if (instancesRunning[id]) {
+    instancesRunning[id].barrier.needUpdate = true;
+    // instancesRunning[id].instance = await Instance.readOne(id);
+  }
+};
+
+Link.addHook('afterCreate', async (link) => {
+  await updateBarrier(link.instanceId);
 });
 
-Link.addHook('afterDestroy', (link) => {
-  InstanceService.updateBarrier(link.instanceId);
+Link.addHook('afterDestroy', async (link) => {
+  await updateBarrier(link.instanceId);
 });
 
-Link.addHook('afterUpdate', (link) => {
-  InstanceService.updateBarrier(link.instanceId);
+Link.addHook('afterUpdate', async (link) => {
+  await updateBarrier(link.instanceId);
 });
 
 export default Link;

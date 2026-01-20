@@ -1,6 +1,6 @@
 import { PassThrough } from 'stream';
 import docker from '../../config/docker.js';
-import REGISTRY from '../../config/registry.js';
+import instancesRunning from '../runtime/instancesRunning.js';
 import config from '../../config/index.js';
 
 class Container {
@@ -158,7 +158,7 @@ class Container {
 
     container.modem.demuxStream(stream, stdout, stderr);
 
-    REGISTRY[id].stream = stream;
+    instancesRunning[id].stream = stream;
 
     stdout.on('data', (chunk) => Container.handleChunk(chunk, id, callback));
     stderr.on('data', (chunk) => Container.handleChunk(chunk, id, callback));
@@ -166,7 +166,7 @@ class Container {
 
   static async handleChunk(chunk, id, callback) {
     let data = chunk.toString('utf8');
-    let buffer = REGISTRY[id]?.buffer;
+    let buffer = instancesRunning[id]?.buffer;
 
     // eslint-disable-next-line no-control-regex
     data = data.replace(/\x1B\[[0-9;]*m/g, ''); // ANSI
@@ -192,7 +192,7 @@ class Container {
   }
 
   static removeStream(id) {
-    const stream = REGISTRY[id]?.stream;
+    const stream = instancesRunning[id]?.stream;
 
     if (stream) {
       stream.removeAllListeners('data');

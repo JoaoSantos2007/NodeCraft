@@ -1,13 +1,20 @@
-import fs, { readdirSync, rmSync } from 'fs';
+import fs from 'fs';
 import Path from 'path';
 import AdmZip from 'adm-zip';
 import { randomUUID } from 'crypto';
 import archiver from 'archiver';
 import config from '../../config/index.js';
-import { createTemp } from '../utils/temp.js';
 import { Base, InvalidRequest } from '../errors/index.js';
 
 class File {
+  static createTempPath() {
+    const timestamp = new Date().getTime();
+    const tempPath = Path.join(config.temp.path, timestamp);
+
+    fs.mkdirSync(tempPath);
+    return tempPath;
+  }
+
   static verifyType(path) {
     const stats = fs.statSync(path);
     const isDir = stats.isDirectory(path);
@@ -102,7 +109,7 @@ class File {
     if (type === 'file') return absolutePath;
 
     // Path
-    const tempPath = createTemp();
+    const tempPath = File.createTempPath();
     const pathTo = `${tempPath}/${randomUUID()}.zip`;
     File.zip(absolutePath, pathTo);
     return pathTo;
@@ -191,10 +198,10 @@ class File {
     if (!fs.existsSync(instancePath) || !fs.existsSync(backupsPath)) return;
 
     const newBackupFilename = Path.basename(newBackupPath);
-    const files = readdirSync(backupsPath);
+    const files = fs.readdirSync(backupsPath);
     files.forEach((file) => {
       if (file !== newBackupFilename) {
-        rmSync(Path.join(backupsPath, file), { recursive: true, force: true });
+        fs.rmSync(Path.join(backupsPath, file), { recursive: true, force: true });
       }
     });
   }

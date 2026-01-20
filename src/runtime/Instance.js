@@ -1,13 +1,13 @@
 import fs, { rmSync } from 'fs';
 import { Rcon } from 'rcon-client';
 import Path from 'path';
-import Container from './Container.js';
-import queryMinecraft from '../utils/queryMinecraft.js';
+import Container from '../services/Container.js';
+import query from '../utils/query.js';
 import config from '../../config/index.js';
 import renderTemplate from '../utils/renderTemplate.js';
-import REGISTRY from '../../config/registry.js';
+import instancesRunning from './instancesRunning.js';
 
-class Control {
+class Instance {
   constructor(instance) {
     const instancePath = Path.join(config.instance.path, instance.id);
 
@@ -81,7 +81,7 @@ class Control {
     const instance = this.instance.get({ plain: true });
 
     // Sync database with server.properties
-    const properties = renderTemplate('server/server.properties', {
+    const properties = renderTemplate('minecraft/server.properties', {
       name: instance.name,
       seed: instance.seed,
       gamemode: instance.gamemode,
@@ -110,13 +110,13 @@ class Control {
 
     // Ensure bedrock
     if (instance.bedrock) {
-      const geyser = renderTemplate('server/geyser.yml', {
+      const geyser = renderTemplate('minecraft/geyser.yml', {
         motd: instance.name,
         name: instance.name,
         maxPlayers: instance.maxPlayers,
       });
 
-      const floodgate = renderTemplate('server/floodgate.yml');
+      const floodgate = renderTemplate('minecraft/floodgate.yml');
 
       fs.writeFileSync(this.paths.geyser, geyser, 'utf8');
       fs.writeFileSync(this.paths.floodgate, floodgate, 'utf8');
@@ -228,7 +228,7 @@ class Control {
   }
 
   async updateState() {
-    const state = await queryMinecraft(this.instance.port);
+    const state = await query(this.instance.port);
     const { barrier } = this;
     const { superGamertags } = barrier;
 
@@ -263,7 +263,7 @@ class Control {
       if (this.barrier.needUpdate) await this.updateBarrier();
       await this.applyBarrier();
     } catch (err) {
-      console.log(err);
+      // Save err in logs
     }
   }
 
@@ -312,12 +312,12 @@ class Control {
   }
 
   static unmount(id) {
-    if (REGISTRY[id]) {
-      clearInterval(REGISTRY[id].monitor.interval);
+    if (instancesRunning[id]) {
+      clearInterval(instancesRunning[id].monitor.interval);
       Container.removeStream(id);
-      delete REGISTRY[id];
+      delete instancesRunning[id];
     }
   }
 }
 
-export default Control;
+export default Instance;

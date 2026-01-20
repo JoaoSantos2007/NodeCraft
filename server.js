@@ -1,15 +1,9 @@
 import app from './src/app.js';
 import config from './config/index.js';
-import {
-  onStart,
-  scheduleUpdates,
-  scheduleTemp,
-  scheduleLost,
-} from './src/utils/scheduleJobs.js';
+import Maintenance from './src/services/Maintenance.js';
 
 app.listen(config.app.port, () => {
-  onStart();
-  scheduleUpdates();
-  scheduleTemp();
-  scheduleLost();
+  Maintenance.ensureDefaultPaths();
+  Maintenance.ensureDocker();
+  Maintenance.scheduleJobs();
 });

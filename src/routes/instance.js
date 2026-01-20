@@ -3,6 +3,7 @@ import Controller from '../controllers/Instance.js';
 import file from './file.js';
 import link from './link.js';
 import auth from '../middlewares/auth.js';
+import Middleware from '../middlewares/Instance.js';
 
 const router = Router();
 
@@ -25,21 +26,25 @@ router
   .put(
     '/instance/:id',
     (req, res, next) => auth('instance:update', req, res, next),
+    Middleware.verifyRunning,
     Controller.update,
   )
   .delete(
     '/instance/:id',
     (req, res, next) => auth('instance:delete', req, res, next),
+    Middleware.verifyRunning,
     Controller.delete,
   )
   .post(
     '/instance/:id/run',
     (req, res, next) => auth('instance:execute', req, res, next),
+    Middleware.verifyRunning,
     Controller.run,
   )
   .post(
     '/instance/:id/stop',
     (req, res, next) => auth('instance:execute', req, res, next),
+    Middleware.verifyNotRunning,
     Controller.stop,
   )
   .post(
@@ -50,6 +55,7 @@ router
   .post(
     '/instance/:id/update',
     (req, res, next) => auth('instance:update', req, res, next),
+    Middleware.verifyRunning,
     Controller.updateVersion,
   )
   .post(
@@ -60,6 +66,7 @@ router
   .put(
     '/instance/:id/remap/port',
     (req, res, next) => auth('instance:update', req, res, next),
+    Middleware.verifyRunning,
     Controller.remapPort,
   )
   .use('/instance', file)

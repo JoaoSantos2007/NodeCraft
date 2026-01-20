@@ -2,8 +2,8 @@ import path from 'path';
 import fs from 'fs';
 
 const ABSOLUTE_PATH = path.resolve(process.cwd());
-const SETTINGS_PATH = `${ABSOLUTE_PATH}/settings.json`;
-const TEMPLATE_PATH = `${ABSOLUTE_PATH}/src/templates/json/config.json`;
+const SETTINGS_PATH = path.join(ABSOLUTE_PATH, 'settings.json');
+const TEMPLATE_PATH = path.join(ABSOLUTE_PATH, 'src', 'templates', 'settings', 'config.json');
 
 if (!fs.existsSync(SETTINGS_PATH)) {
   const template = fs.readFileSync(TEMPLATE_PATH);
@@ -19,10 +19,7 @@ try {
 }
 
 config.absoutePath = ABSOLUTE_PATH;
-config.instance.path ??= `${ABSOLUTE_PATH}/instances`;
-config.temp.path ??= `${ABSOLUTE_PATH}/temp`;
-
-if (!fs.existsSync(config.instance.path)) fs.mkdirSync(config.instance.path);
-if (!fs.existsSync(config.temp.path)) fs.mkdirSync(config.temp.path);
+config.instance.path ??= path.join(ABSOLUTE_PATH, 'instances');
+config.temp.path ??= path.join(ABSOLUTE_PATH, 'temp');
 
 export default Object.freeze(config);

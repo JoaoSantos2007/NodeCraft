@@ -7,17 +7,18 @@ import {
   readdirSync,
 } from 'fs';
 import { Op } from 'sequelize';
+import Path from 'path';
 import { Instance as Model, Link as LinkModel, User as UserModel } from '../models/index.js';
 import { BadRequest } from '../errors/index.js';
 import download from '../utils/download.js';
-import { getInfo } from '../utils/getVersion.js';
 import Container from './Container.js';
 import Link from './Link.js';
-import REGISTRY from '../../config/registry.js';
 import config from '../../config/index.js';
 import Storage from './Storage.js';
 import File from './File.js';
-import Control from './Control.js';
+import Runtime from '../runtime/Instance.js';
+import Version from './Version.js';
+import instancesRunning from '../runtime/instancesRunning.js';
 
 class Instance {
   static async create(data, userId) {
@@ -32,7 +33,7 @@ class Instance {
     });
 
     // Create instance path in the System
-    mkdirSync(`${config.instance.path}/${instance.id}`);
+    mkdirSync(Path.join(config.instance.path, instance.id));
 
     // Create docker container
     await Container.create(instance);
@@ -107,16 +108,15 @@ class Instance {
   static async updateAll() {
     const instances = await Instance.readAll();
 
-    instances.forEach(async (instance) => {
-      if (!instance.updateAlways) return;
-      await Instance.install(instance);
-    });
+    for (const instance of instances) {
+      if (instance.updateAlways) await Instance.install(instance);
+    }
   }
 
   static async delete(id) {
     const instance = await Instance.readOne(id);
     await instance.destroy();
-    rmSync(`${config.instance.path}/${id}`, { recursive: true, force: true });
+    rmSync(Path.join(config.instance.path, id), { recursive: true, force: true });
 
     return instance;
   }
@@ -137,21 +137,20 @@ class Instance {
   static async backupAll() {
     const instances = await Instance.readAll();
 
-    instances.forEach(async (instance) => {
-      if (!instance.backup) return;
-      await Instance.backup(instance.id);
-    });
+    for (const instance of instances) {
+      if (instance.backup) await Instance.backup(instance.id);
+    }
   }
 
   static async install(instance, force = false) {
     // Get Info updates and verify if need updates
-    const info = await getInfo(instance);
+    const info = await Version.getLatest(instance);
     if (info.neededUpdates === 0 && !force) return { info, updating: false };
 
     // Define variables for download process
     const needRestart = instance.running; // Verify if the instance will need restart
-    const instancePath = `${config.instance.path}/${instance.id}`;
-    const pluginsPath = `${instancePath}/plugins`;
+    const instancePath = Path.join(config.instance.path, instance.id);
+    const pluginsPath = Path.join(instancePath, 'plugins');
     let downloadsCompleted = 0;
 
     // Create plugins path if not exists
@@ -222,13 +221,13 @@ class Instance {
     // Try to run instance
     try {
       // Setup ambient to run instance
-      REGISTRY[id] = new Control(instance);
+      instancesRunning[id] = new Runtime(instance);
 
       // Run instance
       await Container.run(container);
     } catch (err) {
       // Unmount instance
-      Control.unmount(id);
+      Runtime.unmount(id);
 
       throw err;
     }
@@ -253,7 +252,7 @@ class Instance {
     }
 
     // Clean intervals and wipe registry
-    Control.unmount(id);
+    Runtime.unmount(id);
 
     // Update running instance status
     await instance.update({ running: false });
@@ -261,27 +260,21 @@ class Instance {
     return instance;
   }
 
-  static async updateBarrier(id) {
-    if (REGISTRY[id]) {
-      REGISTRY[id].barrier.needUpdate = true;
-      REGISTRY[id].instance = await Instance.readOne(id);
-    }
-  }
-
   static async attachAll() {
     const instances = await Instance.readAll();
 
-    instances.forEach(async (instance) => {
+    for (const instance of instances) {
       if (instance.running) await Instance.run(instance.id);
-    });
+    }
   }
 
   static async verifyLost() {
     const instancesId = readdirSync(config.instance.path);
     if (!instancesId) return;
 
-    instancesId.forEach(async (id) => {
-      const pendingDeletePath = `${config.instance.path}/${id}/.delete-pending.json`;
+    for (const id of instancesId) {
+      const instancePath = Path.join(config.instance.path, id);
+      const pendingDeletePath = Path.join(instancePath, '.delete-pending.json');
       const existsPendingDelete = existsSync(pendingDeletePath);
 
       try {
@@ -299,7 +292,7 @@ class Instance {
       // Verify if pending delete process exists
       if (existsPendingDelete) {
         // Try to read .delete-pending.json
-        const rawData = readFileSync(`${config.instance.path}/${id}/.delete-pending.json`, 'utf8');
+        const rawData = readFileSync(pendingDeletePath, 'utf8');
         const data = JSON.parse(rawData);
 
         const time = Number(data?.time);
@@ -307,13 +300,13 @@ class Instance {
 
         if (!time || now - time >= config.instance.lifetime) {
           // Delete pending instance
-          rmSync(`${config.instance.path}/${id}`, { recursive: true, force: true });
+          rmSync(instancePath, { recursive: true, force: true });
         }
       } else {
         // Write .delete-pending.json
         writeFileSync(pendingDeletePath, `{"time":${Date.now()}}`, 'utf8');
       }
-    });
+    }
   }
 }
 

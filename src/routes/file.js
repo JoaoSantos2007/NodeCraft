@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import Controller from '../controllers/File.js';
 import Middleware from '../middlewares/File.js';
+import InstanceMiddleware from '../middlewares/Instance.js';
 import auth from '../middlewares/auth.js';
 import uploader from '../middlewares/uploader.js';
 
@@ -28,7 +29,7 @@ router
   .post( // Create or Upload files/folders
     '/:id/file/*path',
     (req, res, next) => auth('instance:file:create', req, res, next),
-    Middleware.verifyRunning,
+    InstanceMiddleware.verifyRunning,
     Middleware.verifyNewPath,
     uploader.single('file'),
     Controller.create,
@@ -36,21 +37,21 @@ router
   .put( // Update files content
     '/:id/file/*path',
     (req, res, next) => auth('instance:file:update', req, res, next),
-    Middleware.verifyRunning,
+    InstanceMiddleware.verifyRunning,
     Middleware.verifyPath,
     Controller.update,
   )
   .delete( // Delete files/folders
     '/:id/file/*path',
     (req, res, next) => auth('instance:file:delete', req, res, next),
-    Middleware.verifyRunning,
+    InstanceMiddleware.verifyRunning,
     Middleware.verifyPath,
     Controller.delete,
   )
   .patch( // Move files/folders
     '/:id/file/*path/to/*destiny',
     (req, res, next) => auth('instance:file:move', req, res, next),
-    Middleware.verifyRunning,
+    InstanceMiddleware.verifyRunning,
     Middleware.verifyPath,
     Middleware.verifyDestiny,
     Controller.move,
