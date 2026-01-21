@@ -23,11 +23,6 @@ const User = {
     internal: true,
     firstTime: true,
   },
-  gamertag: {
-    type: 'string',
-    min: 0,
-    max: 80,
-  },
   admin: {
     type: 'boolean',
     internal: true,

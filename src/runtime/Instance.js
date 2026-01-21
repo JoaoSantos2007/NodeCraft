@@ -8,7 +8,7 @@ import renderTemplate from '../utils/renderTemplate.js';
 import instancesRunning from './instancesRunning.js';
 
 class Instance {
-  constructor(instance) {
+  constructor(instance, readFunction) {
     const instancePath = Path.join(config.instance.path, instance.id);
 
     this.id = instance.id;
@@ -46,6 +46,7 @@ class Instance {
     this.rcon = null;
     this.tryingRconConnection = false;
     this.buffer = '';
+    this.readFunction = readFunction;
 
     this.setup();
   }
@@ -142,10 +143,19 @@ class Instance {
 
       this.rcon = rcon;
       this.tryingRconConnection = false;
-    } catch {
+      await this.runInitialCommands();
+    } catch (err) {
       this.rcon = null;
       this.tryingRconConnection = false;
     }
+  }
+
+  async runInitialCommands() {
+    if (!this.rcon) return;
+    await this.rcon.send('gamerule send_command_feedback false');
+    await this.rcon.send('gamerule  log_admin_commands false');
+    await this.rcon.send('save-all');
+    await this.rcon.send('save-on');
   }
 
   async updateBarrier() {
@@ -160,17 +170,8 @@ class Instance {
 
     const links = instancePlain.players || [];
     for (const link of links) {
-      const user = link.user || null;
       const access = link?.access;
-      const gamertags = [];
-
-      if (user) {
-        if (user?.javaGamertag) gamertags.push(user.javaGamertag);
-        if (user?.javaGamertag) gamertags.push(user.bedrockGamertag);
-      } else {
-        if (link.javaGamertag) gamertags.push(link.javaGamertag);
-        if (link.bedrockGamertag) gamertags.push(link.bedrockGamertag);
-      }
+      const gamertags = link.gamertags || [];
 
       if (access === 'super') {
         this.barrier.allowedGamertags.push(...gamertags);
@@ -217,7 +218,7 @@ class Instance {
       this.barrier.applyRules = false;
     }
 
-    if (!this.barrier.updating) {
+    if (!this.barrier.updating && this.instance.allowlist) {
       // Kick players without authorized gamertag
       for (const player of this.state.players) {
         if (!this.barrier.allowedGamertags.includes(player.name)) {
@@ -252,6 +253,16 @@ class Instance {
       players: state.players,
       ping: state.ping,
     };
+  }
+
+  async newBarrier() {
+    try {
+      const instance = await this.readFunction();
+      this.instance = instance;
+      this.barrier.needUpdate = true;
+    } catch (err) {
+      // Save in logs file
+    }
   }
 
   async toMonitor() {
@@ -311,12 +322,11 @@ class Instance {
     });
   }
 
-  static unmount(id) {
-    if (instancesRunning[id]) {
-      clearInterval(instancesRunning[id].monitor.interval);
-      Container.removeStream(id);
-      delete instancesRunning[id];
-    }
+  stop() {
+    clearInterval(this.monitor.interval);
+    Container.removeStream(this.id);
+    delete instancesRunning[this.id];
+    delete this;
   }
 }
 

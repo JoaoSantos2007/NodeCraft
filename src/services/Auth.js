@@ -77,7 +77,7 @@ class Auth {
       },
       config.token.jwtSecret,
       {
-        expiresIn: config.token.accessLifetime,
+        expiresIn: Math.floor(config.token.accessLifetime / 1000),
         audience: 'api',
       },
     );

@@ -7,12 +7,13 @@ import db from '../../config/sequelize.js';
 Instance.hasMany(Link, {
   foreignKey: 'instanceId',
   as: 'players',
+  onDelete: 'CASCADE',
+  hooks: true,
 });
 
 Link.belongsTo(Instance, {
   foreignKey: 'instanceId',
   as: 'instance',
-  onDelete: 'CASCADE',
 });
 
 // user <-> link
@@ -31,12 +32,13 @@ Link.belongsTo(User, {
 User.hasMany(Instance, {
   foreignKey: 'owner',
   as: 'ownedInstances',
+  onDelete: 'CASCADE',
+  hooks: true,
 });
 
 Instance.belongsTo(User, {
   foreignKey: 'owner',
   as: 'ownerUser',
-  onDelete: 'CASCADE',
 });
 
 // await db.sync({ alter: true });

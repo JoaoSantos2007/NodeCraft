@@ -55,8 +55,7 @@ class Link {
     const link = await Model.create({
       instanceId,
       userId: data.userId || null,
-      javaGamertag: data.javaGamertag,
-      bedrockGamertag: data.bedrockGamertag,
+      gamertags: data.gamertags || [],
       permissions: data.permissions,
       privileges: data.privileges,
       access: data.access,

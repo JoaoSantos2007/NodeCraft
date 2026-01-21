@@ -16,7 +16,6 @@ Instance.init({
       model: 'user',
       key: 'id',
     },
-    onDelete: 'CASCADE',
     validate: {
       isUUID: {
         args: 4,

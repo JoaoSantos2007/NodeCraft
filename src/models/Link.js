@@ -18,21 +18,38 @@ Link.init({
       model: 'instance',
       key: 'id',
     },
-    onDelete: 'CASCADE',
   },
   userId: {
     type: DataTypes.UUID,
     allowNull: true,
   },
-  javaGamertag: {
-    type: DataTypes.STRING,
+  gamertags: {
+    type: DataTypes.JSON,
     allowNull: false,
-    defaultValue: '',
-  },
-  bedrockGamertag: {
-    type: DataTypes.STRING,
-    allowNull: false,
-    defaultValue: '',
+    defaultValue: [],
+    validate: {
+      isValidArray(value) {
+        if (!Array.isArray(value)) {
+          throw new Error('Gamertags field must be an array!');
+        }
+
+        if (!value.every((item) => typeof item === 'string')) {
+          throw new Error('Gamertags must contain only strings!');
+        }
+
+        if (value.length > 4) {
+          throw new Error('Gamertags array must have until 4 elements');
+        }
+
+        value.forEach((item) => {
+          const gamertagLength = item.length;
+          if (gamertagLength < 3 || gamertagLength >= 40) {
+            throw new Error(`${item} gamertag must have a length higher than 3 and lower than 40!`);
+          }
+        });
+      },
+    },
+
   },
   permissions: {
     type: DataTypes.JSON,
@@ -74,10 +91,7 @@ Link.init({
 });
 
 const updateBarrier = async (id) => {
-  if (instancesRunning[id]) {
-    instancesRunning[id].barrier.needUpdate = true;
-    // instancesRunning[id].instance = await Instance.readOne(id);
-  }
+  if (instancesRunning[id]) await instancesRunning[id].newBarrier();
 };
 
 Link.addHook('afterCreate', async (link) => {

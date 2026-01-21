@@ -12,10 +12,8 @@ const Link = {
     type: 'string',
     isUUID: true,
   },
-  javaGamertag: {
-    type: 'string',
-    min: 3,
-    max: 50,
+  gamertags: {
+    type: 'object',
   },
   bedrockGamertag: {
     type: 'string',

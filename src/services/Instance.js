@@ -122,10 +122,17 @@ class Instance {
   }
 
   static async backup(id) {
+    const rcon = instancesRunning[id]?.rcon;
     // Stop minecraft saving
+    if (rcon) {
+      await rcon.send('save-all');
+      await rcon.send('save-off');
+    }
 
     // Make backup locally
     const backupPath = await File.makeBackup(id);
+
+    if (rcon) await rcon.send('save-on');
 
     // Delete old backups locally
     File.deleteOldBackups(id, backupPath);
@@ -221,13 +228,13 @@ class Instance {
     // Try to run instance
     try {
       // Setup ambient to run instance
-      instancesRunning[id] = new Runtime(instance);
+      instancesRunning[id] = new Runtime(instance, () => Instance.readOne(id));
 
       // Run instance
       await Container.run(container);
     } catch (err) {
-      // Unmount instance
-      Runtime.unmount(id);
+      // Stop runtime instance
+      if (instancesRunning[id]) instancesRunning[id].stop();
 
       throw err;
     }
@@ -251,8 +258,8 @@ class Instance {
       }
     }
 
-    // Clean intervals and wipe registry
-    Runtime.unmount(id);
+    // Stop runtime instance
+    if (instancesRunning[id]) instancesRunning[id].stop();
 
     // Update running instance status
     await instance.update({ running: false });

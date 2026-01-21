@@ -51,26 +51,6 @@ User.init({
     allowNull: false,
     defaultValue: false,
   },
-  javaGamertag: {
-    type: DataTypes.STRING,
-    allowNull: true,
-    validate: {
-      len: {
-        args: [0, 80],
-        msg: 'java gamertag must have a length under 80!',
-      },
-    },
-  },
-  bedrockGamertag: {
-    type: DataTypes.STRING,
-    allowNull: true,
-    validate: {
-      len: {
-        args: [0, 80],
-        msg: 'bedrock gamertag must have a length under 80!',
-      },
-    },
-  },
   gender: {
     type: DataTypes.STRING,
     allowNull: true,
