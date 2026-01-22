@@ -1,8 +1,8 @@
 import Base from './Base.js';
 
 class BadRequest extends Base {
-  constructor(message = 'Item not found', status = 404) {
-    super(message, status);
+  constructor(message = 'Item not found') {
+    super(message, 404, 'NOT_FOUND');
   }
 }
 

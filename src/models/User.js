@@ -9,6 +9,11 @@ User.init({
     defaultValue: Sequelize.UUIDV4,
     primaryKey: true,
   },
+  admin: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+  },
   name: {
     type: DataTypes.STRING,
     allowNull: false,
@@ -29,7 +34,7 @@ User.init({
     unique: true,
     validate: {
       isEmail: {
-        msg: 'email must be valid!',
+        msg: 'email is already registered!',
       },
       len: {
         args: [1, 257],
@@ -41,38 +46,58 @@ User.init({
     type: DataTypes.STRING,
     allowNull: false,
   },
-  gamertag: {
-    type: DataTypes.STRING,
-    allowNull: true,
-    validate: {
-      len: {
-        args: [0, 80],
-        msg: 'gamertag must have a length under 80!',
-      },
-    },
-  },
-  admin: {
+  verified: {
     type: DataTypes.BOOLEAN,
     allowNull: false,
     defaultValue: false,
   },
-  quota: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    defaultValue: 0,
-    validate: {
-      isInt: {
-        msg: 'quota must be a integer number!',
-      },
-    },
+  gender: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  birthDate: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+  emailTokenHash: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+  },
+  emailTokenExpires: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+  resetPasswordTokenHash: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+  },
+  resetPasswordTokenExpires: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+  refreshTokenHash: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+  },
+  refreshTokenExpires: {
+    type: DataTypes.DATE,
+    allowNull: true,
   },
 }, {
-  tableName: 'User',
+  tableName: 'user',
   sequelize: db,
   timestamps: false,
   defaultScope: {
     attributes: {
-      exclude: ['password'],
+      exclude: [
+        'password',
+        'emailTokenHash',
+        'emailTokenExpires',
+        'resetPasswordTokenHash',
+        'resetPasswordTokenExpires',
+        'refreshTokenHash',
+        'refreshTokenExpires',
+      ],
     },
   },
 });

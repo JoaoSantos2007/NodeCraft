@@ -1,15 +1,19 @@
 class Base extends Error {
-  constructor(message = 'Internal Server Error!', status = 500) {
-    super();
+  constructor(message = 'Internal Server Error!', status = 500, code = 'INTERNAL_ERROR', details = [], meta = {}) {
+    super(message);
     this.message = message;
     this.status = status;
+    this.code = code;
+    this.meta = meta;
+    this.details = details;
   }
 
   send(res) {
     res.status(this.status).send({
       success: false,
-      status: this.status,
+      error: this.code,
       message: this.message,
+      details: this.details,
     });
   }
 }

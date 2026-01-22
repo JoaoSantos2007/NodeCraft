@@ -52,6 +52,15 @@ const FieldExistsChecker = (modelRef, field) => {
   if (!modelRef) throw new InvalidRequest(`${field} field is not valid!`);
 };
 
+const verifyUUID = (modelRef, field, value) => {
+  if (!modelRef.isUUID) return;
+
+  const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  const isUUID = UUID_REGEX.test(value);
+
+  if (!isUUID) throw new InvalidRequest(`${field} field must be a uuid valid!`);
+};
+
 const validator = (data, schema, isUpdate = false, firstTime = false) => {
   for (const [key, value] of Object.entries(data)) {
     const modelRef = schema[key];
@@ -59,6 +68,7 @@ const validator = (data, schema, isUpdate = false, firstTime = false) => {
     FieldExistsChecker(modelRef, key);
     internalChecker(modelRef, key, firstTime);
     desiredTypeChecker(modelRef, key, value);
+    verifyUUID(modelRef, key, value);
     if (!isUpdate) requiredChecker(data, schema);
     if (String(modelRef.type) === 'number') numberChecker(modelRef, key, value);
     if (String(modelRef.type) === 'string') stringChecker(modelRef, key, value);

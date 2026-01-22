@@ -2,14 +2,12 @@ const Instance = {
   id: {
     type: 'string',
     internal: true,
-  },
-  pid: {
-    type: 'string',
-    internal: true,
+    isUUID: true,
   },
   owner: {
     type: 'string',
     internal: true,
+    isUUID: true,
   },
   name: {
     type: 'string',
@@ -17,19 +15,15 @@ const Instance = {
     min: 3,
     max: 32,
   },
-  type: {
-    type: 'string',
-    required: true,
-    values: ['bedrock', 'java'],
-    internal: true,
-    firstTime: true,
-  },
   software: {
     type: 'string',
     values: ['vanilla', 'paper', 'purpur'],
     required: true,
     internal: true,
     firstTime: true,
+  },
+  bedrock: {
+    type: 'boolean',
   },
   maxHistory: {
     type: 'number',
@@ -49,6 +43,16 @@ const Instance = {
     internal: true,
   },
   build: {
+    type: 'number',
+    int: true,
+    internal: true,
+  },
+  geyserBuild: {
+    type: 'number',
+    int: true,
+    internal: true,
+  },
+  floodgateBuild: {
     type: 'number',
     int: true,
     internal: true,

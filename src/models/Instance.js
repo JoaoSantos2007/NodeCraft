@@ -9,18 +9,17 @@ Instance.init({
     defaultValue: Sequelize.UUIDV4,
     primaryKey: true,
   },
-  pid: {
-    type: DataTypes.INTEGER,
-    defaultValue: 0,
-    allowNull: true,
-  },
   owner: {
-    type: DataTypes.STRING,
+    type: DataTypes.UUID,
     allowNull: false,
+    references: {
+      model: 'user',
+      key: 'id',
+    },
     validate: {
       isUUID: {
         args: 4,
-        msg: 'owner field must be a user id or a group id!',
+        msg: 'owner field must be a user id!',
       },
     },
   },
@@ -38,17 +37,6 @@ Instance.init({
       },
     },
   },
-  type: {
-    type: DataTypes.STRING,
-    values: ['bedrock', 'java'],
-    allowNull: false,
-    validate: {
-      isIn: {
-        args: [['bedrock', 'java']],
-        msg: 'type field must be bedrock or java!',
-      },
-    },
-  },
   software: {
     type: DataTypes.STRING,
     values: ['vanilla', 'paper', 'purpur'],
@@ -61,10 +49,15 @@ Instance.init({
       },
     },
   },
+  bedrock: {
+    type: DataTypes.BOOLEAN,
+    allowNull: true,
+    defaultValue: false,
+  },
   maxHistory: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    defaultValue: 20,
+    defaultValue: 150,
     validate: {
       min: {
         args: [0],
@@ -96,15 +89,36 @@ Instance.init({
     allowNull: false,
     defaultValue: 0,
   },
+  geyserBuild: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0,
+  },
+  floodgateBuild: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0,
+  },
   running: {
     type: DataTypes.BOOLEAN,
     allowNull: false,
     defaultValue: false,
   },
   history: {
-    type: DataTypes.TEXT,
+    type: DataTypes.JSON,
     allowNull: false,
-    defaultValue: '',
+    defaultValue: [],
+    validate: {
+      isValidArray(value) {
+        if (!Array.isArray(value)) {
+          throw new Error('History field must be an array!');
+        }
+
+        if (!value.every((item) => typeof item === 'string')) {
+          throw new Error('History must contain only strings!');
+        }
+      },
+    },
   },
 
   // Properties

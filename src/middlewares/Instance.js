@@ -1,17 +1,31 @@
-import errorHandler from '../utils/errorHandler.js';
-import InvalidRequestError from '../errors/InvalidRequest.js';
-import Service from '../services/Instance.js';
+import { InvalidRequest } from '../errors/index.js';
+import instancesRunning from '../runtime/instancesRunning.js';
+import error from './error.js';
 
 class Instance {
-  static verifyInProgress(req, res, next) {
+  static async verifyRunning(req, res, next) {
     try {
-      // eslint-disable-next-line prefer-destructuring
-      const id = req.params.id;
-      if (Service.verifyInProgess(id)) throw new InvalidRequestError('You cannot do this action while instance is in progress!');
+      const id = req?.params?.id;
+
+      const runtime = instancesRunning[id];
+      if (runtime) throw new InvalidRequest('You cannot do this while instance is running!');
 
       return next();
     } catch (err) {
-      return errorHandler(err, res);
+      return error(err, req, res);
+    }
+  }
+
+  static async verifyNotRunning(req, res, next) {
+    try {
+      const id = req?.params?.id;
+
+      const runtime = instancesRunning[id];
+      if (!runtime) throw new InvalidRequest('You cannot do this while instance is not running!');
+
+      return next();
+    } catch (err) {
+      return error(err, req, res);
     }
   }
 }

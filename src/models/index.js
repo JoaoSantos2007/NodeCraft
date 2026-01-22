@@ -1,34 +1,52 @@
 import User from './User.js';
-import Group from './Group.js';
-import Role from './Role.js';
-import Member from './Member.js';
 import Instance from './Instance.js';
-import Player from './Player.js';
+import Link from './Link.js';
 import db from '../../config/sequelize.js';
 
-Group.hasMany(Role, { as: 'roles', foreignKey: 'GroupId' });
-Role.belongsTo(Group, { foreignKey: 'GroupId' });
+// instance <-> link
+Instance.hasMany(Link, {
+  foreignKey: 'instanceId',
+  as: 'players',
+  onDelete: 'CASCADE',
+  hooks: true,
+});
 
-User.belongsToMany(Group, { through: Member, as: 'groups', foreignKey: 'UserId' });
-Group.belongsToMany(User, { through: Member, as: 'members', foreignKey: 'GroupId' });
+Link.belongsTo(Instance, {
+  foreignKey: 'instanceId',
+  as: 'instance',
+});
 
-Member.belongsTo(User, { foreignKey: 'UserId' });
-Member.belongsTo(Group, { foreignKey: 'GroupId' });
-Member.belongsTo(Role, { foreignKey: 'RoleId' });
-User.hasMany(Member, { foreignKey: 'UserId' });
-Group.hasMany(Member, { foreignKey: 'GroupId' });
+// user <-> link
+User.hasMany(Link, {
+  foreignKey: 'userId',
+  as: 'instances',
+});
 
-Instance.hasMany(Player, { foreignKey: 'instanceId', as: 'players' });
-Player.belongsTo(Instance, { foreignKey: 'instanceId', as: 'instance' });
+Link.belongsTo(User, {
+  foreignKey: 'userId',
+  as: 'user',
+  constraints: false, // userId pode ser arbitrário
+});
+
+// user <-> instance
+User.hasMany(Instance, {
+  foreignKey: 'owner',
+  as: 'ownedInstances',
+  onDelete: 'CASCADE',
+  hooks: true,
+});
+
+Instance.belongsTo(User, {
+  foreignKey: 'owner',
+  as: 'ownerUser',
+});
 
 // await db.sync({ alter: true });
 await db.query('PRAGMA foreign_keys = ON');
 
 export {
+  db,
   User,
-  Group,
-  Role,
-  Member,
   Instance,
-  Player,
+  Link,
 };

@@ -1,39 +1,30 @@
-/* eslint-disable consistent-return */
-/* eslint-disable no-new */
 import {
-  mkdirSync, rmSync, writeFileSync, chmodSync,
+  mkdirSync,
+  rmSync,
   existsSync,
+  writeFileSync,
+  readFileSync,
+  readdirSync,
 } from 'fs';
-import { spawn } from 'child_process';
 import { Op } from 'sequelize';
-import AdmZip from 'adm-zip';
-import {
-  INSTANCES_PATH, INSTANCES, MIN_PORT, MAX_PORT,
-} from '../../config/settings.js';
-import { Instance as Model, Player as PlayerModel } from '../models/index.js';
+import Path from 'path';
+import { Instance as Model, Link as LinkModel, User as UserModel } from '../models/index.js';
 import { BadRequest } from '../errors/index.js';
-import Temp from './Temp.js';
-import AccessGuard from './AccessGuard.js';
 import download from '../utils/download.js';
-import List from './List.js';
-import getVersion from '../utils/getVersion.js';
+import Container from './Container.js';
+import Link from './Link.js';
+import config from '../../config/index.js';
+import Storage from './Storage.js';
+import File from './File.js';
+import Runtime from '../runtime/Instance.js';
+import Version from './Version.js';
+import instancesRunning from '../runtime/instancesRunning.js';
+import logger from '../../config/logger.js';
 
 class Instance {
-  constructor(doc, type = null) {
-    this.id = doc.id;
-    this.doc = doc;
-    this.type = type || doc.type;
-    this.path = `${INSTANCES_PATH}/${doc.id}`;
-    this.online = 0;
-    this.admins = 0;
-    this.players = [];
-    this.started = false;
-    this.setup();
-  }
-
   static async create(data, userId) {
     // Pick up a server port
-    const port = await Instance.SelectPort();
+    const port = await Instance.selectPort();
 
     // Create instance in the Database
     const instance = await Model.create({
@@ -43,43 +34,69 @@ class Instance {
     });
 
     // Create instance path in the System
-    mkdirSync(`${INSTANCES_PATH}/${instance.id}`);
+    mkdirSync(Path.join(config.instance.path, instance.id));
+
+    // Create docker container
+    await Container.create(instance);
+
+    // Install instance
+    Instance.install(instance, true);
 
     return instance;
   }
 
   static async readAll() {
-    const instances = await Model.findAll({ include: { model: PlayerModel, as: 'players' } });
+    const instances = await Model.findAll({
+      include: {
+        model: LinkModel,
+        as: 'players',
+        include: {
+          model: UserModel,
+          as: 'user',
+          required: false,
+        },
+      },
+    });
+    return instances;
+  }
+
+  static async personalRead(user) {
+    if (user.admin) return Instance.readAll();
+
+    const userInstances = await Model.findAll({
+      where: {
+        owner: user.id,
+      },
+    });
+
+    const instancesId = await Link.readInstancesIdByUserLink(user.id);
+
+    const linkInstances = await Model.findAll({
+      where: {
+        id: { [Op.in]: instancesId },
+      },
+    });
+
+    const instances = [...userInstances, ...linkInstances];
+
     return instances;
   }
 
   static async readOne(id) {
-    const instance = await Model.findByPk(id, { include: { model: PlayerModel, as: 'players' } });
-    if (!instance) throw new BadRequest('Instance not found!');
-
-    return instance;
-  }
-
-  static async readAllByOwner(ownerId) {
-    const instances = await Model.findAll({
-      where: {
-        owner: ownerId,
-      },
-    });
-
-    return instances;
-  }
-
-  static async readAllByOwners(ownerIds) {
-    const instances = await Model.findAll({
-      where: {
-        owner: {
-          [Op.in]: ownerIds,
+    const instance = await Model.findByPk(id, {
+      include: {
+        model: LinkModel,
+        as: 'players',
+        include: {
+          model: UserModel,
+          as: 'user',
+          required: false,
         },
       },
     });
+    if (!instance) throw new BadRequest('Instance not found!');
 
-    return instances;
+    return instance;
   }
 
   static async update(id, data) {
@@ -89,89 +106,102 @@ class Instance {
     return instance;
   }
 
+  static async updateAll() {
+    const instances = await Instance.readAll();
+
+    for (const instance of instances) {
+      try {
+        if (instance.updateAlways) await Instance.install(instance);
+      } catch (err) {
+        logger.error({ err }, 'Error to update an instance');
+      }
+    }
+  }
+
   static async delete(id) {
     const instance = await Instance.readOne(id);
     await instance.destroy();
-    rmSync(`${INSTANCES_PATH}/${id}`, { recursive: true });
+    rmSync(Path.join(config.instance.path, id), { recursive: true, force: true });
 
     return instance;
   }
 
-  static verifyInProgess(id) {
-    return INSTANCES[id];
+  static async backup(id) {
+    const rcon = instancesRunning[id]?.rcon;
+    // Stop minecraft saving
+    if (rcon) {
+      await rcon.send('save-all');
+      await rcon.send('save-off');
+    }
+
+    // Make backup locally
+    const backupPath = await File.makeBackup(id);
+
+    if (rcon) await rcon.send('save-on');
+
+    // Delete old backups locally
+    File.deleteOldBackups(id, backupPath);
+
+    // Send backup to bucket
+    if (config.storage.enable) await Storage.backup(id, backupPath);
   }
 
-  static async verifyNeedUpdate(instance) {
-    const info = {
-      needUpdate: false, version: 0, build: 0, url: null,
-    };
+  static async backupAll() {
+    const instances = await Instance.readAll();
 
-    if (instance.type === 'bedrock') {
-      const { version = '', url = '' } = await getVersion('bedrock');
-
-      info.version = version;
-      info.url = url;
-    } if (instance.type === 'java') {
-      const {
-        version = '', build = 0, url = '',
-      } = await getVersion(instance.software);
-
-      info.version = version;
-      info.build = build;
-      info.url = url;
+    for (const instance of instances) {
+      try {
+        if (instance.backup) await Instance.backup(instance.id);
+      } catch (err) {
+        logger.error({ err }, 'Error to backup an instance');
+      }
     }
-
-    // Verify if instance needs updates
-    info.needUpdate = instance.version !== info.version;
-    if (!info.needUpdate && info.build) {
-      info.needUpdate = Number(instance.build) !== Number(info.build);
-    }
-    if (!instance.installed) info.needUpdate = true;
-
-    return info;
   }
 
   static async install(instance, force = false) {
-    // Verify if instance needUpdates
-    const info = await Instance.verifyNeedUpdate(instance);
-    if (!info.needUpdate && !force) return { version: info.version, updated: false };
+    // Get Info updates and verify if need updates
+    const info = await Version.getLatest(instance);
+    if (info.neededUpdates === 0 && !force) return { info, updating: false };
 
     // Define variables for download process
-    const instancePath = `${INSTANCES_PATH}/${instance.id}`;
-    const tempPath = Temp.create();
-    const downloadCommand = instance.type === 'bedrock' ? `${tempPath}/bedrock.zip` : `${instancePath}/server.jar`;
+    const needRestart = instance.running; // Verify if the instance will need restart
+    const instancePath = Path.join(config.instance.path, instance.id);
+    const pluginsPath = Path.join(instancePath, 'plugins');
+    let downloadsCompleted = 0;
 
-    // Start the download process in the background
-    download(downloadCommand, info.url).then(async () => {
-      // Verify if the instance will need restart
-      const needRestart = instance.running;
+    // Create plugins path if not exists
+    if (!existsSync(pluginsPath)) mkdirSync(pluginsPath);
 
-      // Stop and Wait Instance for update
-      await Instance.stopAndWait(instance.id);
+    // Stop instance and wait
+    await Instance.stop(instance.id);
 
-      // Extract installer.zip if instance is bedrock type
-      if (instance.type === 'bedrock') {
-        const zip = new AdmZip(`${tempPath}/bedrock.zip`);
-        zip.extractAllTo(instancePath, true);
-        Temp.delete(tempPath);
+    const endDownloading = () => {
+      downloadsCompleted += 1;
+
+      // Downloads completed
+      if (info.neededUpdates === downloadsCompleted) {
+        Instance.update(instance.id, {
+          installed: true,
+          version: info.instanceVersion,
+          build: info.instanceBuild,
+          geyserBuild: info.geyserBuild,
+          floodgateBuild: info.floodgateBuild,
+        });
+
+        if (needRestart) Instance.run(instance.id);
       }
+    };
 
-      // Update instance data
-      await Instance.update(instance.id, {
-        version: info.version,
-        build: info.build,
-        installed: true,
-      });
-
-      // Restart instance if necessary
-      if (needRestart) new Instance(instance);
-    });
+    // Start the instance install process in the background
+    if (info.needInstanceUpdate) download(`${instancePath}/server.jar`, info.instanceUrl).then(endDownloading);
+    if (info.needGeyserUpdate) download(`${pluginsPath}/Geyser.jar`, info.geyserUrl).then(endDownloading);
+    if (info.needFloodgateUpdate) download(`${pluginsPath}/Floodgate.jar`, info.floodgateUrl).then(endDownloading);
 
     // Return the immediate response
-    return { version: info.version, updating: true };
+    return { info, updating: true };
   }
 
-  static async SelectPort() {
+  static async selectPort() {
     const instances = await Instance.readAll();
     const usedPorts = [];
     const availablePorts = [];
@@ -184,7 +214,7 @@ class Instance {
     });
 
     // Find available ports
-    for (let port = MIN_PORT; port <= MAX_PORT; port += 1) {
+    for (let port = config.instance.minPort; port <= config.instance.maxPort; port += 1) {
       if (!usedPorts.includes(port)) {
         availablePorts.push(port);
       }
@@ -200,143 +230,105 @@ class Instance {
     return randomPort;
   }
 
-  static stopAndWait(id) {
-    return new Promise((resolve, reject) => {
-      let resolved = false;
+  static async run(id) {
+    const instance = await Instance.readOne(id);
+    const container = await Container.getOrCreate(instance);
 
-      function safeResolve() {
-        if (!resolved) {
-          resolved = true;
-          resolve();
+    // Try to run instance
+    try {
+      // Setup ambient to run instance
+      instancesRunning[id] = new Runtime(instance, () => Instance.readOne(id));
+
+      // Run instance
+      await Container.run(container);
+    } catch (err) {
+      // Stop runtime instance
+      if (instancesRunning[id]) instancesRunning[id].stop();
+
+      throw err;
+    }
+
+    // Set instance running
+    await instance.update({ running: true });
+
+    return instance;
+  }
+
+  static async stop(id) {
+    const instance = await Instance.readOne(id);
+    const container = await Container.get(id);
+
+    const isRunning = await Container.isRunning(id);
+    if (isRunning) {
+      try {
+        await container.stop({ t: 20 }); // SIGTERM
+      } catch {
+        await container.kill(); // SIGKILL
+      }
+    }
+
+    // Stop runtime instance
+    if (instancesRunning[id]) instancesRunning[id].stop();
+    await Container.delete(id);
+
+    // Update running instance status
+    await instance.update({ running: false });
+
+    return instance;
+  }
+
+  static async attachAll() {
+    const instances = await Instance.readAll();
+
+    for (const instance of instances) {
+      try {
+        if (instance.running) await Instance.run(instance.id);
+      } catch (err) {
+        logger.error({ err }, 'Error to attach an instance');
+      }
+    }
+  }
+
+  static async verifyLost() {
+    const instancesId = readdirSync(config.instance.path);
+    if (!instancesId) return;
+
+    for (const id of instancesId) {
+      const instancePath = Path.join(config.instance.path, id);
+      const pendingDeletePath = Path.join(instancePath, '.delete-pending.json');
+      const existsPendingDelete = existsSync(pendingDeletePath);
+
+      try {
+        const instance = await Model.findByPk(id);
+
+        // Verify if instances exists in database, delete pending process and return
+        if (instance) {
+          rmSync(pendingDeletePath, { recursive: true, force: true });
+          return;
         }
+      } catch (err) {
+        logger.error({ err });
+        return;
       }
 
-      Instance.readOne(id)
-        .then((data) => {
-          const instance = data.get({ plain: true });
-          const pid = instance?.pid;
+      // Verify if pending delete process exists
+      if (existsPendingDelete) {
+        // Try to read .delete-pending.json
+        const rawData = readFileSync(pendingDeletePath, 'utf8');
+        const data = JSON.parse(rawData);
 
-          if (!pid || pid === 0 || !instance.running) return safeResolve();
+        const time = Number(data?.time);
+        const now = Date.now();
 
-          // Verify if process is alive
-          try {
-            if (pid) process.kill(pid, 0); // Test if process is alive
-          } catch {
-            return safeResolve(); // Process already dead
-          }
-
-          // Kill process safetly
-          try {
-            if (pid) process.kill(pid, 'SIGTERM'); // Try to kill process
-          } catch (err) {
-            return safeResolve(); // Process already dead
-          }
-
-          // Check if the process is dead periodically in 1s
-          let timeout;
-          const interval = setInterval(() => {
-            try {
-              if (pid) process.kill(pid, 0); // Test if process is alive
-            } catch { // Process is dead, finish interval
-              clearInterval(interval);
-              clearTimeout(timeout);
-              return safeResolve();
-            }
-          }, 1000);
-
-          // Force kill a process after 20s
-          timeout = setTimeout(() => {
-            try {
-              if (pid) process.kill(pid, 'SIGKILL');
-            } catch (err) {
-              return safeResolve();
-            }
-            clearInterval(interval);
-            safeResolve();
-          }, 20000);
-        })
-        .catch((err) => reject(err));
-    });
-  }
-
-  async setup() {
-    List.sync(this.path, this.doc);
-    AccessGuard.wipe(this);
-    this.run();
-    this.setListeners();
-  }
-
-  run() {
-    let command;
-    let args;
-
-    if (this.type === 'bedrock') {
-      if (existsSync(`${this.path}/bedrock_server`)) chmodSync(`${this.path}/bedrock_server`, 0o755);
-      command = './bedrock_server';
-      args = [];
-    } else if (this.type === 'java') {
-      command = 'java';
-      args = ['-jar', 'server.jar', 'nogui'];
-      writeFileSync(`${this.path}/eula.txt`, 'eula=true', 'utf8');
-
-      if (existsSync(`${this.path}/world/session.lock`)) rmSync(`${this.path}/world/session.lock`, { recursive: true });
+        if (!time || now - time >= config.instance.lifetime) {
+          // Delete pending instance
+          rmSync(instancePath, { recursive: true, force: true });
+        }
+      } else {
+        // Write .delete-pending.json
+        writeFileSync(pendingDeletePath, `{"time":${Date.now()}}`, 'utf8');
+      }
     }
-
-    INSTANCES[this.doc.id] = this;
-    this.terminal = spawn(command, args, {
-      cwd: this.path,
-      stdio: 'pipe',
-      detached: false,
-    });
-    Instance.update(this.id, { pid: this.terminal.pid, running: true });
-  }
-
-  setListeners() {
-    this.terminal.on('close', () => this.stop(true));
-    this.terminal.on('error', () => this.stop(true));
-    this.terminal.stdout.on('data', (output) => {
-      const msg = output.toString();
-      console.log(msg);
-      this.updateHistory(msg);
-      AccessGuard.analyzer(msg, this);
-    });
-  }
-
-  emitEvent(cmd) {
-    if (this.terminal && this.terminal.stdin && this.terminal.stdin.writable) this.terminal.stdin.write(`${cmd}\n`);
-  }
-
-  stop(ended = false) {
-    if (ended === false) {
-      this.emitEvent('stop');
-      this.emitEvent('/stop');
-
-      setTimeout(() => {
-        if (this.terminal && this.terminal.exitCode === null && !this.terminal.killed) this.terminal.kill('SIGKILL');
-      }, 10000);
-    } else if (ended === true && this.doc) {
-      Instance.update(this.id, { pid: 0, running: false });
-      INSTANCES[this.id] = null;
-    }
-  }
-
-  async updateHistory(output) {
-    const instance = await Instance.readOne(this.doc.id);
-
-    let msg = output;
-    let { history } = instance;
-
-    if (!msg.endsWith('\n')) msg += '\n';
-    history += msg;
-
-    // Verify and slice old lines
-    const lines = history.split('\n');
-    if (lines.length > instance.maxHistory) {
-      const trimmedLines = lines.slice(lines.length - instance.maxHistory);
-      history = trimmedLines.join('\n');
-    }
-
-    await instance.update({ history });
   }
 }
 

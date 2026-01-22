@@ -2,6 +2,7 @@ const User = {
   id: {
     type: 'string',
     internal: true,
+    isUUID: true,
   },
   name: {
     type: 'string',
@@ -22,20 +23,9 @@ const User = {
     internal: true,
     firstTime: true,
   },
-  gamertag: {
-    type: 'string',
-    min: 0,
-    max: 80,
-  },
   admin: {
     type: 'boolean',
     internal: true,
-  },
-  quota: {
-    type: 'number',
-    int: true,
-    min: 0,
-    max: 150,
   },
 };
 
