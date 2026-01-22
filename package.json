@@ -1,7 +1,7 @@
 {
   "name": "nodecraft",
   "version": "3.0.0",
-  "description": "A node application to create, install and control a minecraft server",
+  "description": "A node api to host server games",
   "main": "server.js",
   "type": "module",
   "scripts": {
