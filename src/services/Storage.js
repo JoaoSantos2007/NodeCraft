@@ -38,10 +38,8 @@ class Storage {
   static async deleteOldDailyBackups(id, newBackupKey) {
     const dailyBackups = await Storage.list(`${id}/daily/`);
 
-    // eslint-disable-next-line no-restricted-syntax
     for (const backup of dailyBackups) {
       if (backup.Key !== newBackupKey) {
-        // eslint-disable-next-line no-await-in-loop
         await Storage.delete(backup.Key);
       }
     }

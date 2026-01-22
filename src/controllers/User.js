@@ -37,7 +37,8 @@ class User {
       const data = req.body;
 
       Validator(data, false, true);
-      const user = await Service.create(data);
+      const userId = await Service.create(data);
+      const user = await Service.readOne(userId);
 
       return res.status(201).json({ success: true, created: true, user });
     } catch (err) {

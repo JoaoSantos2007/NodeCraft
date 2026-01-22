@@ -1,8 +1,8 @@
 import Base from './Base.js';
 
 class InvalidRequest extends Base {
-  constructor(message = 'Invalid Request', status = 400) {
-    super(message, status);
+  constructor(message = 'Invalid Request', details = []) {
+    super(message, 400, 'INVALID_REQUEST', details, null);
   }
 }
 

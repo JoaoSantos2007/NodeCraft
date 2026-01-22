@@ -6,6 +6,7 @@ import query from '../utils/query.js';
 import config from '../../config/index.js';
 import renderTemplate from '../utils/renderTemplate.js';
 import instancesRunning from './instancesRunning.js';
+import logger from '../../config/logger.js';
 
 class Instance {
   constructor(instance, readFunction) {
@@ -51,81 +52,110 @@ class Instance {
     this.setup();
   }
 
-  async wipeAllowlist() {
-    fs.writeFileSync(this.paths.allowlist, '[]', 'utf8');
-    rmSync(this.paths.usercache, { recursive: true, force: true });
+  async emitEvent(command) {
+    let result = null;
+    try {
+      if (this.rcon) result = await this.rcon.send(command);
+    } catch (err) {
+      logger.error({ err }, `Error to emit ${command}`);
+    }
 
-    if (this.rcon) await this.rcon.send('whitelist reload');
+    return result;
+  }
+
+  async wipeAllowlist() {
+    try {
+      fs.writeFileSync(this.paths.allowlist, '[]', 'utf8');
+      rmSync(this.paths.usercache, { recursive: true, force: true });
+
+      await this.emitEvent('whitelist reload');
+    } catch (err) {
+      logger.error({ err }, 'Error to wipe instance allowlist');
+    }
   }
 
   async wipeOps() {
-    if (!this.rcon) {
-      fs.writeFileSync(this.paths.ops, '[]', 'utf8');
-    } else {
-      const opsRaw = await this.rcon.send('op list');
+    try {
+      if (!this.rcon) {
+        fs.writeFileSync(this.paths.ops, '[]', 'utf8');
+      } else {
+        const opsRaw = await this.emitEvent('op list');
 
-      const currentOps = opsRaw
-        .split(':')[1]
-        ?.split(',')
-        .map((p) => p.trim())
-        .filter(Boolean) || [];
+        const currentOps = opsRaw
+          .split(':')[1]
+          ?.split(',')
+          .map((p) => p.trim())
+          .filter(Boolean) || [];
 
-      // eslint-disable-next-line no-restricted-syntax
-      for (const player of currentOps) {
-        // eslint-disable-next-line no-await-in-loop
-        await this.rcon.send(`deop ${player}`);
+        for (const player of currentOps) {
+          await this.emitEvent(`deop ${player}`);
+        }
       }
+    } catch (err) {
+      logger.error({ err }, 'Error to wipe instance ops');
     }
   }
 
   async sync() {
     const instance = this.instance.get({ plain: true });
 
-    // Sync database with server.properties
-    const properties = renderTemplate('minecraft/server.properties', {
-      name: instance.name,
-      seed: instance.seed,
-      gamemode: instance.gamemode,
-      commandBlock: instance.commandBlock,
-      secureProfile: instance.secureProfile,
-      motd: instance.motd,
-      pvp: instance.pvp,
-      difficulty: instance.difficulty,
-      maxPlayers: instance.maxPlayers,
-      licensed: instance.licensed,
-      viewDistance: instance.viewDistance,
-      nether: instance.nether,
-      idle: instance.idle,
-      forceGamemode: instance.forceGamemode,
-      hardcore: instance.hardcore,
-      whitelist: instance.allowlist,
-      enforceWhitelist: instance.allowlist,
-      npcs: instance.npcs,
-      animals: instance.animals,
-      levelType: instance.levelType,
-      monsters: instance.monsters,
-      spawn: instance.spawn,
-    });
-
-    fs.writeFileSync(this.paths.properties, properties, 'utf8');
-
-    // Ensure bedrock
-    if (instance.bedrock) {
-      const geyser = renderTemplate('minecraft/geyser.yml', {
-        motd: instance.name,
+    try {
+      // Sync database with server.properties
+      const properties = renderTemplate('minecraft/server.properties', {
         name: instance.name,
+        seed: instance.seed,
+        gamemode: instance.gamemode,
+        commandBlock: instance.commandBlock,
+        secureProfile: instance.secureProfile,
+        motd: instance.motd,
+        pvp: instance.pvp,
+        difficulty: instance.difficulty,
         maxPlayers: instance.maxPlayers,
+        licensed: instance.licensed,
+        viewDistance: instance.viewDistance,
+        nether: instance.nether,
+        idle: instance.idle,
+        forceGamemode: instance.forceGamemode,
+        hardcore: instance.hardcore,
+        whitelist: instance.allowlist,
+        enforceWhitelist: instance.allowlist,
+        npcs: instance.npcs,
+        animals: instance.animals,
+        levelType: instance.levelType,
+        monsters: instance.monsters,
+        spawn: instance.spawn,
       });
 
-      const floodgate = renderTemplate('minecraft/floodgate.yml');
+      fs.writeFileSync(this.paths.properties, properties, 'utf8');
+    } catch (err) {
+      logger.error({ err }, 'Error to sync server.properties');
+    }
 
-      fs.writeFileSync(this.paths.geyser, geyser, 'utf8');
-      fs.writeFileSync(this.paths.floodgate, floodgate, 'utf8');
+    try {
+      // Ensure bedrock
+      if (instance.bedrock) {
+        const geyser = renderTemplate('minecraft/geyser.yml', {
+          motd: instance.name,
+          name: instance.name,
+          maxPlayers: instance.maxPlayers,
+        });
+
+        const floodgate = renderTemplate('minecraft/floodgate.yml');
+
+        fs.writeFileSync(this.paths.geyser, geyser, 'utf8');
+        fs.writeFileSync(this.paths.floodgate, floodgate, 'utf8');
+      }
+    } catch (err) {
+      logger.error({ err }, 'Error to sync geyser and floodgate');
     }
   }
 
   async removeSessionLock() {
-    fs.rmSync(this.paths.sessionLock, { recursive: true, force: true });
+    try {
+      fs.rmSync(this.paths.sessionLock, { recursive: true, force: true });
+    } catch (err) {
+      logger.error({ err }, 'Error to remove instance session lock');
+    }
   }
 
   async verifyRcon() {
@@ -151,108 +181,124 @@ class Instance {
   }
 
   async runInitialCommands() {
-    if (!this.rcon) return;
-    await this.rcon.send('gamerule send_command_feedback false');
-    await this.rcon.send('gamerule  log_admin_commands false');
-    await this.rcon.send('save-all');
-    await this.rcon.send('save-on');
+    try {
+      if (!this.rcon) return;
+      await this.emitEvent('gamerule send_command_feedback false');
+      await this.emitEvent('gamerule  log_admin_commands false');
+      await this.emitEvent('save-all');
+      await this.emitEvent('save-on');
+    } catch (err) {
+      logger.error({ err }, 'Error to run first instance commands');
+    }
   }
 
   async updateBarrier() {
-    const instancePlain = this.instance.get({ plain: true });
+    try {
+      const instancePlain = this.instance.get({ plain: true });
 
-    // Avoid players kicking while updating
-    this.barrier.updating = true;
+      // Avoid players kicking while updating
+      this.barrier.updating = true;
 
-    // Wipe barrier gamertags
-    this.barrier.allowedGamertags = [];
-    this.barrier.superGamertags = [];
+      // Wipe barrier gamertags
+      this.barrier.allowedGamertags = [];
+      this.barrier.superGamertags = [];
 
-    const links = instancePlain.players || [];
-    for (const link of links) {
-      const access = link?.access;
-      const gamertags = link.gamertags || [];
+      const links = instancePlain.players || [];
+      for (const link of links) {
+        const access = link?.access;
+        const gamertags = link.gamertags || [];
 
-      if (access === 'super') {
-        this.barrier.allowedGamertags.push(...gamertags);
-        this.barrier.superGamertags.push(...gamertags);
-      } else if (access === 'always') {
-        this.barrier.allowedGamertags.push(...gamertags);
-      } else if (access === 'monitored') {
-        if (this.barrier.allowMonitored) this.barrier.allowedGamertags.push(...gamertags);
+        if (access === 'super') {
+          this.barrier.allowedGamertags.push(...gamertags);
+          this.barrier.superGamertags.push(...gamertags);
+        } else if (access === 'always') {
+          this.barrier.allowedGamertags.push(...gamertags);
+        } else if (access === 'monitored') {
+          if (this.barrier.allowMonitored) this.barrier.allowedGamertags.push(...gamertags);
+        }
+
+        if (link.privileges) {
+          this.barrier.opGamertags.push(...gamertags);
+        }
       }
 
-      if (link.privileges) {
-        this.barrier.opGamertags.push(...gamertags);
-      }
+      this.barrier.needUpdate = false;
+      this.barrier.updating = false;
+      this.barrier.applyRules = true;
+    } catch (err) {
+      logger.error({ err }, 'Error to update instance barrier');
     }
-
-    this.barrier.needUpdate = false;
-    this.barrier.updating = false;
-    this.barrier.applyRules = true;
   }
 
   async applyBarrier() {
-    if (!this.rcon) return;
+    try {
+      if (!this.rcon) return;
 
-    if (this.barrier.applyRules) {
+      if (this.barrier.applyRules) {
       // Wipe allowlist
-      await this.wipeAllowlist();
+        await this.wipeAllowlist();
 
-      // Set allowlist
-      for (const gamertag of this.barrier.allowedGamertags) {
-        await this.rcon.send(`whitelist add ${gamertag}`);
+        // Set allowlist
+        for (const gamertag of this.barrier.allowedGamertags) {
+          await this.emitEvent(`whitelist add ${gamertag}`);
+        }
+
+        // Reload whitelist
+        await this.emitEvent('whitelist reload');
+
+        // Wipe privileges
+        await this.wipeOps();
+
+        // Set privileges
+        for (const gamertag of this.barrier.opGamertags) {
+          await this.emitEvent(`op ${gamertag}`);
+        }
+
+        this.barrier.applyRules = false;
       }
 
-      // Reload whitelist
-      await this.rcon.send('whitelist reload');
-
-      // Wipe privileges
-      await this.wipeOps();
-
-      // Set privileges
-      for (const gamertag of this.barrier.opGamertags) {
-        await this.rcon.send(`op ${gamertag}`);
-      }
-
-      this.barrier.applyRules = false;
-    }
-
-    if (!this.barrier.updating && this.instance.allowlist) {
+      if (!this.barrier.updating && this.instance.allowlist) {
       // Kick players without authorized gamertag
-      for (const player of this.state.players) {
-        if (!this.barrier.allowedGamertags.includes(player.name)) {
-          await this.rcon.send(`kick ${player.name}`);
+        for (const player of this.state.players) {
+          if (!this.barrier.allowedGamertags.includes(player.name)) {
+            await this.emitEvent(`kick ${player.name}`);
+          }
         }
       }
+    } catch (err) {
+      logger.error({ err }, 'Error to apply instance barrier');
     }
   }
 
   async updateState() {
-    const state = await query(this.instance.port);
-    const { barrier } = this;
-    const { superGamertags } = barrier;
+    try {
+      const state = await query(this.instance.port);
+      const { barrier } = this;
+      const { superGamertags } = barrier;
 
-    // Verify allow monitored and barrier need update
-    let allowMonitored = false;
-    for (const player of state.players) {
-      if (superGamertags.includes(player.name)) {
-        allowMonitored = true;
-        break;
+      // Verify allow monitored and barrier need update
+      let allowMonitored = false;
+      for (const player of state.players) {
+        if (superGamertags.includes(player.name)) {
+          allowMonitored = true;
+          break;
+        }
       }
-    }
 
-    if (allowMonitored !== barrier.allowMonitored) {
-      barrier.needUpdate = true;
-      barrier.allowMonitored = allowMonitored;
-    }
+      if (allowMonitored !== barrier.allowMonitored) {
+        barrier.needUpdate = true;
+        barrier.allowMonitored = allowMonitored;
+      }
 
-    this.state = {
-      alive: state.online,
-      onlinePlayers: state.onlinePlayers,
-      players: state.players,
-      ping: state.ping,
-    };
+      this.state = {
+        alive: state.online,
+        onlinePlayers: state.onlinePlayers,
+        players: state.players,
+        ping: state.ping,
+      };
+    } catch (err) {
+      logger.error({ err }, 'Error to update instance state');
+    }
   }
 
   async newBarrier() {
@@ -261,72 +307,85 @@ class Instance {
       this.instance = instance;
       this.barrier.needUpdate = true;
     } catch (err) {
-      // Save in logs file
+      logger.error({ err }, 'Error to set new instance barrier');
     }
   }
 
   async toMonitor() {
-    // Verify last run
-
     try {
+      // Verify last run
+      if (this.monitor.lastRun + 500 >= Date.now()) return;
+
       await this.verifyRcon();
       await this.updateState();
       if (this.barrier.needUpdate) await this.updateBarrier();
       await this.applyBarrier();
+
+      this.monitor.lastRun = Date.now();
     } catch (err) {
-      // Save err in logs
+      logger.error({ err }, 'Error in instance monitoring!');
     }
   }
 
   async updateHistory(message) {
-    // Get instance in registry
-    const { instance } = this;
+    try {
+      // Get instance in registry
+      const { instance } = this;
 
-    // Copy instance history array
-    let history = [...instance.history];
-    history.push(message);
+      // Copy instance history array
+      let history = [...instance.history];
+      history.push(message);
 
-    // Wipe old lines
-    const historyLength = history.length;
-    const maxHistoryLength = instance.maxHistory || 0;
-    if (historyLength > maxHistoryLength) {
-      history = history.slice(historyLength - maxHistoryLength);
+      // Wipe old lines
+      const historyLength = history.length;
+      const maxHistoryLength = instance.maxHistory || 0;
+      if (historyLength > maxHistoryLength) {
+        history = history.slice(historyLength - maxHistoryLength);
+      }
+
+      await instance.update({ history });
+    } catch (err) {
+      logger.error({ err }, 'Error to update instance history');
     }
-
-    await instance.update({ history });
-
-    console.log(message);
   }
 
   async setup() {
-    // Wipe allowlist and privilegies
-    await this.wipeAllowlist();
-    await this.wipeOps();
+    try {
+      // Wipe allowlist and privilegies
+      await this.wipeAllowlist();
+      await this.wipeOps();
 
-    // Sync properties files
-    await this.sync();
+      // Sync properties files
+      await this.sync();
 
-    // Remove session.lock
-    this.removeSessionLock();
+      // Remove session.lock
+      this.removeSessionLock();
 
-    // Set monitoring
-    this.monitor.interval = setInterval(() => this.toMonitor(), 5000);
+      // Set monitoring
+      this.monitor.interval = setInterval(() => this.toMonitor(), 5000);
 
-    // Set container listen
-    Container.listen(this.id, (msg) => {
-      this.updateHistory(msg);
+      // Set container listen
+      Container.listen(this.id, (msg) => {
+        this.updateHistory(msg);
 
-      if (msg.includes('joined the game') || msg.includes('left the game')) {
-        this.toMonitor();
-      }
-    });
+        if (msg.includes('joined the game') || msg.includes('left the game')) {
+          this.toMonitor();
+        }
+      });
+    } catch (err) {
+      logger.error({ err }, 'Error to setup instance');
+    }
   }
 
   stop() {
-    clearInterval(this.monitor.interval);
-    Container.removeStream(this.id);
-    delete instancesRunning[this.id];
-    delete this;
+    try {
+      clearInterval(this.monitor.interval);
+      Container.removeStream(this.id);
+      delete instancesRunning[this.id];
+      delete this;
+    } catch (err) {
+      logger.error({ err }, 'Error to stop instance');
+    }
   }
 }
 

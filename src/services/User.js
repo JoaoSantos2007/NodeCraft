@@ -1,23 +1,12 @@
 import { hashSync } from 'bcrypt';
 import { User as Model, Link as LinkModel } from '../models/index.js';
-import { Duplicate, BadRequest } from '../errors/index.js';
+import { BadRequest } from '../errors/index.js';
 
 class User {
   static async create(data) {
-    let user = await Model.findOne({
-      where: {
-        email: data.email,
-      },
-    });
-
-    // email already registered
-    if (user) {
-      throw new Duplicate('Email already registered!');
-    }
-
     const hashedPassword = hashSync(data.password, 12);
 
-    user = await Model.create({
+    const user = await Model.create({
       name: data.name,
       email: data.email,
       password: hashedPassword,
@@ -27,7 +16,7 @@ class User {
       birthDate: data.birthDate,
     });
 
-    return user;
+    return user.id;
   }
 
   static async readAll() {

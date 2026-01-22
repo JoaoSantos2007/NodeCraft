@@ -34,7 +34,7 @@ User.init({
     unique: true,
     validate: {
       isEmail: {
-        msg: 'email must be valid!',
+        msg: 'email is already registered!',
       },
       len: {
         args: [1, 257],

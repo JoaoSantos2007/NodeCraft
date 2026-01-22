@@ -1,8 +1,8 @@
 import { existsSync, realpathSync } from 'fs';
 import * as Path from 'path';
-import { BadRequest, InvalidRequest } from '../errors/index.js';
+import { BadRequest, InvalidRequest, Unathorized } from '../errors/index.js';
 import config from '../../config/index.js';
-import errorHandler from '../utils/errorHandler.js';
+import error from './error.js';
 
 class File {
   static verifyTwoPoints(path) {
@@ -44,12 +44,12 @@ class File {
         realPath = realpathSync(`${config.instance.path}/${id}/${path}`);
       }
 
-      if (!File.validateAllowedPath(id, realPath)) throw new InvalidRequest(`${path} is forbidden!`);
+      if (!File.validateAllowedPath(id, realPath)) throw new Unathorized(`${path} is forbidden!`);
 
       return next();
     } catch (err) {
-      if (err.code === 'ENOENT') return errorHandler(new BadRequest('path not exists!'), res);
-      return errorHandler(err, res);
+      if (err.code === 'ENOENT') return error(new BadRequest('path not exists!'), req, res);
+      return error(err, req, res);
     }
   }
 

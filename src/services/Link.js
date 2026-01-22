@@ -1,4 +1,4 @@
-import { BadRequest, Duplicate } from '../errors/index.js';
+import { BadRequest, InvalidRequest } from '../errors/index.js';
 import { Link as Model } from '../models/index.js';
 import User from './User.js';
 
@@ -50,7 +50,9 @@ class Link {
 
   static async create(instanceId, data) {
     // Verify if user is already linked with instance
-    if (await Link.verifyUserIsLinked(data.userId, instanceId)) throw new Duplicate('User is already linked with instance');
+    if (await Link.verifyUserIsLinked(data.userId, instanceId)) {
+      throw new InvalidRequest('User is already linked with this instance');
+    }
 
     const link = await Model.create({
       instanceId,
@@ -69,7 +71,9 @@ class Link {
     const link = await Link.readOne(linkId);
 
     // Verify if user is already linked with instance
-    if (await Link.verifyUserIsLinked(data.userId, link.instanceId)) throw new Duplicate('User is already linked with instance');
+    if (await Link.verifyUserIsLinked(data.userId, link.instanceId)) {
+      throw new InvalidRequest('User is already linked with this instance');
+    }
 
     // Update link
     await link.update(data);

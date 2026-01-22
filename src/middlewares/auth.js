@@ -1,7 +1,7 @@
 import User from '../services/User.js';
-import errorHandler from '../utils/errorHandler.js';
 import { Unathorized } from '../errors/index.js';
 import Service from '../services/Auth.js';
+import error from './error.js';
 
 const auth = async (permission, req, res, next) => {
   try {
@@ -30,7 +30,7 @@ const auth = async (permission, req, res, next) => {
     // Throw unathorized error if user is not authorized
     throw new Unathorized("You don't have permission to access this route!");
   } catch (err) {
-    return errorHandler(err, res);
+    return error(err, req, res);
   }
 };
 

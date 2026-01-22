@@ -19,6 +19,7 @@ import File from './File.js';
 import Runtime from '../runtime/Instance.js';
 import Version from './Version.js';
 import instancesRunning from '../runtime/instancesRunning.js';
+import logger from '../../config/logger.js';
 
 class Instance {
   static async create(data, userId) {
@@ -109,7 +110,11 @@ class Instance {
     const instances = await Instance.readAll();
 
     for (const instance of instances) {
-      if (instance.updateAlways) await Instance.install(instance);
+      try {
+        if (instance.updateAlways) await Instance.install(instance);
+      } catch (err) {
+        logger.error({ err }, 'Error to update an instance');
+      }
     }
   }
 
@@ -145,7 +150,11 @@ class Instance {
     const instances = await Instance.readAll();
 
     for (const instance of instances) {
-      if (instance.backup) await Instance.backup(instance.id);
+      try {
+        if (instance.backup) await Instance.backup(instance.id);
+      } catch (err) {
+        logger.error({ err }, 'Error to backup an instance');
+      }
     }
   }
 
@@ -260,6 +269,7 @@ class Instance {
 
     // Stop runtime instance
     if (instancesRunning[id]) instancesRunning[id].stop();
+    await Container.delete(id);
 
     // Update running instance status
     await instance.update({ running: false });
@@ -271,7 +281,11 @@ class Instance {
     const instances = await Instance.readAll();
 
     for (const instance of instances) {
-      if (instance.running) await Instance.run(instance.id);
+      try {
+        if (instance.running) await Instance.run(instance.id);
+      } catch (err) {
+        logger.error({ err }, 'Error to attach an instance');
+      }
     }
   }
 
@@ -293,6 +307,7 @@ class Instance {
           return;
         }
       } catch (err) {
+        logger.error({ err });
         return;
       }
 

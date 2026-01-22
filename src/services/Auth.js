@@ -4,7 +4,6 @@ import crypto from 'crypto';
 import {
   BadRequest,
   Unathorized,
-  Email,
   InvalidToken,
 } from '../errors/index.js';
 import sendEmail from '../utils/sendEmail.js';
@@ -140,25 +139,20 @@ class Auth {
     await Auth.saveToken(user.id, token, 'email');
 
     // Send Email
-    try {
-      const link = `${config.site.validateUrl}?token=${token}`;
-      const html = renderTemplate('email/verify.html', {
-        name: user.name || 'usuário',
-        link,
-        token,
-        year: new Date().getFullYear(),
-      });
+    const link = `${config.site.validateUrl}?token=${token}`;
+    const html = renderTemplate('email/verify.html', {
+      name: user.name || 'usuário',
+      link,
+      token,
+      year: new Date().getFullYear(),
+    });
 
-      await sendEmail({
-        to: user.email,
-        subject: 'Verify your Nodecraft Account!',
-        html,
-        text: `Link: ${link} | Token: ${token}`,
-      });
-    } catch (err) {
-      // Catch email system error
-      throw new Email();
-    }
+    await sendEmail({
+      to: user.email,
+      subject: 'Verify your Nodecraft Account!',
+      html,
+      text: `Link: ${link} | Token: ${token}`,
+    });
   }
 
   static async validateAccount(token) {
@@ -184,26 +178,22 @@ class Auth {
     await Auth.saveToken(user.id, token, 'password');
 
     // Send Email
-    try {
-      const link = `${config.site.resetUrl}?token=${token}`;
-      const html = renderTemplate('email/reset.html', {
-        name: user.name || 'usuário',
-        link,
-        token,
-        expires: config.token.resetPasswordLifetime,
-        year: new Date().getFullYear(),
-      });
 
-      await sendEmail({
-        to: user.email,
-        subject: 'Reset your Nodecraft account password!',
-        html,
-        text: `Link: ${link} | Token: ${token}`,
-      });
-    } catch (err) {
-      // Catch email system error
-      throw new Email();
-    }
+    const link = `${config.site.resetUrl}?token=${token}`;
+    const html = renderTemplate('email/reset.html', {
+      name: user.name || 'usuário',
+      link,
+      token,
+      expires: config.token.resetPasswordLifetime,
+      year: new Date().getFullYear(),
+    });
+
+    await sendEmail({
+      to: user.email,
+      subject: 'Reset your Nodecraft account password!',
+      html,
+      text: `Link: ${link} | Token: ${token}`,
+    });
   }
 
   static async resetPassword(token, password) {

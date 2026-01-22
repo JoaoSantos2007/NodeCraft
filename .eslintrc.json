@@ -22,7 +22,8 @@
                 "message": "for..in is not allowed"
             }
         ],
-        "no-await-in-loop": "off"
+        "no-await-in-loop": "off",
+        "no-continue": "off"
     }
   }
   

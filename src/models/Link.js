@@ -2,6 +2,7 @@ import { Sequelize, DataTypes, Model } from 'sequelize';
 import db from '../../config/sequelize.js';
 import config from '../../config/index.js';
 import instancesRunning from '../runtime/instancesRunning.js';
+import logger from '../../config/logger.js';
 
 class Link extends Model { }
 
@@ -91,7 +92,14 @@ Link.init({
 });
 
 const updateBarrier = async (id) => {
-  if (instancesRunning[id]) await instancesRunning[id].newBarrier();
+  try {
+    if (instancesRunning[id]) await instancesRunning[id].newBarrier();
+  } catch (err) {
+    logger.error({
+      err,
+      linkId: id,
+    }, 'Error to update instance barrier');
+  }
 };
 
 Link.addHook('afterCreate', async (link) => {

@@ -2,6 +2,8 @@ import { PassThrough } from 'stream';
 import docker from '../../config/docker.js';
 import instancesRunning from '../runtime/instancesRunning.js';
 import config from '../../config/index.js';
+import InstanceModel from '../models/Instance.js';
+import logger from '../../config/logger.js';
 
 class Container {
   static ensureImage(imageName) {
@@ -84,6 +86,17 @@ class Container {
     return container;
   }
 
+  static async delete(id) {
+    try {
+      const container = await Container.get(id);
+      if (!container) return;
+
+      await container.remove({ force: true });
+    } catch (err) {
+      logger.error({ err }, 'Error to delete docker container');
+    }
+  }
+
   static async get(id) {
     try {
       const container = docker.getContainer(`Nodecraft_${id}`);
@@ -139,75 +152,120 @@ class Container {
   }
 
   static async run(container) {
-    // Verify if container is not running
-    const isRunning = await Container.verifyRunning(container);
+    try {
+      // Verify if container is not running
+      const isRunning = await Container.verifyRunning(container);
 
-    // Run container if it is not running
-    if (!isRunning) await container.start();
+      // Run container if it is not running
+      if (!isRunning) await container.start();
+    } catch (err) {
+      logger.error({ err }, 'Error to start container');
+    }
   }
 
   static async listen(id, callback) {
-    const container = await Container.get(id);
-    const since = Math.floor(Date.now() / 1000);
+    try {
+      const container = await Container.get(id);
+      const since = Math.floor(Date.now() / 1000);
 
-    const stream = await container.logs({
-      stdout: true,
-      stderr: true,
-      follow: true,
-      since,
-      timestamps: false,
-    });
+      const stream = await container.logs({
+        stdout: true,
+        stderr: true,
+        follow: true,
+        since,
+        timestamps: false,
+      });
 
-    const stdout = new PassThrough();
-    const stderr = new PassThrough();
+      const stdout = new PassThrough();
+      const stderr = new PassThrough();
 
-    container.modem.demuxStream(stream, stdout, stderr);
+      container.modem.demuxStream(stream, stdout, stderr);
 
-    instancesRunning[id].stream = stream;
+      instancesRunning[id].stream = stream;
 
-    stdout.on('data', (chunk) => Container.handleChunk(chunk, id, callback));
-    stderr.on('data', (chunk) => Container.handleChunk(chunk, id, callback));
+      stdout.on('data', (chunk) => Container.handleChunk(chunk, id, callback));
+      stderr.on('data', (chunk) => Container.handleChunk(chunk, id, callback));
+    } catch (err) {
+      logger.error({ err }, 'Error to listen container');
+    }
   }
 
   static async handleChunk(chunk, id, callback) {
-    let data = chunk.toString('utf8');
-    let buffer = instancesRunning[id]?.buffer;
+    try {
+      let data = chunk.toString('utf8');
+      let buffer = instancesRunning[id]?.buffer;
 
-    // eslint-disable-next-line no-control-regex
-    data = data.replace(/\x1B\[[0-9;]*m/g, ''); // ANSI
-    data = data.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+      // eslint-disable-next-line no-control-regex
+      data = data.replace(/\x1B\[[0-9;]*m/g, ''); // ANSI
+      data = data.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
-    buffer += data;
+      buffer += data;
 
-    const lines = buffer.split('\n');
-    buffer = lines.pop();
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
 
-    lines.forEach((line) => {
-      const cleanLine = line.trim();
-      if (!cleanLine) return;
+      lines.forEach((line) => {
+        const cleanLine = line.trim();
+        if (!cleanLine) return;
 
-      const match = cleanLine.match(
-        /^\[(\d{2}:\d{2}:\d{2})\s+(INFO|WARN|ERROR|DEBUG|TRACE)\]:\s*(.*)$/,
-      );
+        const match = cleanLine.match(
+          /^\[(\d{2}:\d{2}:\d{2})\s+(INFO|WARN|ERROR|DEBUG|TRACE)\]:\s*(.*)$/,
+        );
 
-      const message = match ? match[3] : cleanLine;
+        const message = match ? match[3] : cleanLine;
 
-      callback(message);
-    });
+        callback(message);
+      });
+    } catch (err) {
+      logger.error({ err }, 'Error to handle container stream chunck');
+    }
   }
 
   static removeStream(id) {
-    const stream = instancesRunning[id]?.stream;
+    try {
+      const stream = instancesRunning[id]?.stream;
 
-    if (stream) {
-      stream.removeAllListeners('data');
-      stream.removeAllListeners('error');
-      stream.removeAllListeners('end');
+      if (stream) {
+        stream.removeAllListeners('data');
+        stream.removeAllListeners('error');
+        stream.removeAllListeners('end');
 
-      // Fecha o stream
-      if (typeof stream.destroy === 'function') {
-        stream.destroy();
+        // Fecha o stream
+        if (typeof stream.destroy === 'function') {
+          stream.destroy();
+        }
       }
+    } catch (err) {
+      logger.error({ err }, 'Error to remove container stream');
+    }
+  }
+
+  static async removeLostContainers() {
+    try {
+      const instances = await InstanceModel.findAll({
+        attributes: ['id'],
+        raw: true,
+      }) || [];
+      const instancesId = [];
+      for (const instance of instances) {
+        instancesId.push(instance.id);
+      }
+
+      const containers = await docker.listContainers({ all: true });
+      for (const container of containers) {
+        const name = container.Names?.[0];
+        if (!name) continue;
+
+        const cleanName = name.replace(/^\//, '');
+        if (!cleanName.startsWith('Nodecraft_')) continue;
+
+        const instanceId = cleanName.replace('Nodecraft_', '');
+        if (!instancesId.includes(instanceId)) {
+          await Container.delete(instanceId);
+        }
+      }
+    } catch (err) {
+      logger.error({ err }, 'Error to remove lost containers');
     }
   }
 }
