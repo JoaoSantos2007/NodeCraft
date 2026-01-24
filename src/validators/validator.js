@@ -62,6 +62,8 @@ const verifyUUID = (modelRef, field, value) => {
 };
 
 const validator = (data, schema, isUpdate = false, firstTime = false) => {
+  if (!data || typeof data !== 'object') throw new InvalidRequest('data is not valid!');
+
   for (const [key, value] of Object.entries(data)) {
     const modelRef = schema[key];
 

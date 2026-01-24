@@ -338,7 +338,7 @@ class Instance {
 
       // Wipe old lines
       const historyLength = history.length;
-      const maxHistoryLength = instance.maxHistory || 0;
+      const maxHistoryLength = config.instance.maxHistory || 0;
       if (historyLength > maxHistoryLength) {
         history = history.slice(historyLength - maxHistoryLength);
       }

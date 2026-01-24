@@ -1,6 +1,7 @@
 import { Base } from '../errors/index.js';
 import logger from '../../config/logger.js';
 import mapSequelizeError from '../../config/sequelizeMapError.js';
+import config from '../../config/index.js';
 
 // eslint-disable-next-line no-unused-vars
 const error = (err, req, res, next) => {
@@ -18,6 +19,9 @@ const error = (err, req, res, next) => {
       query: req.query,
     }, 'Unhandled internal error');
 
+    // eslint-disable-next-line no-console
+    if (!config.app.stage === 'DEV') console.error(err);
+
     return new Base().send(res);
   }
 
@@ -25,6 +29,9 @@ const error = (err, req, res, next) => {
     logger.error({
       err,
     }, 'Internal server error');
+
+    // eslint-disable-next-line no-console
+    if (!config.app.stage === 'DEV') console.error(err);
   }
 
   return err.send(res);

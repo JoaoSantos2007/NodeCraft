@@ -30,6 +30,7 @@
   },
   "instance": {
     "path": null,
+    "maxHistory": 150,
     "minPort": 5621,
     "maxPort": 5671,
     "lifetime": 172800000,

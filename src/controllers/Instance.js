@@ -1,5 +1,6 @@
 import Service from '../services/Instance.js';
 import Validator from '../validators/Instance.js';
+import MinecraftValidator from '../validators/Minecraft.js';
 
 class Instance {
   static async create(req, res, next) {
@@ -8,8 +9,18 @@ class Instance {
 
       // Verify user plan(future)
 
-      Validator(body, false, true);
-      const instance = await Service.create(body, user.id);
+      // Get instance data
+      const instanceData = { ...body };
+      delete instanceData.config;
+      Validator(instanceData, false, true);
+
+      // Get game data
+      const gameData = body?.config || {};
+      if (instanceData.type === 'minecraft') {
+        MinecraftValidator(gameData, false, true);
+      }
+
+      const instance = await Service.create(user.id, instanceData, gameData);
 
       return res.status(201).json({
         success: true, id: instance.id, building: true, instance,
@@ -46,8 +57,18 @@ class Instance {
       const { id } = req.params;
       const { body } = req;
 
-      Validator(body, true);
-      const instance = await Service.update(id, body);
+      // Get instance data
+      const instanceData = { ...body };
+      delete instanceData.config;
+      Validator(instanceData, false, true);
+
+      // Get game data
+      const gameData = body?.config || {};
+      if (instanceData.type === 'minecraft') {
+        MinecraftValidator(gameData, false, true);
+      }
+
+      const instance = await Service.update(id, instanceData, gameData);
 
       return res.status(200).json({ success: true, updated: true, instance });
     } catch (err) {

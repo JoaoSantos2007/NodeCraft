@@ -8,7 +8,9 @@ import {
 } from 'fs';
 import { Op } from 'sequelize';
 import Path from 'path';
-import { Instance as Model, Link as LinkModel, User as UserModel } from '../models/index.js';
+import {
+  Instance as Model, Link as LinkModel, User as UserModel, Minecraft, db,
+} from '../models/index.js';
 import { BadRequest } from '../errors/index.js';
 import download from '../utils/download.js';
 import Container from './Container.js';
@@ -22,7 +24,7 @@ import instancesRunning from '../runtime/instancesRunning.js';
 import logger from '../../config/logger.js';
 
 class Instance {
-  static async create(data, userId) {
+  static async create(userId, instanceData, gameData) {
     // Pick up a server port
     const port = await Instance.selectPort();
 
@@ -30,17 +32,24 @@ class Instance {
     const instance = await Model.create({
       owner: userId,
       port,
-      ...data,
+      ...instanceData,
     });
 
     // Create instance path in the System
     mkdirSync(Path.join(config.instance.path, instance.id));
 
+    if (instanceData.type === 'minecraft') {
+      await Minecraft.create({
+        instanceId: instance.id,
+        ...gameData,
+      });
+    }
+
     // Create docker container
     await Container.create(instance);
 
     // Install instance
-    Instance.install(instance, true);
+    // Instance.install(instance.id, true);
 
     return instance;
   }
@@ -83,25 +92,44 @@ class Instance {
   }
 
   static async readOne(id) {
+    const includeMap = {
+      minecraft: { model: Minecraft, as: 'minecraft' },
+      // terraria: { model: TerrariaConfig, as: 'terraria' },
+      // ark: { model: ArkConfig, as: 'ark' },
+      // cs2: { model: CS2Config, as: 'cs2' },
+    };
+
+    const base = await Model.findByPk(id);
+    if (!base) throw new BadRequest('Instance not found!');
+
     const instance = await Model.findByPk(id, {
-      include: {
-        model: LinkModel,
-        as: 'players',
-        include: {
-          model: UserModel,
-          as: 'user',
-          required: false,
+      include: [
+        includeMap[base.type || 'minecraft'],
+        {
+          model: LinkModel,
+          as: 'players',
+          include: {
+            model: UserModel,
+            as: 'user',
+            required: false,
+          },
         },
-      },
+      ],
     });
-    if (!instance) throw new BadRequest('Instance not found!');
 
     return instance;
   }
 
-  static async update(id, data) {
+  static async update(id, instanceData, gameData = null) {
     const instance = await Instance.readOne(id);
-    await instance.update(data);
+
+    await db.transaction(async (t) => {
+      // Update instance data
+      await instance.update(instanceData, { transaction: t });
+
+      // Update game data
+      if (instance.minecraft) await instance.minecraft.update(gameData, { transaction: t });
+    });
 
     return instance;
   }
@@ -269,7 +297,7 @@ class Instance {
 
     // Stop runtime instance
     if (instancesRunning[id]) instancesRunning[id].stop();
-    await Container.delete(id);
+    // await Container.delete(id);
 
     // Update running instance status
     await instance.update({ running: false });
@@ -294,39 +322,42 @@ class Instance {
     if (!instancesId) return;
 
     for (const id of instancesId) {
-      const instancePath = Path.join(config.instance.path, id);
-      const pendingDeletePath = Path.join(instancePath, '.delete-pending.json');
-      const existsPendingDelete = existsSync(pendingDeletePath);
-
       try {
-        const instance = await Model.findByPk(id);
+        const instancePath = Path.join(config.instance.path, id);
+        const pendingDeletePath = Path.join(instancePath, '.delete-pending.json');
+        const existsPendingDelete = existsSync(pendingDeletePath);
 
         // Verify if instances exists in database, delete pending process and return
-        if (instance) {
-          rmSync(pendingDeletePath, { recursive: true, force: true });
-          return;
+        try {
+          const instance = await Model.findByPk(id);
+          if (instance) {
+            rmSync(pendingDeletePath, { recursive: true, force: true });
+            continue;
+          }
+        } catch (err) {
+          continue;
+        }
+
+        // Verify if pending delete process exists
+        if (existsPendingDelete) {
+          // Try to read .delete-pending.json
+          const rawData = readFileSync(pendingDeletePath, 'utf8');
+          const data = JSON.parse(rawData);
+
+          const time = Number(data?.time);
+          const now = Date.now();
+
+          if (!time || now - time >= config.instance.lifetime) {
+            // Delete pending instance
+            rmSync(instancePath, { recursive: true, force: true });
+          }
+        } else {
+          // Write .delete-pending.json
+          writeFileSync(pendingDeletePath, `{"time":${Date.now()}}`, 'utf8');
         }
       } catch (err) {
-        logger.error({ err });
-        return;
-      }
-
-      // Verify if pending delete process exists
-      if (existsPendingDelete) {
-        // Try to read .delete-pending.json
-        const rawData = readFileSync(pendingDeletePath, 'utf8');
-        const data = JSON.parse(rawData);
-
-        const time = Number(data?.time);
-        const now = Date.now();
-
-        if (!time || now - time >= config.instance.lifetime) {
-          // Delete pending instance
-          rmSync(instancePath, { recursive: true, force: true });
-        }
-      } else {
-        // Write .delete-pending.json
-        writeFileSync(pendingDeletePath, `{"time":${Date.now()}}`, 'utf8');
+        logger.error({ err }, 'Error to verify lost instance');
+        continue;
       }
     }
   }

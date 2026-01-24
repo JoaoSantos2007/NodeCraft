@@ -2,6 +2,7 @@ import User from './User.js';
 import Instance from './Instance.js';
 import Link from './Link.js';
 import db from '../../config/sequelize.js';
+import Minecraft from './Minecraft.js';
 
 // instance <-> link
 Instance.hasMany(Link, {
@@ -41,6 +42,17 @@ Instance.belongsTo(User, {
   as: 'ownerUser',
 });
 
+// instance <--> minecraft
+Instance.hasOne(Minecraft, {
+  foreignKey: 'instanceId',
+  as: 'minecraft',
+  onDelete: 'CASCADE',
+});
+
+Minecraft.belongsTo(Instance, {
+  foreignKey: 'instanceId',
+});
+
 // await db.sync({ alter: true });
 await db.query('PRAGMA foreign_keys = ON');
 
@@ -49,4 +61,5 @@ export {
   User,
   Instance,
   Link,
+  Minecraft,
 };

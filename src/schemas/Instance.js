@@ -15,47 +15,20 @@ const Instance = {
     min: 3,
     max: 32,
   },
-  software: {
+  type: {
     type: 'string',
-    values: ['vanilla', 'paper', 'purpur'],
-    required: true,
-    internal: true,
-    firstTime: true,
+    values: ['minecraft', 'hytale', 'cs2', 'terraria', 'ark', 'ksp'],
   },
-  bedrock: {
-    type: 'boolean',
-  },
-  maxHistory: {
+  port: {
     type: 'number',
-    int: true,
-    min: 0,
-    max: 10000,
-  },
-  updateAlways: {
-    type: 'boolean',
+    internal: true,
   },
   installed: {
     type: 'boolean',
     internal: true,
   },
-  version: {
-    type: 'string',
-    internal: true,
-  },
-  build: {
-    type: 'number',
-    int: true,
-    internal: true,
-  },
-  geyserBuild: {
-    type: 'number',
-    int: true,
-    internal: true,
-  },
-  floodgateBuild: {
-    type: 'number',
-    int: true,
-    internal: true,
+  updateAlways: {
+    type: 'boolean',
   },
   running: {
     type: 'boolean',
@@ -65,93 +38,8 @@ const Instance = {
     type: 'string',
     internal: true,
   },
-
-  // Properties
-  gamemode: {
-    type: 'string',
-    values: ['survival', 'creative', 'adventure'],
-  },
-  difficulty: {
-    type: 'string',
-    values: ['peaceful', 'easy', 'normal', 'hard'],
-  },
-  seed: {
-    type: 'string',
-    min: 0,
-    max: 32,
-  },
-  motd: {
-    type: 'string',
-    min: 0,
-    max: 50,
-  },
-  levelType: {
-    type: 'string',
-    values: ['minecraft:normal', 'minecraft:flat', 'minecraft:large_biomes', 'minecraft:amplified'],
-  },
-  maxPlayers: {
-    type: 'number',
-    int: true,
-    min: 1,
-    max: 10000,
-  },
-  viewDistance: {
-    type: 'number',
-    int: true,
-    min: 3,
-    max: 32,
-  },
-  spawn: {
-    type: 'number',
-    int: true,
-    min: 0,
-    max: 32,
-  },
-  idle: {
-    type: 'number',
-    int: true,
-    min: -1,
-    max: 1440,
-  },
-  commandBlock: {
-    type: 'boolean',
-  },
-  pvp: {
-    type: 'boolean',
-  },
-  licensed: {
-    type: 'boolean',
-  },
-  port: {
-    type: 'number',
-    internal: true,
-  },
-  allowlist: {
-    type: 'boolean',
-  },
-  nether: {
-    type: 'boolean',
-  },
-  secureProfile: {
-    type: 'boolean',
-  },
-  forceGamemode: {
-    type: 'boolean',
-  },
-  hardcore: {
-    type: 'boolean',
-  },
-  animals: {
-    type: 'boolean',
-  },
-  monsters: {
-    type: 'boolean',
-  },
-  npcs: {
-    type: 'boolean',
-  },
-  cheats: {
-    type: 'boolean',
+  config: {
+    type: 'object',
   },
 };
 
