@@ -1,6 +1,5 @@
-import { PassThrough } from 'stream';
+import Path from 'path';
 import docker from '../../config/docker.js';
-import instancesRunning from '../runtime/instancesRunning.js';
 import config from '../../config/index.js';
 import InstanceModel from '../models/Instance.js';
 import logger from '../../config/logger.js';
@@ -42,59 +41,14 @@ class Container {
   }
 
   static async create(instance) {
-    await Container.ensureImage('itzg/minecraft-server');
-    await Container.ensureNetwork('nodecraft-net');
+    const existsContainer = await Container.get(instance.id);
+    if (existsContainer) return existsContainer;
 
-    const container = await docker.createContainer({
-      name: `Nodecraft_${instance.id}`,
-      Image: 'itzg/minecraft-server',
-      Env: [
-        'EULA=TRUE',
-        'TYPE=CUSTOM',
-        'CUSTOM_SERVER=server.jar',
-
-        // Rcon
-        'ENABLE_RCON=true',
-        'RCON_PASSWORD=nodecraft',
-        'RCON_PORT=25575',
-      ],
-
-      HostConfig: {
-        Binds: [`${config.instance.path}/${instance.id}:/data`],
-        PortBindings: {
-          '25565/tcp': [
-            { HostPort: String(instance.port) },
-          ],
-          '25565/udp': [
-            { HostPort: String(instance.port) },
-          ],
-        },
-
-        NetworkMode: 'nodecraft-net',
-
-        Memory: 2048 * 1024 * 1024, // MB
-        NanoCpus: 2 * 1e9,
-
-        // Secure
-        // ReadonlyRootfs: true,
-        // CapDrop: ['ALL'],
-        RestartPolicy: { Name: 'no' },
-        SecurityOpt: ['no-new-privileges'],
-      },
-    });
+    let container = null;
+    if (instance.type === 'minecraft') container = await Container.createMinecraft(instance);
+    if (instance.type === 'counterstrike') container = await Container.createCounterStrike(instance);
 
     return container;
-  }
-
-  static async delete(id) {
-    try {
-      const container = await Container.get(id);
-      if (!container) return;
-
-      await container.remove({ force: true });
-    } catch (err) {
-      logger.error({ err }, 'Error to delete docker container');
-    }
   }
 
   static async get(id) {
@@ -108,40 +62,9 @@ class Container {
     }
   }
 
-  static async getOrCreate(instance) {
-    // Read container
-    let container = await Container.get(instance.id);
-
-    // Create container if not exists
-    if (!container) container = await Container.create(instance);
-
-    return container;
-  }
-
-  static async isRunning(id) {
-    try {
-      const container = await Container.get(id);
-      const info = await container.inspect();
-
-      return info.State.Running;
-    } catch {
-      return false;
-    }
-  }
-
-  static async verifyRunning(container) {
-    try {
-      const info = await container.inspect();
-
-      return info.State.Running;
-    } catch {
-      return false;
-    }
-  }
-
   static async getIpAddress(id) {
     try {
-      const container = docker.getContainer(`Nodecraft_${id}`);
+      const container = await Container.get(id);
       const inspect = await container.inspect();
       const network = inspect.NetworkSettings.Networks['nodecraft-net'];
 
@@ -151,92 +74,53 @@ class Container {
     }
   }
 
-  static async run(container) {
+  static async delete(id) {
     try {
-      // Verify if container is not running
-      const isRunning = await Container.verifyRunning(container);
+      const container = await Container.get(id);
+      if (!container) return;
 
-      // Run container if it is not running
+      await container.remove({ force: true });
+    } catch (err) {
+      logger.error({ err }, 'Error to delete docker container');
+    }
+  }
+
+  static async run(id) {
+    try {
+      // Read container
+      const container = await Container.get(id);
+      if (!container) return;
+
+      // Get container info
+      const info = await container.inspect();
+      const isRunning = info.State.Running;
+
       if (!isRunning) await container.start();
     } catch (err) {
       logger.error({ err }, 'Error to start container');
     }
   }
 
-  static async listen(id, callback) {
+  static async stop(id) {
     try {
+      // Read container
       const container = await Container.get(id);
-      const since = Math.floor(Date.now() / 1000);
+      if (!container) return;
 
-      const stream = await container.logs({
-        stdout: true,
-        stderr: true,
-        follow: true,
-        since,
-        timestamps: false,
-      });
+      // Get container info
+      const info = await container.inspect();
+      const isRunning = info.State.Running;
 
-      const stdout = new PassThrough();
-      const stderr = new PassThrough();
-
-      container.modem.demuxStream(stream, stdout, stderr);
-
-      instancesRunning[id].stream = stream;
-
-      stdout.on('data', (chunk) => Container.handleChunk(chunk, id, callback));
-      stderr.on('data', (chunk) => Container.handleChunk(chunk, id, callback));
-    } catch (err) {
-      logger.error({ err }, 'Error to listen container');
-    }
-  }
-
-  static async handleChunk(chunk, id, callback) {
-    try {
-      let data = chunk.toString('utf8');
-      let buffer = instancesRunning[id]?.buffer;
-
-      // eslint-disable-next-line no-control-regex
-      data = data.replace(/\x1B\[[0-9;]*m/g, ''); // ANSI
-      data = data.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-
-      buffer += data;
-
-      const lines = buffer.split('\n');
-      buffer = lines.pop();
-
-      lines.forEach((line) => {
-        const cleanLine = line.trim();
-        if (!cleanLine) return;
-
-        const match = cleanLine.match(
-          /^\[(\d{2}:\d{2}:\d{2})\s+(INFO|WARN|ERROR|DEBUG|TRACE)\]:\s*(.*)$/,
-        );
-
-        const message = match ? match[3] : cleanLine;
-
-        callback(message);
-      });
-    } catch (err) {
-      logger.error({ err }, 'Error to handle container stream chunck');
-    }
-  }
-
-  static removeStream(id) {
-    try {
-      const stream = instancesRunning[id]?.stream;
-
-      if (stream) {
-        stream.removeAllListeners('data');
-        stream.removeAllListeners('error');
-        stream.removeAllListeners('end');
-
-        // Fecha o stream
-        if (typeof stream.destroy === 'function') {
-          stream.destroy();
+      // Stop container
+      if (isRunning) {
+        try {
+          await container.stop({ t: 20 }); // SIGTERM
+        } catch {
+          await container.kill(); // SIGKILL
         }
       }
     } catch (err) {
-      logger.error({ err }, 'Error to remove container stream');
+      logger.error({ err }, 'Error to start container');
     }
   }
 
@@ -267,6 +151,111 @@ class Container {
     } catch (err) {
       logger.error({ err }, 'Error to remove lost containers');
     }
+  }
+
+  static async createMinecraft(instance) {
+    const instancePath = Path.join(config.instance.path, instance.id);
+    await Container.ensureImage('itzg/minecraft-server');
+    await Container.ensureNetwork('nodecraft-net');
+
+    const enviroment = [
+      'EULA=TRUE',
+      'ENABLE_RCON=true',
+      'RCON_PASSWORD=nodecraft',
+      'RCON_PORT=25575',
+    ];
+
+    if (instance.minecraft.software === 'paper') {
+      enviroment.push('TYPE=paper');
+      enviroment.push('VERSION=latest');
+
+      if (instance.minecraft.bedrock) {
+        enviroment.push(`PLUGINS=${config.minecraft.geyser},${config.minecraft.floodgate}`);
+      }
+    }
+
+    if (instance.minecraft.software === 'purpur') {
+      enviroment.push('TYPE=purpur');
+      enviroment.push('VERSION=latest');
+
+      if (instance.minecraft.bedrock) {
+        enviroment.push(`PLUGINS=${config.minecraft.geyser},${config.minecraft.floodgate}`);
+      }
+    }
+
+    const container = await docker.createContainer({
+      name: `Nodecraft_${instance.id}`,
+      Image: 'itzg/minecraft-server',
+      Env: enviroment,
+
+      HostConfig: {
+        Binds: [`${instancePath}:/data`],
+        PortBindings: {
+          '25565/tcp': [
+            { HostPort: String(instance.port) },
+          ],
+          '25565/udp': [
+            { HostPort: String(instance.port) },
+          ],
+        },
+
+        NetworkMode: 'nodecraft-net',
+        Memory: instance.memory * 1024 * 1024,
+        NanoCpus: instance.cpu * 1e9,
+
+        // Secure
+        // ReadonlyRootfs: true,
+        // CapDrop: ['ALL'],
+        RestartPolicy: { Name: 'no' },
+        SecurityOpt: ['no-new-privileges'],
+      },
+    });
+
+    return container;
+  }
+
+  static async createCounterStrike(instance) {
+    const instancePath = Path.join(config.instance.path, instance.id);
+    await Container.ensureImage('cm2network/cs2:latest');
+    await Container.ensureNetwork('nodecraft-net');
+
+    const enviroment = [
+      `SRCDS_TOKEN=${instance.cs.steamToken}`,
+      'rconPassword=nodecraft',
+    ];
+
+    console.log(enviroment);
+
+    const container = await docker.createContainer({
+      name: `Nodecraft_${instance.id}`,
+      Image: 'cm2network/cs2',
+      Env: enviroment,
+
+      ExposedPorts: {
+        '27015/udp': {},
+      },
+
+      HostConfig: {
+        Binds: [
+          `${instancePath}:/home/steam/cs2-dedicated`,
+        ],
+
+        PortBindings: {
+          '27015/udp': [
+            { HostPort: String(instance.port) },
+          ],
+        },
+
+        NetworkMode: 'nodecraft-net',
+        Memory: instance.memory * 1024 * 1024,
+        NanoCpus: instance.cpu * 1e9,
+        RestartPolicy: {
+          Name: 'unless-stopped',
+        },
+      },
+    });
+
+    return container;
   }
 }
 

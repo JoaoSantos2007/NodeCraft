@@ -53,5 +53,10 @@
     "forcePathStyle": false,
     "accessKeyId": "",
     "secretAccessKey": ""
+  },
+  "minecraft": {
+    "geyser": "https://download.geysermc.org/v2/projects/geyser/versions/latest/builds/latest/downloads/spigot",
+    "floodgate": "https://download.geysermc.org/v2/projects/floodgate/versions/latest/builds/latest/downloads/spigot",
+    "checkTime": 5000
   }
 }

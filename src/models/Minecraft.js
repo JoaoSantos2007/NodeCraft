@@ -22,26 +22,6 @@ Minecraft.init(
       allowNull: true,
       defaultValue: false,
     },
-    version: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      defaultValue: '',
-    },
-    build: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      defaultValue: 0,
-    },
-    geyserBuild: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      defaultValue: 0,
-    },
-    floodgateBuild: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      defaultValue: 0,
-    },
     gamemode: {
       type: DataTypes.STRING,
       values: ['survival', 'creative', 'adventure'],

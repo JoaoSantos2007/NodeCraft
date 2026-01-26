@@ -16,14 +16,12 @@ class Instance {
 
       // Get game data
       const gameData = body?.config || {};
-      if (instanceData.type === 'minecraft') {
-        MinecraftValidator(gameData, false, true);
-      }
+      if (instanceData.type === 'minecraft') MinecraftValidator(gameData, false, true);
 
       const instance = await Service.create(user.id, instanceData, gameData);
 
       return res.status(201).json({
-        success: true, id: instance.id, building: true, instance,
+        success: true, id: instance.id, instance,
       });
     } catch (err) {
       return next(err);
@@ -116,24 +114,6 @@ class Instance {
       const instance = await Service.run(id);
 
       return res.status(200).json({ success: true, restarting: true, instance });
-    } catch (err) {
-      return next(err);
-    }
-  }
-
-  static async updateVersion(req, res, next) {
-    try {
-      const { id } = req.params;
-      const force = req?.query?.force === 'true';
-      const instance = await Service.readOne(id);
-      const { info, updating } = await Service.install(instance, force);
-
-      return res.status(200).json({
-        success: true,
-        version: info.instanceVersion || null,
-        msg: updating ? 'Updating!' : 'All in date!',
-        info,
-      });
     } catch (err) {
       return next(err);
     }

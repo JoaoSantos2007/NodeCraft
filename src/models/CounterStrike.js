@@ -4,65 +4,13 @@ import db from '../../config/sequelize.js';
 class CounterStrike extends Model { }
 
 CounterStrike.init({
+  steamToken: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
   map: {
-
-  },
-  maxPlayer: {
-
-  },
-  tickrate: {
-
-  },
-  gslt_token: {
-
-  },
-  gameMode: {
-
-  },
-  mapGroup: {
-
-  },
-  startMoney: {
-
-  },
-  roundTime: {
-
-  },
-  freezeTime: {
-
-  },
-  roundsHalftime: {
-
-  },
-  maxRounds: {
-
-  },
-  friendlyFire: {
-
-  },
-  autoTeamBalance: {
-
-  },
-  limitTeams: {
-
-  },
-  teamCollision: {
-
-  },
-  allowSpectators: {
-
-  },
-  voiceEnable: {
-
-  },
-  alltalk: {
-
-  },
-  svDeadtalk: {
-
-  },
-  voiceScale: {
-
+    type: DataTypes.STRING,
+    allowNull: true,
   },
 }, {
   tableName: 'counterstrike',

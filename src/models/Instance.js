@@ -39,12 +39,12 @@ Instance.init({
   },
   type: {
     type: DataTypes.STRING,
-    values: ['minecraft', 'hytale', 'cs2', 'terraria', 'ark', 'ksp'],
+    values: ['minecraft', 'hytale', 'counterstrike', 'terraria', 'ark', 'ksp'],
     defaultValue: 'minecraft',
     allowNull: false,
     validate: {
       isIn: {
-        args: [['minecraft', 'hytale', 'cs2', 'terraria', 'ark', 'ksp']],
+        args: [['minecraft', 'hytale', 'counterstrike', 'terraria', 'ark', 'ksp']],
         msg: 'type field must be a supported game!',
       },
     },
@@ -52,6 +52,28 @@ Instance.init({
   port: {
     type: DataTypes.INTEGER,
     allowNull: true,
+  },
+  memory: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 2048,
+    validate: {
+      min: {
+        args: [1024],
+        msg: 'memory field must be greater than or equal to 1024mb!',
+      },
+    },
+  },
+  cpu: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 2,
+    validate: {
+      min: {
+        args: [1],
+        msg: 'cpu field must be greater than or equal to 1!',
+      },
+    },
   },
   installed: {
     type: DataTypes.BOOLEAN,

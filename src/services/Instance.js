@@ -1,3 +1,4 @@
+/* eslint-disable no-new */
 import {
   mkdirSync,
   rmSync,
@@ -9,17 +10,21 @@ import {
 import { Op } from 'sequelize';
 import Path from 'path';
 import {
-  Instance as Model, Link as LinkModel, User as UserModel, Minecraft, db,
+  Instance as Model,
+  Link as LinkModel,
+  User as UserModel,
+  Minecraft as MinecraftModel,
+  CounterStrike as CounterStrikeModel,
+  db,
 } from '../models/index.js';
 import { BadRequest } from '../errors/index.js';
-import download from '../utils/download.js';
 import Container from './Container.js';
 import Link from './Link.js';
 import config from '../../config/index.js';
 import Storage from './Storage.js';
 import File from './File.js';
-import Runtime from '../runtime/Instance.js';
-import Version from './Version.js';
+import MinecraftRuntime from '../runtime/Minecraft.js';
+import CSRuntime from '../runtime/CounterStrike.js';
 import instancesRunning from '../runtime/instancesRunning.js';
 import logger from '../../config/logger.js';
 
@@ -29,29 +34,32 @@ class Instance {
     const port = await Instance.selectPort();
 
     // Create instance in the Database
-    const instance = await Model.create({
+    const instanceBase = await Model.create({
       owner: userId,
       port,
       ...instanceData,
     });
 
-    // Create instance path in the System
-    mkdirSync(Path.join(config.instance.path, instance.id));
+    // Select instance game model
+    let gameModel = MinecraftModel;
+    if (instanceData.type === 'counterstrike') gameModel = CounterStrikeModel;
 
-    if (instanceData.type === 'minecraft') {
-      await Minecraft.create({
-        instanceId: instance.id,
-        ...gameData,
-      });
-    }
+    // Create instance gamedata
+    await gameModel.create({
+      instanceId: instanceBase.id,
+      ...gameData,
+    });
+
+    // Full instance read
+    const instance = await Instance.readOne(instanceBase.id);
+
+    // Create instance path in the System
+    mkdirSync(Path.join(config.instance.path, instanceBase.id));
 
     // Create docker container
     await Container.create(instance);
 
-    // Install instance
-    // Instance.install(instance.id, true);
-
-    return instance;
+    return instanceBase;
   }
 
   static async readAll() {
@@ -93,10 +101,9 @@ class Instance {
 
   static async readOne(id) {
     const includeMap = {
-      minecraft: { model: Minecraft, as: 'minecraft' },
+      minecraft: { model: MinecraftModel, as: 'minecraft' },
+      counterstrike: { model: CounterStrikeModel, as: 'cs' },
       // terraria: { model: TerrariaConfig, as: 'terraria' },
-      // ark: { model: ArkConfig, as: 'ark' },
-      // cs2: { model: CS2Config, as: 'cs2' },
     };
 
     const base = await Model.findByPk(id);
@@ -139,7 +146,7 @@ class Instance {
 
     for (const instance of instances) {
       try {
-        if (instance.updateAlways) await Instance.install(instance);
+        // if (instance.updateAlways) await Instance.install(instance);
       } catch (err) {
         logger.error({ err }, 'Error to update an instance');
       }
@@ -186,49 +193,6 @@ class Instance {
     }
   }
 
-  static async install(instance, force = false) {
-    // Get Info updates and verify if need updates
-    const info = await Version.getLatest(instance);
-    if (info.neededUpdates === 0 && !force) return { info, updating: false };
-
-    // Define variables for download process
-    const needRestart = instance.running; // Verify if the instance will need restart
-    const instancePath = Path.join(config.instance.path, instance.id);
-    const pluginsPath = Path.join(instancePath, 'plugins');
-    let downloadsCompleted = 0;
-
-    // Create plugins path if not exists
-    if (!existsSync(pluginsPath)) mkdirSync(pluginsPath);
-
-    // Stop instance and wait
-    await Instance.stop(instance.id);
-
-    const endDownloading = () => {
-      downloadsCompleted += 1;
-
-      // Downloads completed
-      if (info.neededUpdates === downloadsCompleted) {
-        Instance.update(instance.id, {
-          installed: true,
-          version: info.instanceVersion,
-          build: info.instanceBuild,
-          geyserBuild: info.geyserBuild,
-          floodgateBuild: info.floodgateBuild,
-        });
-
-        if (needRestart) Instance.run(instance.id);
-      }
-    };
-
-    // Start the instance install process in the background
-    if (info.needInstanceUpdate) download(`${instancePath}/server.jar`, info.instanceUrl).then(endDownloading);
-    if (info.needGeyserUpdate) download(`${pluginsPath}/Geyser.jar`, info.geyserUrl).then(endDownloading);
-    if (info.needFloodgateUpdate) download(`${pluginsPath}/Floodgate.jar`, info.floodgateUrl).then(endDownloading);
-
-    // Return the immediate response
-    return { info, updating: true };
-  }
-
   static async selectPort() {
     const instances = await Instance.readAll();
     const usedPorts = [];
@@ -260,44 +224,30 @@ class Instance {
 
   static async run(id) {
     const instance = await Instance.readOne(id);
-    const container = await Container.getOrCreate(instance);
+    await Container.create(instance);
 
     // Try to run instance
     try {
-      // Setup ambient to run instance
-      instancesRunning[id] = new Runtime(instance, () => Instance.readOne(id));
+      if (instance.type === 'minecraft') new MinecraftRuntime(instance, () => Instance.readOne(id));
+      if (instance.type === 'counterstrike') new CSRuntime(instance, () => Instance.readOne(id));
 
-      // Run instance
-      await Container.run(container);
+      // Set instance running
+      await instance.update({ running: true });
     } catch (err) {
-      // Stop runtime instance
-      if (instancesRunning[id]) instancesRunning[id].stop();
+      await Instance.stop(id);
 
       throw err;
     }
-
-    // Set instance running
-    await instance.update({ running: true });
 
     return instance;
   }
 
   static async stop(id) {
     const instance = await Instance.readOne(id);
-    const container = await Container.get(id);
-
-    const isRunning = await Container.isRunning(id);
-    if (isRunning) {
-      try {
-        await container.stop({ t: 20 }); // SIGTERM
-      } catch {
-        await container.kill(); // SIGKILL
-      }
-    }
+    await Container.stop(id);
 
     // Stop runtime instance
     if (instancesRunning[id]) instancesRunning[id].stop();
-    // await Container.delete(id);
 
     // Update running instance status
     await instance.update({ running: false });

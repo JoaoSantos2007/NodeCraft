@@ -17,7 +17,7 @@ const Instance = {
   },
   type: {
     type: 'string',
-    values: ['minecraft', 'hytale', 'cs2', 'terraria', 'ark', 'ksp'],
+    values: ['minecraft', 'hytale', 'counterstrike', 'terraria', 'ark', 'ksp'],
   },
   port: {
     type: 'number',
@@ -37,6 +37,16 @@ const Instance = {
   history: {
     type: 'string',
     internal: true,
+  },
+  memory: {
+    type: 'number',
+    int: true,
+    min: 1024,
+  },
+  cpu: {
+    type: 'number',
+    int: true,
+    min: 1,
   },
   config: {
     type: 'object',

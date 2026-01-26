@@ -53,12 +53,6 @@ router
     Controller.restart,
   )
   .post(
-    '/instance/:id/update',
-    (req, res, next) => auth('instance:update', req, res, next),
-    Middleware.verifyRunning,
-    Controller.updateVersion,
-  )
-  .post(
     '/instance/:id/backup',
     (req, res, next) => auth('instance:backup', req, res, next),
     Controller.backup,

@@ -20,7 +20,7 @@ const error = (err, req, res, next) => {
     }, 'Unhandled internal error');
 
     // eslint-disable-next-line no-console
-    if (!config.app.stage === 'DEV') console.error(err);
+    if (config.app.stage === 'DEV') console.error(err);
 
     return new Base().send(res);
   }

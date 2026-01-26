@@ -3,6 +3,7 @@ import Instance from './Instance.js';
 import Link from './Link.js';
 import db from '../../config/sequelize.js';
 import Minecraft from './Minecraft.js';
+import CounterStrike from './CounterStrike.js';
 
 // instance <-> link
 Instance.hasMany(Link, {
@@ -53,7 +54,18 @@ Minecraft.belongsTo(Instance, {
   foreignKey: 'instanceId',
 });
 
-// await db.sync({ alter: true });
+// instance <--> minecraft
+Instance.hasOne(CounterStrike, {
+  foreignKey: 'instanceId',
+  as: 'cs',
+  onDelete: 'CASCADE',
+});
+
+CounterStrike.belongsTo(Instance, {
+  foreignKey: 'instanceId',
+});
+
+// await db.sync({ force: true });
 await db.query('PRAGMA foreign_keys = ON');
 
 export {
@@ -62,4 +74,5 @@ export {
   Instance,
   Link,
   Minecraft,
+  CounterStrike,
 };
