@@ -4,12 +4,26 @@ import logger from '../../config/logger.js';
 
 const HEART_BEAT_TIME = 15000;
 
+let pulsing = false;
+
 class Hearbeat {
   static async define() {
     await Hearbeat.pulse();
 
     setInterval(async () => {
-      await Hearbeat.pulse();
+      if (pulsing) {
+        logger.warn('Skipping heartbeat, previous pulse still in flight');
+
+        return;
+      }
+
+      pulsing = true;
+
+      try {
+        await Hearbeat.pulse();
+      } finally {
+        pulsing = false;
+      }
     }, HEART_BEAT_TIME);
   }
 
@@ -44,11 +58,17 @@ class Hearbeat {
         Authorization: `Bearer ${config.manager.apiKey}`,
       };
 
-      await fetch(requestUrl, {
+      const result = await fetch(requestUrl, {
         method: 'POST',
         headers,
         body: JSON.stringify(info),
+        // A slow manager must not make pulses pile up on top of each other:
+        // every pending request holds a database connection on the other side.
+        signal: AbortSignal.timeout(config.manager.timeout),
       });
+
+      // Release the socket: an unread body keeps the connection open.
+      await result.body?.cancel();
     } catch (err) {
       logger.error({ err }, 'Error to make heartbeat');
     }

@@ -1,6 +1,6 @@
 import { Readable } from 'stream';
 import getWorkerContext from '../utils/getWorkerContext.js';
-import proxyFetch from '../utils/proxyFetch.js';
+import proxyFetch, { readWorkerJson } from '../utils/proxyFetch.js';
 
 class File {
   static async read(req, res, next) {
@@ -20,7 +20,7 @@ class File {
       });
 
       if (!response.ok) {
-        const result = await response.json();
+        const result = await readWorkerJson(response);
         return res.status(response.status).json(result);
       }
 
@@ -36,7 +36,7 @@ class File {
         return Readable.fromWeb(response.body).pipe(res);
       }
 
-      const result = await response.json();
+      const result = await readWorkerJson(response);
       return res.status(200).json(result);
     } catch (err) {
       return next(err);
@@ -61,11 +61,11 @@ class File {
       });
 
       if (!response.ok) {
-        const result = await response.json();
+        const result = await readWorkerJson(response);
         return res.status(response.status).json(result);
       }
 
-      const result = await response.json();
+      const result = await readWorkerJson(response);
       return res.status(201).json(result);
     } catch (err) {
       return next(err);
@@ -91,11 +91,11 @@ class File {
       });
 
       if (!response.ok) {
-        const result = await response.json();
+        const result = await readWorkerJson(response);
         return res.status(response.status).json(result);
       }
 
-      const result = await response.json();
+      const result = await readWorkerJson(response);
       return res.status(201).json(result);
     } catch (err) {
       return next(err);
@@ -120,11 +120,11 @@ class File {
       });
 
       if (!response.ok) {
-        const result = await response.json();
+        const result = await readWorkerJson(response);
         return res.status(response.status).json(result);
       }
 
-      const result = await response.json();
+      const result = await readWorkerJson(response);
       return res.status(200).json(result);
     } catch (err) {
       return next(err);
@@ -148,11 +148,11 @@ class File {
       });
 
       if (!response.ok) {
-        const result = await response.json();
+        const result = await readWorkerJson(response);
         return res.status(response.status).json(result);
       }
 
-      const result = await response.json();
+      const result = await readWorkerJson(response);
       return res.status(200).json(result);
     } catch (err) {
       return next(err);
@@ -176,11 +176,11 @@ class File {
       });
 
       if (!response.ok) {
-        const result = await response.json();
+        const result = await readWorkerJson(response);
         return res.status(response.status).json(result);
       }
 
-      const result = await response.json();
+      const result = await readWorkerJson(response);
       return res.status(200).json(result);
     } catch (err) {
       return next(err);
@@ -204,11 +204,11 @@ class File {
       });
 
       if (!response.ok) {
-        const result = await response.json();
+        const result = await readWorkerJson(response);
         return res.status(response.status).json(result);
       }
 
-      const result = await response.json();
+      const result = await readWorkerJson(response);
       return res.status(200).json(result);
     } catch (err) {
       return next(err);

@@ -20,6 +20,7 @@ const config = {
     url: process.env.MANAGER_URL,
     apiKey: process.env.MANAGER_API_KEY,
     secret: process.env.MANAGER_SECRET,
+    timeout: process.env.MANAGER_TIMEOUT ? Number(process.env.MANAGER_TIMEOUT) : 15000,
   },
   storage: {
     enable: process.env.STORAGE_ENABLE,

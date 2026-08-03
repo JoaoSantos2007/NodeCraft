@@ -73,6 +73,24 @@
       }
     }
   },
+  "PayloadTooLarge": {
+    "description": "PAYLOAD_TOO_LARGE",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "../schemas/error.json"
+        },
+        "example": {
+          "success": false,
+          "error": "PAYLOAD_TOO_LARGE",
+          "message": "The file you sent is too large!",
+          "details": [
+            "The worker refused the file size"
+          ]
+        }
+      }
+    }
+  },
   "UnavailableService": {
     "description": "SERVICE_UNAVAILABLE",
     "content": {

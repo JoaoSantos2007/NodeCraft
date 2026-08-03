@@ -11,6 +11,7 @@ const HEARTBEAT_RETENTION_DAYS = 7;
 const HEARTBEAT_RETENTION_MS = HEARTBEAT_RETENTION_DAYS * 24 * 60 * 60 * 1000;
 const DEAD_THRESHOLD = 3 * 60 * 1000; // 3 minutes
 const CHECK_INTERVAL = 60 * 1000; // 1 minute
+const PRUNE_INTERVAL = 60 * 60 * 1000; // 1 hour
 
 const HEARTBEAT_RANGES = {
   '1h': 60 * 60 * 1000,
@@ -87,10 +88,9 @@ class Worker {
       diskAvailable: data.diskAvailable,
     };
 
-    const worker = await Worker.update(id, info);
-    await Worker.recordHeartbeat(id, data);
+    await Model.update(info, { where: { id } });
 
-    return worker;
+    await Worker.recordHeartbeat(id, data);
   }
 
   static async recordHeartbeat(id, data) {
@@ -101,19 +101,20 @@ class Worker {
       memorieUsed: data.memorieUsed,
       diskAvailable: data.diskAvailable,
     });
-
-    await Worker.pruneHeartbeats(id);
   }
 
-  static async pruneHeartbeats(id) {
-    const cutoff = new Date(Date.now() - HEARTBEAT_RETENTION_MS);
+  static async pruneHeartbeats() {
+    try {
+      const cutoff = new Date(Date.now() - HEARTBEAT_RETENTION_MS);
 
-    await HeartbeatModel.destroy({
-      where: {
-        workerId: id,
-        createdAt: { [Op.lt]: cutoff },
-      },
-    });
+      await HeartbeatModel.destroy({
+        where: {
+          createdAt: { [Op.lt]: cutoff },
+        },
+      });
+    } catch (err) {
+      logger.error({ err }, 'Error to prune old heartbeats!');
+    }
   }
 
   static async readHeartbeats(id, range) {
@@ -141,8 +142,10 @@ class Worker {
 
   static startChecker() {
     setInterval(Worker.checkAll, CHECK_INTERVAL);
+    setInterval(Worker.pruneHeartbeats, PRUNE_INTERVAL);
 
     Worker.checkAll();
+    Worker.pruneHeartbeats();
   }
 
   static async checkAll() {

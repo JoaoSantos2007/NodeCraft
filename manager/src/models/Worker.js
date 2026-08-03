@@ -82,6 +82,9 @@ Worker.init({
   tableName: 'worker',
   sequelize: db,
   timestamps: false,
+  indexes: [
+    { name: 'worker_healthy_last_seen_at', fields: ['healthy', 'lastSeenAt'] },
+  ],
 });
 
 export default Worker;

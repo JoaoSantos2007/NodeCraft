@@ -13,6 +13,22 @@ if (databaseConfig.enable) {
     password: databaseConfig.password,
     database: databaseConfig.name,
     logging: false,
+    pool: {
+      max: databaseConfig.poolMax,
+      min: 0,
+      acquire: databaseConfig.poolAcquire,
+      idle: 10000,
+    },
+    dialectOptions: {
+      connectTimeout: 10000,
+    },
+    hooks: {
+      afterConnect: async (connection) => {
+        await connection.promise().query(
+          `SET SESSION innodb_lock_wait_timeout = ${databaseConfig.lockWaitTimeout}`,
+        );
+      },
+    },
   };
 } else {
   sequelizeConfig = {
