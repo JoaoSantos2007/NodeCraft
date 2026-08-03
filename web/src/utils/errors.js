@@ -34,6 +34,12 @@ export const ERROR_CATALOG = {
     title: 'Not found',
     description: "We couldn't find what you were looking for. It may have been removed.",
   },
+  PAYLOAD_TOO_LARGE: {
+    tone: 'warning',
+    icon: 'invalid',
+    title: 'File is too large',
+    description: 'This upload is over the size limit. Send a smaller file, or split it up.',
+  },
   SERVICE_UNAVAILABLE: {
     tone: 'danger',
     icon: 'offline',

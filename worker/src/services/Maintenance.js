@@ -39,24 +39,25 @@ class Maintenance {
     await Maintenance.checkDocker();
   }
 
-  static async cleanUp() {
+  // Drops containers and files of instances the manager no longer hosts here.
+  static async removeLostResources() {
     try {
       const instances = await Manager.getInstances();
 
       await Server.removeLost(instances);
       await Container.removeLost(instances);
-      await File.removeOldTemp();
-
-      // Set periodically
-      setInterval(async () => {
-        await Server.removeLost(instances);
-        await Container.removeLost(instances);
-      }, ONE_HOUR);
-
-      setInterval(File.removeOldTemp, FIFTEEN_MINUTES);
     } catch (err) {
-      logger.error({ err }, 'Error to cleanUp!');
+      logger.error({ err }, 'Skipping lost resources removal, could not read the instance list');
     }
+  }
+
+  static async cleanUp() {
+    await Maintenance.removeLostResources();
+    await File.removeOldTemp();
+
+    // Set periodically
+    setInterval(Maintenance.removeLostResources, ONE_HOUR);
+    setInterval(File.removeOldTemp, FIFTEEN_MINUTES);
   }
 }
 

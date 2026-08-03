@@ -84,8 +84,18 @@ class Server {
   }
 
   static async removeLost(instances) {
+    if (!Array.isArray(instances)) {
+      logger.error('Refusing to mark lost instances without a valid instance list');
+
+      return;
+    }
+
     const instancesId = await File.readOneDirectory(config.paths.instances);
     if (!instancesId) return;
+
+    if (instances.length === 0 && instancesId.length > 0) {
+      logger.warn('Marking lost instances against an empty instance list');
+    }
 
     // Instance lifetime as 5 days
     const INSTANCE_LIFETIME = 5 * 24 * 60 * 60 * 1000;
@@ -117,7 +127,14 @@ class Server {
           const time = Number(data?.time);
           const now = Date.now();
 
-          if (!time || now - time >= INSTANCE_LIFETIME) {
+          // An unreadable timestamp says nothing about how long the instance has
+          // been lost: restart the grace period instead of deleting right away.
+          if (!Number.isFinite(time) || time <= 0) {
+            await File.createOneFile(pendingDelete, `{"time":${now}}`);
+            continue;
+          }
+
+          if (now - time >= INSTANCE_LIFETIME) {
             // Delete pending instance
             await File.delete(instancePath);
           }

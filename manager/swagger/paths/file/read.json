@@ -41,6 +41,9 @@
       },
       "500": {
         "$ref": "../../components/responses/error.json#/Internal"
+      },
+      "503": {
+        "$ref": "../../components/responses/error.json#/UnavailableService"
       }
     }
   },

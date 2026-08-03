@@ -321,6 +321,12 @@ class Container {
 
   static async removeLost(instances) {
     try {
+      if (!Array.isArray(instances)) {
+        logger.error('Refusing to remove lost containers without a valid instance list');
+
+        return;
+      }
+
       const containers = await docker.listContainers({ all: true });
 
       for (const container of containers) {

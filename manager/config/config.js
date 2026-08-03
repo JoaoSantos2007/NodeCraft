@@ -15,6 +15,13 @@ const config = {
     username: process.env.DATABASE_USER || null,
     password: process.env.DATABASE_PASSWORD || null,
     name: process.env.DATABASE_NAME || null,
+    poolMax: process.env.DATABASE_POOL_MAX ? Number(process.env.DATABASE_POOL_MAX) : 20,
+    poolAcquire: process.env.DATABASE_POOL_ACQUIRE
+      ? Number(process.env.DATABASE_POOL_ACQUIRE)
+      : 20000,
+    lockWaitTimeout: process.env.DATABASE_LOCK_WAIT_TIMEOUT
+      ? Number(process.env.DATABASE_LOCK_WAIT_TIMEOUT)
+      : 10,
   },
   email: {
     enable: process.env.EMAIL_ENABLE === 'true',

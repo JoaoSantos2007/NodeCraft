@@ -7,6 +7,9 @@ import logger from '../../config/logger.js';
 import { getIO } from '../../config/socket.js';
 import Manager from '../services/Manager.js';
 
+// Console lines held while the manager is unreachable, oldest dropped first.
+const MAX_PENDING_HISTORY = 200;
+
 class Instance {
   constructor(instance) {
     this.id = instance.id;
@@ -27,6 +30,7 @@ class Instance {
       interval: null,
       history: [],
     };
+    this.sending = false; // A details report is in flight
     this.disk = { // Cached disk usage (MB) to avoid measuring every cycle
       value: null,
       measuredAt: 0,
@@ -180,18 +184,30 @@ class Instance {
   }
 
   async sendInstanceDetails() {
+    if (this.sending) return;
+    this.sending = true;
+
     try {
       const diskUsage = await this.measureDiskUsage();
+      const history = this?.synchronizer?.history || [];
 
-      await Manager.sendInstanceDetails(this.id, {
+      const sending = [...history];
+
+      const delivered = await Manager.sendInstanceDetails(this.id, {
         status: this.status === 'running' ? this.status : 'stopped',
-        history: this?.synchronizer?.history || [],
+        history: sending,
         diskUsage,
       });
 
-      if (this?.synchronizer?.history) this.synchronizer.history = [];
+      if (delivered) {
+        history.splice(0, sending.length);
+      } else if (history.length > MAX_PENDING_HISTORY) {
+        history.splice(0, history.length - MAX_PENDING_HISTORY);
+      }
     } catch (err) {
       logger.error({ err }, 'Error to send instance details');
+    } finally {
+      this.sending = false;
     }
   }
 
