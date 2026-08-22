@@ -11,8 +11,6 @@ import User from './User.js';
 import Worker from './Worker.js';
 import config from '../../config/config.js';
 
-const MAX_INSTANCE_HISTORY = 45;
-
 class Instance {
   static async create(userId, instanceData, gameData) {
     // Select game model
@@ -118,8 +116,8 @@ class Instance {
 
     // Wipe old lines
     let history = [...instance.history, ...workerHistory];
-    if (history.length > MAX_INSTANCE_HISTORY) {
-      history = history.slice(history.length - MAX_INSTANCE_HISTORY);
+    if (history.length > config.instance.maxHistory) {
+      history = history.slice(history.length - config.instance.maxHistory);
     }
 
     await instance.update({

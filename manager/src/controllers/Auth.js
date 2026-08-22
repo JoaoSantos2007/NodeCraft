@@ -11,7 +11,7 @@ class Auth {
         user, accessToken, refreshToken,
       } = await Service.authenticate(data.email, data.password);
 
-      const isProd = config.app.stage !== 'DEV';
+      const isProd = !config.app.isDev;
       const refreshPath = isProd ? '/api/auth/refresh' : '/auth/refresh';
 
       // Set accessToken in response cookie
@@ -19,7 +19,7 @@ class Auth {
         httpOnly: true,
         secure: isProd,
         sameSite: isProd ? 'strict' : 'Lax',
-        maxAge: 15 * 60 * 1000,
+        maxAge: config.token.accessLifetime,
       });
 
       // Set refreshToken in response cookie
@@ -28,7 +28,7 @@ class Auth {
         secure: isProd,
         sameSite: isProd ? 'strict' : 'Lax',
         path: refreshPath,
-        maxAge: 3 * 24 * 60 * 60 * 1000,
+        maxAge: config.token.refreshLifetime,
       });
 
       return res.status(200).json({ success: true, user });
@@ -45,7 +45,7 @@ class Auth {
 
       const { user, accessToken, refreshToken } = await Service.refreshAuthentication(token);
 
-      const isProd = config.app.stage !== 'DEV';
+      const isProd = !config.app.isDev;
       const refreshPath = isProd ? '/api/auth/refresh' : '/auth/refresh';
 
       // Set accessToken in response cookie
@@ -53,7 +53,7 @@ class Auth {
         httpOnly: true,
         secure: isProd,
         sameSite: isProd ? 'strict' : 'Lax',
-        maxAge: 15 * 60 * 1000,
+        maxAge: config.token.accessLifetime,
       });
 
       // Set refreshToken in response cookie
@@ -62,7 +62,7 @@ class Auth {
         secure: isProd,
         sameSite: isProd ? 'strict' : 'Lax',
         path: refreshPath,
-        maxAge: 3 * 24 * 60 * 60 * 1000,
+        maxAge: config.token.refreshLifetime,
       });
 
       return res.status(200).json({ success: true, user });
@@ -75,7 +75,7 @@ class Auth {
     try {
       const { user } = req;
 
-      const refreshPath = config.app.stage !== 'DEV' ? '/api/auth/refresh' : '/auth/refresh';
+      const refreshPath = config.app.isDev ? '/auth/refresh' : '/api/auth/refresh';
 
       await Service.wipeToken(user.id, 'refresh');
       res.clearCookie('accessToken');

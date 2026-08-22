@@ -1,4 +1,5 @@
 import { NotFound, ServiceUnavailable } from '../errors/index.js';
+import config from '../../config/config.js';
 
 const providers = {
   // Java: name → Mojang's UUID
@@ -29,7 +30,7 @@ const providers = {
 
   // Steam: vanity → SteamID64 (needs STEAM_API_KEY)
   async steam(input) {
-    const key = process.env.STEAM_API_KEY;
+    const key = config.resolvers.steamApiKey;
     if (!key) throw new ServiceUnavailable('Steam resolver not configured!');
 
     const url = `https://api.steampowered.com/ISteamUser/ResolveVanityURL/v1/?key=${key}&vanityurl=${encodeURIComponent(input)}`;

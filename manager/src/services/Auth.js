@@ -144,7 +144,7 @@ class Auth {
     await Auth.saveToken(user.id, token, 'email');
 
     // Send Email
-    const link = `${config.site.validateUrl}?token=${token}`;
+    const link = `${config.app.verifyUrl}?token=${token}`;
     const html = await renderTemplate('verify.html', {
       name: user.name || 'usuário',
       link,
@@ -188,7 +188,7 @@ class Auth {
 
     // Send Email
 
-    const link = `${config.site.resetUrl}?token=${token}`;
+    const link = `${config.app.resetPasswordUrl}?token=${token}`;
     const html = await renderTemplate('reset.html', {
       name: user.name || 'usuário',
       link,

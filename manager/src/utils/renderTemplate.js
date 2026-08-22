@@ -5,7 +5,7 @@ import logger from '../../config/logger.js';
 
 const renderTemplate = async (templateName, variables = {}) => {
   try {
-    const filePath = Path.resolve(config.absoutePath, 'src', 'templates', templateName);
+    const filePath = Path.resolve(config.paths.absolute, 'src', 'templates', templateName);
     let template = await readFile(filePath, 'utf8');
 
     for (const [key, value] of Object.entries(variables)) {
