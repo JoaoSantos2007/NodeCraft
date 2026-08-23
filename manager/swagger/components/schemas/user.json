@@ -21,12 +21,6 @@
       "type": "boolean",
       "example": false
     },
-    "birthDate": {
-      "type": "string",
-      "format": "date",
-      "nullable": true,
-      "example": "2007-05-14"
-    },
     "maxInstances": {
       "type": "integer",
       "description": "Max number of instances the user can own.",

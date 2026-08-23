@@ -106,5 +106,21 @@
         }
       }
     }
+  },
+  "TooManyRequests": {
+    "description": "TOO_MANY_REQUESTS",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "../schemas/error.json"
+        },
+        "example": {
+          "success": false,
+          "error": "TOO_MANY_REQUESTS",
+          "message": "Too many requests, try again later!",
+          "details": []
+        }
+      }
+    }
   }
 }

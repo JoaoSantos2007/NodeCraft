@@ -10,10 +10,6 @@ class User {
       name: data.name,
       email: data.email,
       password: hashedPassword,
-      javaGamertag: data.javaGamertag,
-      bedrockGamertag: data.bedrockGamertag,
-      gender: data.gender,
-      birthDate: data.birthDate,
     });
 
     return user.id;
@@ -41,11 +37,11 @@ class User {
     return user;
   }
 
-  // Public profile lookup (GET /user/:id): scalar fields only (default scope
-  // already hides secrets). Omits the `instances` link list so a logged user
-  // can't enumerate which instances another user is linked to.
   static async readProfile(id) {
-    const user = await Model.findOne({ where: { id } });
+    const user = await Model.findOne({
+      where: { id },
+      attributes: ['id', 'name'],
+    });
 
     if (!user) throw new NotFound('User not found!');
 

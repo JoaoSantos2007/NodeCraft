@@ -5,6 +5,7 @@ import validate from './validate.js';
 import verifyService from './verifyService.js';
 import { verifyRunning, verifyNotRunning } from './instance.js';
 import workerAuth, { workerOrAuth } from './worker.js';
+import { loginLimiter, createAccountLimiter, emailLimiter } from './rateLimit.js';
 
 export {
   auth,
@@ -16,4 +17,7 @@ export {
   verifyService,
   verifyRunning,
   verifyNotRunning,
+  loginLimiter,
+  createAccountLimiter,
+  emailLimiter,
 };

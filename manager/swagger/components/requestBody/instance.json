@@ -43,9 +43,12 @@
       "application/json": {
         "schema": {
           "type": "object",
+          "description": "Creates an instance. `workerId` is mandatory — there is no automatic placement — and must be one of the user's `allowedWorkers`. `game` must match `type`; sending a `game` block for a different game is rejected. `port`, `status` and `history` are server-assigned and rejected if sent.",
           "required": [
             "name",
-            "type"
+            "type",
+            "workerId",
+            "game"
           ],
           "properties": {
             "name": {
@@ -68,7 +71,72 @@
             "workerId": {
               "type": "string",
               "description": "Worker to place the instance on. Must be one of the user's allowedWorkers.",
-              "example": "0c9f3d2a-1b4e-4c8a-9f7d-2e5a6b8c1d3f"
+              "example": "0c9f3d2a-1b4e-4c8a-9f7d-2e5a6b8c1d3f",
+              "format": "uuid"
+            },
+            "memory": {
+              "type": "integer",
+              "minimum": 512,
+              "example": 2048
+            },
+            "cpu": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 2
+            },
+            "maxPlayers": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000,
+              "example": 10
+            },
+            "game": {
+              "oneOf": [
+                {
+                  "$ref": "../schemas/minecraft.json"
+                },
+                {
+                  "$ref": "../schemas/hytale.json"
+                },
+                {
+                  "$ref": "../schemas/kerbal.json"
+                },
+                {
+                  "$ref": "../schemas/terraria.json"
+                },
+                {
+                  "$ref": "../schemas/counterstrike.json"
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  },
+  "update": {
+    "content": {
+      "application/json": {
+        "schema": {
+          "type": "object",
+          "description": "Updates an existing instance. Every property is optional, but `game` may only be sent together with `type` (it is validated against it), and sending `type` requires `game`. `type` itself is not persisted — it only selects which `game` schema applies. `workerId` cannot be changed here; use `PUT /instance/{id}/worker` (admin). The instance must be stopped.",
+          "properties": {
+            "name": {
+              "type": "string",
+              "example": "Meu mundo de minecraft",
+              "minLength": 3,
+              "maxLength": 32
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "minecraft",
+                "hytale",
+                "counterstrike",
+                "terraria",
+                "kerbal"
+              ],
+              "example": "minecraft"
             },
             "memory": {
               "type": "integer",

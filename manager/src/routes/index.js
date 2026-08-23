@@ -11,15 +11,21 @@ import root from './root.js';
 const routes = (app) => {
   app.use((req, res, next) => {
     const origin = req?.headers?.origin;
-    if (origin && config.app.corsOrigins.includes(origin)) {
+    const allowed = Boolean(origin) && config.app.corsOrigins.includes(origin);
+
+    res.vary('Origin');
+
+    if (allowed) {
       res.header('Access-Control-Allow-Origin', origin);
+      res.header('Access-Control-Allow-Credentials', 'true');
     }
 
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH');
-    res.header('Access-Control-Allow-Credentials', 'true');
-
     if (req.method === 'OPTIONS') {
+      if (allowed) {
+        res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+        res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH');
+      }
+
       return res.status(204).end();
     }
 

@@ -13,6 +13,9 @@
       "401": {
         "$ref": "../../components/responses/auth.json#/invalidLogin"
       },
+      "429": {
+        "$ref": "../../components/responses/error.json#/TooManyRequests"
+      },
       "500": {
         "$ref": "../../components/responses/error.json#/Internal"
       }

@@ -10,6 +10,8 @@ import logger from '../config/logger.js';
 
 const app = express();
 
+app.set('trust proxy', config.rateLimit.trustProxy);
+
 if (config.app.isDev) {
   const swaggerDocument = await SwaggerParser.bundle(
     fileURLToPath(new URL('../swagger/openapi.json', import.meta.url)),

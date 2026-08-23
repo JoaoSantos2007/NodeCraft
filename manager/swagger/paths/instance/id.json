@@ -53,7 +53,7 @@
       }
     },
     "requestBody": {
-      "$ref": "../../components/requestBody/instance.json#/create"
+      "$ref": "../../components/requestBody/instance.json#/update"
     }
   },
   "delete": {

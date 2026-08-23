@@ -1,6 +1,5 @@
 import { InvalidRequest } from '../errors/index.js';
 import Service from '../services/Instance.js';
-import handleError from './handleError.js';
 
 const verifyNotRunning = async (req, res, next) => {
   try {
@@ -13,7 +12,7 @@ const verifyNotRunning = async (req, res, next) => {
 
     return next();
   } catch (err) {
-    return handleError(err, req, res);
+    return next(err);
   }
 };
 
@@ -28,7 +27,7 @@ const verifyRunning = async (req, res, next) => {
 
     return next();
   } catch (err) {
-    return handleError(err, req, res);
+    return next(err);
   }
 };
 

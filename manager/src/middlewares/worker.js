@@ -1,6 +1,5 @@
 import Service from '../services/Worker.js';
 import { Unathorized } from '../errors/index.js';
-import handleError from './handleError.js';
 import auth from './auth.js';
 
 const workerAuth = () => async (req, res, next) => {
@@ -24,7 +23,7 @@ const workerAuth = () => async (req, res, next) => {
     req.worker = worker;
     return next();
   } catch (err) {
-    return handleError(err, req, res);
+    return next(err);
   }
 };
 

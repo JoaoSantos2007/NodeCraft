@@ -1,16 +1,20 @@
 import { Router } from 'express';
 import Controller from '../controllers/Auth.js';
-import { auth, verifyService } from '../middlewares/index.js';
+import {
+  auth, verifyService, loginLimiter, emailLimiter,
+} from '../middlewares/index.js';
 
 const router = Router();
 
 router
   .post(
     '/auth/login',
+    loginLimiter,
     Controller.login,
   )
   .post(
     '/auth/refresh',
+    loginLimiter,
     Controller.refresh,
   )
   .post(
@@ -21,6 +25,7 @@ router
   .post(
     '/auth/verify',
     verifyService('email'),
+    emailLimiter,
     auth('logged'),
     Controller.sendVerification,
   )
@@ -33,11 +38,13 @@ router
   .post(
     '/auth/forgot',
     verifyService('email'),
+    emailLimiter,
     Controller.forgotPassword,
   )
   .post(
     '/auth/reset',
     verifyService('email'),
+    loginLimiter,
     Controller.resetPassword,
   );
 

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import Controller from '../controllers/User.js';
-import { auth, validate } from '../middlewares/index.js';
+import { auth, validate, createAccountLimiter } from '../middlewares/index.js';
 import { createUser, updateUser, adminUpdateUser } from '../schemas/index.js';
 
 const router = Router();
@@ -23,6 +23,7 @@ router
   )
   .post(
     '/user',
+    createAccountLimiter,
     validate(createUser),
     Controller.create,
   )

@@ -48,9 +48,7 @@
       "application/json": {
         "schema": {
           "type": "object",
-          "required": [
-            "access"
-          ],
+          "description": "Partial update — send `access`, `privileged`, or both. At least one property is required; an empty body returns `400`. `platform`, `name` and `identifier` are immutable and rejected if sent.",
           "properties": {
             "access": {
               "type": "string",
@@ -65,7 +63,8 @@
               "type": "boolean",
               "example": true
             }
-          }
+          },
+          "minProperties": 1
         }
       }
     }

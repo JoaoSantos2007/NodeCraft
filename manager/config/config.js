@@ -92,6 +92,23 @@ const config = {
       'instance:roster:edit',
     ],
   },
+  rateLimit: {
+    windowMs: process.env.RATE_LIMIT_WINDOW
+      ? Number(process.env.RATE_LIMIT_WINDOW)
+      : 15 * ONE_MINUTE,
+    login: process.env.RATE_LIMIT_LOGIN
+      ? Number(process.env.RATE_LIMIT_LOGIN)
+      : 10,
+    createAccount: process.env.RATE_LIMIT_CREATE_ACCOUNT
+      ? Number(process.env.RATE_LIMIT_CREATE_ACCOUNT)
+      : 5,
+    email: process.env.RATE_LIMIT_EMAIL
+      ? Number(process.env.RATE_LIMIT_EMAIL)
+      : 3,
+    trustProxy: process.env.TRUST_PROXY
+      ? Number(process.env.TRUST_PROXY)
+      : 0,
+  },
   roster: {
     access: ['host', 'member', 'guest'],
     platforms: ['java', 'bedrock', 'steam'],

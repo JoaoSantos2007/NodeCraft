@@ -5,6 +5,7 @@ import Unathorized from './Unathorized.js';
 import Forbidden from './Forbidden.js';
 import ServiceUnavailable from './ServiceUnavailable.js';
 import PayloadTooLarge from './PayloadTooLarge.js';
+import TooManyRequests from './TooManyRequests.js';
 import mapSequelizeError from './SequelizeMap.js';
 import Internal from './Internal.js';
 
@@ -17,5 +18,6 @@ export {
   Forbidden,
   ServiceUnavailable,
   PayloadTooLarge,
+  TooManyRequests,
   Internal,
 };

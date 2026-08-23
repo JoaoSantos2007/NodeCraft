@@ -13,6 +13,9 @@
       "404": {
         "$ref": "../../components/responses/error.json#/NotFound"
       },
+      "429": {
+        "$ref": "../../components/responses/error.json#/TooManyRequests"
+      },
       "500": {
         "$ref": "../../components/responses/error.json#/Internal"
       },

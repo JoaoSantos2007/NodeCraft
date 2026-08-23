@@ -9,7 +9,7 @@ const createInstance = Joi.object({
   id: Joi.forbidden(),
   owner: Joi.forbidden(),
   name: Joi.string().trim().min(3).max(32).required(),
-  workerId: Joi.string().trim(),
+  workerId: Joi.string().trim().uuid().required(),
   type: Joi.string().trim().valid('minecraft', 'hytale', 'counterstrike', 'terraria', 'kerbal').required(),
   port: Joi.forbidden(),
   memory: Joi.number().integer().min(512),
@@ -33,13 +33,13 @@ const updateInstance = Joi.object({
   id: Joi.forbidden(),
   owner: Joi.forbidden(),
   name: Joi.string().trim().min(3).max(32),
-  workerId: Joi.string().trim(),
+  workerId: Joi.forbidden(),
   type: Joi.string().trim().strip().valid('minecraft', 'hytale', 'counterstrike', 'terraria', 'kerbal'),
   port: Joi.forbidden(),
   memory: Joi.number().integer().min(512),
   cpu: Joi.number().integer().min(1),
   maxPlayers: Joi.number().integer().min(1).max(1000),
-  stauts: Joi.forbidden(),
+  status: Joi.forbidden(),
   history: Joi.forbidden(),
   game: Joi.when('type', {
     switch: [
@@ -51,7 +51,7 @@ const updateInstance = Joi.object({
     ],
     otherwise: Joi.forbidden(),
   }).required(),
-});
+}).min(1);
 
 const transferOwner = Joi.object({
   owner: Joi.string().trim().uuid().required(),
