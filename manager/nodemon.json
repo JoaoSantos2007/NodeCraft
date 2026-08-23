@@ -1,4 +1,5 @@
 {
-  "ignore": ["logs"],
-  "ext": "js,mjs,cjs,json,html,env"
+  "ignore": ["logs", "node_modules", "package-lock.json", "db"],
+  "ext": "js,mjs,cjs,json,html,env",
+  "delay": "500ms"
 }

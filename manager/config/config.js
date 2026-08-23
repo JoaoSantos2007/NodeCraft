@@ -30,6 +30,10 @@ const config = {
   paths: {
     absolute: path.resolve(process.cwd()),
   },
+  log: {
+    // pino level: trace | debug | info | warn | error | fatal | silent
+    level: process.env.LOG_LEVEL || 'info',
+  },
   database: {
     enable: process.env.DATABASE_ENABLE === 'true',
     host: process.env.DATABASE_HOST || null,

@@ -11,6 +11,10 @@ const config = {
     stage: process.env.STAGE || 'PROD',
     id: process.env.WORKER_ID,
   },
+  log: {
+    // pino level: trace | debug | info | warn | error | fatal | silent
+    level: process.env.LOG_LEVEL || 'info',
+  },
   paths: {
     absolute: absoutePath,
     instances: process.env.INSTANCE_PATH || path.join(absoutePath, 'instances'),
