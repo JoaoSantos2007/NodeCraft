@@ -5,6 +5,7 @@
     "tags": [
       "Auth"
     ],
+    "security": [],
     "responses": {
       "200": {
         "$ref": "../../components/responses/user.json#/default"

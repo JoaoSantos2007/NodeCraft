@@ -23,6 +23,7 @@
     "tags": [
       "User"
     ],
+    "security": [],
     "responses": {
       "201": {
         "$ref": "../../components/responses/user.json#/default"

@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import config from '../../config/config.js';
 
 const router = Router();
 
@@ -9,7 +10,8 @@ router
       name: 'Nodecraft API',
       version: '3.0',
       summary: 'Central manager API of the NodeCraft platform — create, configure and run game server instances via Docker, with authentication, per-instance permissions, automatic backups and worker fleet monitoring.',
-      docs: '/docs',
+      // Only exposed in dev — `/docs` is not mounted in production (src/app.js).
+      ...(config.app.isDev && { docs: '/docs' }),
       github: 'https://github.com/jsantos43',
       author: 'João Pedro Tomaz dos Santos',
     });

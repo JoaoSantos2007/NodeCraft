@@ -5,6 +5,11 @@
     "tags": [
       "Worker"
     ],
+    "security": [
+      {
+        "workerApiKey": []
+      }
+    ],
     "responses": {
       "200": {
         "$ref": "../../components/responses/worker.json#/ok"

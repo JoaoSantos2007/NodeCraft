@@ -1,7 +1,8 @@
 import { Base, mapSequelizeError } from '../errors/index.js';
 import logger from '../../config/logger.js';
 
-const handleError = (err, req, res) => {
+// eslint-disable-next-line no-unused-vars
+const handleError = (err, req, res, next) => {
   const sequelizeMappedError = mapSequelizeError(err);
   if (sequelizeMappedError) return sequelizeMappedError.send(res);
 

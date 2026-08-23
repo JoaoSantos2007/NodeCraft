@@ -5,6 +5,11 @@
     "tags": [
       "Auth"
     ],
+    "security": [
+      {
+        "refreshCookie": []
+      }
+    ],
     "responses": {
       "200": {
         "$ref": "../../components/responses/user.json#/default"

@@ -1,5 +1,6 @@
 {
   "read": {
+    "description": "OK - directory listing or file content.",
     "content": {
       "application/json": {
         "schema": {
@@ -68,6 +69,7 @@
     }
   },
   "create": {
+    "description": "Created - file or directory created.",
     "content": {
       "application/json": {
         "schema": {
@@ -87,6 +89,7 @@
     }
   },
   "edit": {
+    "description": "OK - file content updated.",
     "content": {
       "application/json": {
         "schema": {
@@ -110,6 +113,7 @@
     }
   },
   "delete": {
+    "description": "OK - file or directory deleted.",
     "content": {
       "application/json": {
         "schema": {
@@ -129,6 +133,7 @@
     }
   },
   "transfer": {
+    "description": "OK - file or directory copied/moved.",
     "content": {
       "application/json": {
         "schema": {
@@ -152,6 +157,7 @@
     }
   },
   "unzip": {
+    "description": "OK - archive extracted.",
     "content": {
       "application/json": {
         "schema": {
@@ -179,6 +185,7 @@
     }
   },
   "upload": {
+    "description": "Created - file(s) uploaded.",
     "content": {
       "application/json": {
         "schema": {
