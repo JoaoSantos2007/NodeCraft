@@ -13,8 +13,12 @@ const workerAuth = () => async (req, res, next) => {
     // Verify if token exists
     if (!token) throw new Unathorized('Invalid Worker Token!');
 
-    // Get worker
-    const worker = await Service.readOne(id);
+    let worker = null;
+    try {
+      worker = await Service.readOne(id);
+    } catch {
+      throw new Unathorized('Invalid Worker Token!');
+    }
 
     // Compare token with api key in the database
     const equalTokens = Service.compareApiKey(token, worker.apiKey);
@@ -27,22 +31,21 @@ const workerAuth = () => async (req, res, next) => {
   }
 };
 
-// Dual-use routes: allow either a valid worker API key (worker → manager)
-// or an authenticated user with `permission` (frontend → manager).
 const workerOrAuth = (permission) => async (req, res, next) => {
   const id = req?.params?.id || req?.params?.workerId;
   const token = req.headers.authorization?.replace('Bearer ', '');
 
-  // Try worker API key first; fall back to user auth on any mismatch.
   if (token && id) {
     try {
       const worker = await Service.readOne(id);
+
       if (Service.compareApiKey(token, worker.apiKey)) {
         req.worker = worker;
+
         return next();
       }
     } catch {
-      // worker not found / lookup failed — defer to user auth below
+      // worker not found
     }
   }
 

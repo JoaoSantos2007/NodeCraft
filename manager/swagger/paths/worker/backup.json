@@ -14,6 +14,9 @@
       "200": {
         "$ref": "../../components/responses/worker.json#/ok"
       },
+      "400": {
+        "$ref": "../../components/responses/error.json#/InvalidRequest"
+      },
       "401": {
         "$ref": "../../components/responses/error.json#/Unathorized"
       },
@@ -22,6 +25,9 @@
       },
       "404": {
         "$ref": "../../components/responses/error.json#/NotFound"
+      },
+      "413": {
+        "$ref": "../../components/responses/error.json#/PayloadTooLarge"
       },
       "500": {
         "$ref": "../../components/responses/error.json#/Internal"

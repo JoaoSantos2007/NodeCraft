@@ -1,4 +1,5 @@
 import { Readable } from 'stream';
+import { pipeline } from 'stream/promises';
 import getWorkerContext from '../utils/getWorkerContext.js';
 import proxyFetch, { readWorkerJson } from '../utils/proxyFetch.js';
 
@@ -32,8 +33,15 @@ class File {
         const disposition = response.headers.get('content-disposition');
         if (disposition) res.setHeader('Content-Disposition', disposition);
 
-        // Follow worker response body to user
-        return Readable.fromWeb(response.body).pipe(res);
+        try {
+          await pipeline(Readable.fromWeb(response.body), res);
+        } catch (err) {
+          if (err.code === 'ERR_STREAM_PREMATURE_CLOSE') return undefined;
+
+          throw err;
+        }
+
+        return undefined;
       }
 
       const result = await readWorkerJson(response);

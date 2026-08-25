@@ -5,7 +5,7 @@ import {
 } from '../models/index.js';
 import { NotFound } from '../errors/index.js';
 import logger from '../../config/logger.js';
-import { hashToken, generateRandomToken } from '../utils/token.js';
+import { hashToken, generateRandomToken, compareToken } from '../utils/token.js';
 
 const HEARTBEAT_RETENTION_DAYS = 7;
 const HEARTBEAT_RETENTION_MS = HEARTBEAT_RETENTION_DAYS * 24 * 60 * 60 * 1000;
@@ -135,9 +135,7 @@ class Worker {
   }
 
   static compareApiKey(apiKey, storedApiKey) {
-    const hashedApiKey = hashToken(apiKey);
-
-    return hashedApiKey === storedApiKey;
+    return compareToken(apiKey, storedApiKey);
   }
 
   static startChecker() {

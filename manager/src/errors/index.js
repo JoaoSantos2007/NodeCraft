@@ -7,10 +7,12 @@ import ServiceUnavailable from './ServiceUnavailable.js';
 import PayloadTooLarge from './PayloadTooLarge.js';
 import TooManyRequests from './TooManyRequests.js';
 import mapSequelizeError from './SequelizeMap.js';
+import mapHttpError from './HttpMap.js';
 import Internal from './Internal.js';
 
 export {
   mapSequelizeError,
+  mapHttpError,
   NotFound,
   Base,
   InvalidRequest,

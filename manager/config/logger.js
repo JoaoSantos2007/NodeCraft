@@ -12,6 +12,9 @@ const logger = pino({
       'req.body.token',
       'req.headers.authorization',
       'req.headers.cookie',
+      // body-parser attaches the raw request payload to its parse errors.
+      'err.body',
+      'err.raw.body',
     ],
     censor: '[redacted]',
   },

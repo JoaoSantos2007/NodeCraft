@@ -5,7 +5,7 @@ import {
 } from '../errors/index.js';
 import sendEmail from '../utils/sendEmail.js';
 import renderTemplate from '../utils/renderTemplate.js';
-import { hashToken, generateRandomToken } from '../utils/token.js';
+import { hashToken, generateRandomToken, compareToken } from '../utils/token.js';
 import User from './User.js';
 import Instance from './Instance.js';
 import Link from './Link.js';
@@ -89,9 +89,12 @@ class Auth {
 
   static verifyJWTToken(token) {
     try {
-      const payload = jwt.verify(token, config.token.jwtSecret);
+      const payload = jwt.verify(token, config.token.jwtSecret, { audience: 'api' });
+      if (payload.purpose !== 'access') throw new Unathorized('Token is invalid!');
+
       return payload;
     } catch (err) {
+      if (err instanceof Unathorized) throw err;
       if (err.name === 'TokenExpiredError') {
         throw new Unathorized('Token is expired!');
       } else if (err.name === 'JsonWebTokenError') {
@@ -125,7 +128,7 @@ class Auth {
     const user = await User.readAllAttributes(null, null, hashedToken, 'refresh');
 
     if (!user || !user?.refreshTokenHash) throw new InvalidRequest('Refresh token is invalid!');
-    if (hashedToken !== user.refreshTokenHash) throw new InvalidRequest('Refresh token is invalid!');
+    if (!compareToken(token, user.refreshTokenHash)) throw new InvalidRequest('Refresh token is invalid!');
     if (user.refreshTokenExpires < Date.now()) throw new InvalidRequest('Refresh token is expiried!');
 
     const accessToken = Auth.generateAccessToken(user.id);
@@ -165,7 +168,7 @@ class Auth {
     const user = await User.readAllAttributes(null, null, hashedToken, 'email');
 
     if (!user || !user?.emailTokenHash) throw new InvalidRequest('Email token is invalid!');
-    if (hashedToken !== user.emailTokenHash) throw new InvalidRequest('Email token is invalid!');
+    if (!compareToken(token, user.emailTokenHash)) throw new InvalidRequest('Email token is invalid!');
     if (user.emailTokenExpires < Date.now()) throw new InvalidRequest('Email token is expired!');
 
     // Set verified account and wipe tokens
@@ -214,7 +217,7 @@ class Auth {
     const user = await User.readAllAttributes(null, null, hashedToken, 'password');
 
     if (!user || !user?.resetPasswordTokenHash) throw new InvalidRequest('Reset password token is invalid!');
-    if (hashedToken !== user.resetPasswordTokenHash) throw new InvalidRequest('Reset password token is invalid!');
+    if (!compareToken(token, user.resetPasswordTokenHash)) throw new InvalidRequest('Reset password token is invalid!');
     if (user.resetPasswordTokenExpires < Date.now()) throw new InvalidRequest('Reset password token is expiried!');
 
     // Change password and wipe tokens

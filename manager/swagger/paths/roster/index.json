@@ -45,6 +45,9 @@
       "404": {
         "$ref": "../../components/responses/error.json#/NotFound"
       },
+      "413": {
+        "$ref": "../../components/responses/error.json#/PayloadTooLarge"
+      },
       "500": {
         "$ref": "../../components/responses/error.json#/Internal"
       }
