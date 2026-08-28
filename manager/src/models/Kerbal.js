@@ -19,6 +19,9 @@ Kerbal.init(
       defaultValue: 'Nodecraft KSP Server',
       allowNull: false,
       validate: {
+        notEmpty: {
+          msg: 'servername field cannot be empty!',
+        },
         len: {
           args: [3, 32],
           msg: 'servername field must have a length between 2 and 32!',
@@ -27,19 +30,17 @@ Kerbal.init(
     },
     gamemode: {
       type: DataTypes.STRING,
-      values: ['SANDBOX', 'SCIENCE', 'CARRER'],
       allowNull: false,
       defaultValue: 'SANDBOX',
       validate: {
         isIn: {
-          args: [['SANDBOX', 'SCIENCE', 'CARRER']],
-          msg: 'gamemode field must be SANDBOX, SCIENCE or CARRER!',
+          args: [['SANDBOX', 'SCIENCE', 'CAREER']],
+          msg: 'gamemode field must be SANDBOX, SCIENCE or CAREER!',
         },
       },
     },
     difficulty: {
       type: DataTypes.STRING,
-      values: ['EASY', 'NORMAL', 'MODERATE', 'HARD', 'CUSTOM'],
       allowNull: false,
       defaultValue: 'NORMAL',
       validate: {
@@ -51,7 +52,6 @@ Kerbal.init(
     },
     warp: {
       type: DataTypes.STRING,
-      values: ['MCW_FORCE', 'MCW_VOTE', 'MCW_LOWEST', 'SUBSPACE_SIMPLE', 'SUBSPACE', 'NONE'],
       defaultValue: 'SUBSPACE',
       allowNull: false,
       validate: {

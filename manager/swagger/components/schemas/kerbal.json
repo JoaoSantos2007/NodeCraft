@@ -12,7 +12,7 @@
       "enum": [
         "SANDBOX",
         "SCIENCE",
-        "CARRER"
+        "CAREER"
       ],
       "example": "SANDBOX"
     },

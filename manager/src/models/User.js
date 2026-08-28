@@ -34,7 +34,7 @@ User.init({
     unique: true,
     validate: {
       isEmail: {
-        msg: 'email is already registered!',
+        msg: 'email field must be correct!',
       },
       len: {
         args: [1, 257],
@@ -122,7 +122,7 @@ User.init({
   allowedGames: {
     type: DataTypes.JSON,
     allowNull: false,
-    defaultValue: ['minecraft', 'hytale', 'counterstrike', 'terraria', 'kerbal'],
+    defaultValue: ['minecraft', 'hytale', 'terraria', 'kerbal'],
     validate: {
       isValidArray(value) {
         if (!Array.isArray(value)) {

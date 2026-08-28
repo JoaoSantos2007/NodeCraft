@@ -36,7 +36,7 @@ Terraria.init(
       validate: {
         len: {
           args: [0, 32],
-          msg: 'password field must have a length between 2 and 32!',
+          msg: 'password field must have a length between 0 and 32!',
         },
       },
     },

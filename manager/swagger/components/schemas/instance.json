@@ -84,10 +84,6 @@
     "minecraft": {
       "$ref": "./minecraft.json"
     },
-    "counterstrike": {
-      "example": null,
-      "$ref": "./counterstrike.json"
-    },
     "kerbal": {
       "$ref": "./kerbal.json",
       "example": null
@@ -155,7 +151,6 @@
       "npcs": true,
       "cheats": false
     },
-    "counterstrike": null,
     "kerbal": null,
     "hytale": null,
     "terraria": null,

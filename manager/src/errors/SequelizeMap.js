@@ -1,21 +1,8 @@
-import {
-  ValidationError,
-  UniqueConstraintError,
-  ForeignKeyConstraintError,
-} from 'sequelize';
+import { ValidationError, ForeignKeyConstraintError } from 'sequelize';
 import InvalidRequest from './InvalidRequest.js';
 
 const mapSequelizeError = (error) => {
   if (error instanceof ValidationError) {
-    return new InvalidRequest(
-      error.errors.map((e) => ({
-        field: e.path,
-        message: e.message,
-      })),
-    );
-  }
-
-  if (error instanceof UniqueConstraintError) {
     return new InvalidRequest(
       error.errors.map((e) => ({
         field: e.path,

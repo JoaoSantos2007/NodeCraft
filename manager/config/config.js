@@ -114,7 +114,6 @@ const config = {
     platforms: ['java', 'bedrock', 'steam'],
     platformsByGame: {
       minecraft: ['java', 'bedrock'],
-      counterstrike: ['steam'],
       terraria: ['steam'],
     },
   },

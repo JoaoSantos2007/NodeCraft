@@ -35,24 +35,26 @@ Instance.init({
     type: DataTypes.STRING,
     allowNull: false,
     validate: {
+      notEmpty: {
+        msg: 'name field cannot be empty!',
+      },
       is: {
         args: /^[a-zA-ZÀ-ÿ0-9\s]+$/i,
         msg: 'name field must be valid!',
       },
       len: {
         args: [3, 32],
-        msg: 'name field must have a length between 2 and 32!',
+        msg: 'name field must have a length between 3 and 32!',
       },
     },
   },
   type: {
     type: DataTypes.STRING,
-    values: ['minecraft', 'hytale', 'counterstrike', 'terraria', 'kerbal'],
     defaultValue: 'minecraft',
     allowNull: false,
     validate: {
       isIn: {
-        args: [['minecraft', 'hytale', 'counterstrike', 'terraria', 'kerbal']],
+        args: [['minecraft', 'hytale', 'terraria', 'kerbal']],
         msg: 'type field must be a supported game!',
       },
     },
@@ -111,7 +113,6 @@ Instance.init({
   },
   status: {
     type: DataTypes.STRING,
-    values: ['running', 'stopped', 'failed'],
     defaultValue: 'stopped',
     allowNull: false,
     validate: {
@@ -159,6 +160,9 @@ Instance.init({
   tableName: 'instance',
   sequelize: db,
   timestamps: false,
+  indexes: [
+    { unique: true, fields: ['workerId', 'port'], name: 'instance_worker_id_port_unique' },
+  ],
 });
 
 export default Instance;

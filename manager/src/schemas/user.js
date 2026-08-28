@@ -37,7 +37,7 @@ const adminUpdateUser = Joi.object({
   maxCpu: Joi.number().integer().min(0),
   maxDisk: Joi.number().integer().min(0),
   allowedGames: Joi.array().items(
-    Joi.string().valid('minecraft', 'hytale', 'counterstrike', 'terraria', 'kerbal'),
+    Joi.string().valid('minecraft', 'hytale', 'terraria', 'kerbal'),
   ),
   allowedWorkers: Joi.array().items(Joi.string().trim()),
 }).min(1);

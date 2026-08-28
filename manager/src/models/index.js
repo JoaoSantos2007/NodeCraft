@@ -5,7 +5,6 @@ import Worker from './Worker.js';
 import WorkerHeartbeat from './WorkerHeartbeat.js';
 import db from '../../config/sequelize.js';
 import Minecraft from './Minecraft.js';
-import CounterStrike from './CounterStrike.js';
 import Kerbal from './Kerbal.js';
 import Hytale from './Hytale.js';
 import Terraria from './Terraria.js';
@@ -87,18 +86,6 @@ Minecraft.belongsTo(Instance, {
   foreignKey: 'instanceId',
 });
 
-// instance <--> counter strike
-Instance.hasOne(CounterStrike, {
-  foreignKey: 'instanceId',
-  as: 'counterstrike',
-  onDelete: 'CASCADE',
-  hooks: true,
-});
-
-CounterStrike.belongsTo(Instance, {
-  foreignKey: 'instanceId',
-});
-
 // instance <--> ksp
 Instance.hasOne(Kerbal, {
   foreignKey: 'instanceId',
@@ -151,7 +138,6 @@ Roster.belongsTo(Instance, {
 // Set default game models
 const gameModels = {
   minecraft: Minecraft,
-  counterstrike: CounterStrike,
   kerbal: Kerbal,
   hytale: Hytale,
   terraria: Terraria,
@@ -160,7 +146,6 @@ const gameModels = {
 // Define instances query include
 const instanceInclude = [
   { model: Minecraft, as: 'minecraft', required: false },
-  { model: CounterStrike, as: 'counterstrike', required: false },
   { model: Kerbal, as: 'kerbal', required: false },
   { model: Hytale, as: 'hytale', required: false },
   { model: Terraria, as: 'terraria', required: false },

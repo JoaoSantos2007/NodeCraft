@@ -141,7 +141,6 @@
                     "npcs": true,
                     "cheats": false
                   },
-                  "counterstrike": null,
                   "kerbal": null,
                   "hytale": null,
                   "terraria": null,
@@ -170,7 +169,6 @@
                   "history": [
                   ],
                   "minecraft": null,
-                  "counterstrike": null,
                   "kerbal": null,
                   "hytale": {
                     "servername": "Super  Minecraft",

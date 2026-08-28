@@ -52,6 +52,13 @@ Link.init({
   tableName: 'link',
   sequelize: db,
   timestamps: false,
+  // Mirrors db/migrations/20260828130000-add-instance-and-link-unique-indexes.
+  // One link per user per instance: Link.verifyUserIsAlreadyLinked is a
+  // check-then-write, so without this two concurrent grants both succeed and
+  // readByUserAndInstance then picks an arbitrary one of the two.
+  indexes: [
+    { unique: true, fields: ['instanceId', 'userId'], name: 'link_instance_id_user_id_unique' },
+  ],
 });
 
 export default Link;

@@ -1,6 +1,5 @@
 import Joi from 'joi';
 import minecraft from './minecraft.js';
-import counterstrike from './counterstrike.js';
 import kerbal from './kerbal.js';
 import hytale from './hytale.js';
 import terraria from './terraria.js';
@@ -10,7 +9,7 @@ const createInstance = Joi.object({
   owner: Joi.forbidden(),
   name: Joi.string().trim().min(3).max(32).required(),
   workerId: Joi.string().trim().uuid().required(),
-  type: Joi.string().trim().valid('minecraft', 'hytale', 'counterstrike', 'terraria', 'kerbal').required(),
+  type: Joi.string().trim().valid('minecraft', 'hytale', 'terraria', 'kerbal').required(),
   port: Joi.forbidden(),
   memory: Joi.number().integer().min(512),
   cpu: Joi.number().integer().min(1),
@@ -20,7 +19,6 @@ const createInstance = Joi.object({
   game: Joi.when('type', {
     switch: [
       { is: 'minecraft', then: minecraft },
-      { is: 'counterstrike', then: counterstrike },
       { is: 'kerbal', then: kerbal },
       { is: 'hytale', then: hytale },
       { is: 'terraria', then: terraria },
@@ -34,7 +32,7 @@ const updateInstance = Joi.object({
   owner: Joi.forbidden(),
   name: Joi.string().trim().min(3).max(32),
   workerId: Joi.forbidden(),
-  type: Joi.string().trim().strip().valid('minecraft', 'hytale', 'counterstrike', 'terraria', 'kerbal'),
+  type: Joi.string().trim().strip().valid('minecraft', 'hytale', 'terraria', 'kerbal'),
   port: Joi.forbidden(),
   memory: Joi.number().integer().min(512),
   cpu: Joi.number().integer().min(1),
@@ -44,7 +42,6 @@ const updateInstance = Joi.object({
   game: Joi.when('type', {
     switch: [
       { is: 'minecraft', then: minecraft },
-      { is: 'counterstrike', then: counterstrike },
       { is: 'kerbal', then: kerbal },
       { is: 'hytale', then: hytale },
       { is: 'terraria', then: terraria },

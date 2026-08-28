@@ -13,13 +13,16 @@ Worker.init({
     type: DataTypes.STRING,
     allowNull: false,
     validate: {
+      notEmpty: {
+        msg: 'name field cannot be empty!',
+      },
       is: {
         args: /^[a-zA-ZÀ-ÿ0-9\s]+$/i,
         msg: 'name field must be valid!',
       },
       len: {
         args: [3, 32],
-        msg: 'name field must have a length between 2 and 32!',
+        msg: 'name field must have a length between 3 and 32!',
       },
     },
   },

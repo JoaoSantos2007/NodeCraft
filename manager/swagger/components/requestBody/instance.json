@@ -62,7 +62,6 @@
               "enum": [
                 "minecraft",
                 "hytale",
-                "counterstrike",
                 "terraria",
                 "kerbal"
               ],
@@ -103,9 +102,6 @@
                 },
                 {
                   "$ref": "../schemas/terraria.json"
-                },
-                {
-                  "$ref": "../schemas/counterstrike.json"
                 }
               ]
             }
@@ -132,7 +128,6 @@
               "enum": [
                 "minecraft",
                 "hytale",
-                "counterstrike",
                 "terraria",
                 "kerbal"
               ],
@@ -167,9 +162,6 @@
                 },
                 {
                   "$ref": "../schemas/terraria.json"
-                },
-                {
-                  "$ref": "../schemas/counterstrike.json"
                 }
               ]
             }

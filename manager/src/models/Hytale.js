@@ -19,6 +19,9 @@ Hytale.init(
       defaultValue: 'Nodecraft Hytale Server',
       allowNull: false,
       validate: {
+        notEmpty: {
+          msg: 'servername field cannot be empty!',
+        },
         len: {
           args: [3, 32],
           msg: 'servername field must have a length between 3 and 32!',
@@ -43,7 +46,7 @@ Hytale.init(
       validate: {
         len: {
           args: [0, 32],
-          msg: 'password field must have a length between 2 and 32!',
+          msg: 'password field must have a length between 0 and 32!',
         },
       },
     },
@@ -67,6 +70,9 @@ Hytale.init(
       defaultValue: 'default',
       allowNull: false,
       validate: {
+        notEmpty: {
+          msg: 'worldname field cannot be empty!',
+        },
         len: {
           args: [3, 32],
           msg: 'worldname field must have a length between 3 and 32!',
@@ -75,7 +81,6 @@ Hytale.init(
     },
     gamemode: {
       type: DataTypes.STRING,
-      values: ['adventure', 'creative'],
       allowNull: false,
       defaultValue: 'adventure',
       validate: {
