@@ -67,9 +67,9 @@ class Instance {
   static async transferOwner(req, res, next) {
     try {
       const { id } = req.params;
-      const { owner } = req.body;
+      const { ownerId } = req.body;
 
-      const instance = await Service.transferOwner(id, owner);
+      const instance = await Service.transferOwner(id, ownerId);
 
       return res.status(200).json({ success: true, instance });
     } catch (err) {

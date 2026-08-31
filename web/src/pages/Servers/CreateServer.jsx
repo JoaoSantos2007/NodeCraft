@@ -57,7 +57,7 @@ export default function CreateServer() {
   // enforced at create time; memory/cpu limits are enforced when the instance is
   // started (Quota.verifyCanStart), so they are shown here only as guidance.
   const { data: instData } = useApi(() => instancesApi.list());
-  const owned = (instData?.instances || []).filter(i => i.owner === user?.id);
+  const owned = (instData?.instances || []).filter(i => i.ownerId === user?.id);
   const usage = owned.reduce((a) => ({ count: a.count + 1 }), { count: 0 });
 
   const limits = {
@@ -272,7 +272,7 @@ export default function CreateServer() {
                         </span>
                       </span>
                       <span className="worker-option-detail">
-                        CPU {w.cpuUsage?.toFixed(1)}% · RAM {w.memorieUsed ? `${(w.memorieUsed/1024).toFixed(1)} GB` : '—'} · Disk {w.diskAvailable ? `${(w.diskAvailable/1024).toFixed(0)} GB free` : '—'}
+                        CPU {w.cpuUsage?.toFixed(1)}% · RAM {w.memoryUsed ? `${(w.memoryUsed/1024).toFixed(1)} GB` : '—'} · Disk {w.diskAvailable ? `${(w.diskAvailable/1024).toFixed(0)} GB free` : '—'}
                       </span>
                     </div>
                     {form.workerId === w.id && <CheckCircle2 size={16} className="worker-check" />}

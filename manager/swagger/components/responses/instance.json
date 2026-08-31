@@ -107,7 +107,7 @@
               "instances": [
                 {
                   "id": "76ad39e5-827f-4e0f-9715-e590be710595",
-                  "owner": "1e7ca2e6-519d-45af-ba5f-18305979ac8b",
+                  "ownerId": "1e7ca2e6-519d-45af-ba5f-18305979ac8b",
                   "name": "Teste",
                   "type": "minecraft",
                   "port": 5634,
@@ -115,8 +115,7 @@
                   "cpu": 2,
                   "maxPlayers": 10,
                   "status": "running",
-                  "history": [
-                  ],
+                  "history": [],
                   "minecraft": {
                     "software": "paper",
                     "bedrock": false,
@@ -158,7 +157,7 @@
                 },
                 {
                   "id": "c753b998-c690-4b32-bb90-7ca49214088b",
-                  "owner": "1e7ca2e6-519d-45af-ba5f-18305979ac8b",
+                  "ownerId": "1e7ca2e6-519d-45af-ba5f-18305979ac8b",
                   "name": "My Hytale World",
                   "type": "hytale",
                   "port": 5670,
@@ -166,8 +165,7 @@
                   "cpu": 2,
                   "maxPlayers": 10,
                   "status": "stopped",
-                  "history": [
-                  ],
+                  "history": [],
                   "minecraft": null,
                   "kerbal": null,
                   "hytale": {

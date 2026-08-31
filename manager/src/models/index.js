@@ -4,6 +4,7 @@ import Link from './Link.js';
 import Worker from './Worker.js';
 import WorkerHeartbeat from './WorkerHeartbeat.js';
 import db from '../../config/sequelize.js';
+import config from '../../config/config.js';
 import Minecraft from './Minecraft.js';
 import Kerbal from './Kerbal.js';
 import Hytale from './Hytale.js';
@@ -38,14 +39,14 @@ Link.belongsTo(User, {
 
 // user <-> instance
 User.hasMany(Instance, {
-  foreignKey: 'owner',
+  foreignKey: 'ownerId',
   as: 'ownedInstances',
   onDelete: 'CASCADE',
   hooks: true,
 });
 
 Instance.belongsTo(User, {
-  foreignKey: 'owner',
+  foreignKey: 'ownerId',
   as: 'ownerUser',
 });
 
@@ -136,7 +137,8 @@ Roster.belongsTo(Instance, {
   as: 'instance',
 });
 
-// Set default game models
+// The one place a game name is bound to its model. config.instance.games holds
+// the names (validators and Joi schemas read it); this holds the models.
 const gameModels = {
   minecraft: Minecraft,
   kerbal: Kerbal,
@@ -144,13 +146,19 @@ const gameModels = {
   terraria: Terraria,
 };
 
+// Fail at boot if models games are different from config games
+const registered = Object.keys(gameModels).sort();
+const configured = [...config.instance.games].sort();
+
+if (registered.join() !== configured.join()) {
+  throw new Error(
+    `gameModels and config.instance.games disagree: [${registered}] vs [${configured}]`,
+  );
+}
+
 // Define instances query include
 const instanceInclude = [
-  { model: Minecraft, as: 'minecraft', required: false },
-  { model: Kerbal, as: 'kerbal', required: false },
-  { model: Hytale, as: 'hytale', required: false },
-  { model: Terraria, as: 'terraria', required: false },
-  // Only expose safe worker fields to clients (never apiKey/secret).
+  ...Object.entries(gameModels).map(([as, model]) => ({ model, as, required: false })),
   {
     model: Worker,
     as: 'worker',
@@ -160,9 +168,6 @@ const instanceInclude = [
   {
     model: Link,
     as: 'links',
-    // Same whitelist services/Link.js uses. Without it every link holder reads
-    // each other holder's admin flag, verified state and quota columns, since
-    // User's defaultScope only strips password and token hashes.
     include: {
       model: User,
       as: 'user',

@@ -10,7 +10,7 @@
       "nullable": true,
       "example": "0c9f3d2a-1b4e-4c8a-9f7d-2e5a6b8c1d3f"
     },
-    "owner": {
+    "ownerId": {
       "type": "string",
       "example": "1e7ca2e6-519d-45af-ba5f-18305979ac8b"
     },
@@ -114,12 +114,19 @@
         }
       ],
       "description": "Accounts this instance is shared with. The embedded `user` is limited to `id`, `name` and `email` — a link holder never sees another holder's admin flag, verification state or quotas."
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time",
+      "nullable": true,
+      "description": "When the record was created. Null for rows that predate the column (migration 20260830120000).",
+      "example": "2026-07-17T02:45:00.000Z"
     }
   },
   "example": {
     "id": "76ad39e5-827f-4e0f-9715-e590be710595",
     "workerId": "0c9f3d2a-1b4e-4c8a-9f7d-2e5a6b8c1d3f",
-    "owner": "1e7ca2e6-519d-45af-ba5f-18305979ac8b",
+    "ownerId": "1e7ca2e6-519d-45af-ba5f-18305979ac8b",
     "name": "Meu mundo de minecraft",
     "type": "minecraft",
     "port": 5634,
@@ -173,6 +180,7 @@
           "email": "maria@example.com"
         }
       }
-    ]
+    ],
+    "createdAt": "2026-07-17T02:45:00.000Z"
   }
 }

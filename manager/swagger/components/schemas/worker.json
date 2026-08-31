@@ -31,13 +31,13 @@
       "description": "CPU usage percentage (0-100).",
       "example": 23.5
     },
-    "memorieTotal": {
+    "memoryTotal": {
       "type": "integer",
       "nullable": true,
       "description": "Total memory in MB.",
       "example": 16384
     },
-    "memorieUsed": {
+    "memoryUsed": {
       "type": "integer",
       "nullable": true,
       "description": "Used memory in MB.",
@@ -48,6 +48,13 @@
       "nullable": true,
       "description": "Available disk in MB.",
       "example": 204800
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time",
+      "nullable": true,
+      "description": "When the record was created. Null for rows that predate the column (migration 20260830120000).",
+      "example": "2026-07-17T02:45:00.000Z"
     }
   }
 }

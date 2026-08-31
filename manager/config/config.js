@@ -70,6 +70,7 @@ const config = {
     refreshLifetime: 3 * ONE_DAY,
   },
   instance: {
+    games: ['minecraft', 'hytale', 'terraria', 'kerbal'],
     maxHistory: process.env.MAX_HISTORY
       ? Number(process.env.MAX_HISTORY)
       : 50,

@@ -51,23 +51,23 @@ Worker.init({
     type: DataTypes.DOUBLE,
     allowNull: true,
   },
-  memorieTotal: {
+  memoryTotal: {
     type: DataTypes.INTEGER,
     allowNull: true,
     validate: {
       min: {
         args: [0],
-        msg: 'memorieTotal field must be greater than or equal to 0mb!',
+        msg: 'memoryTotal field must be greater than or equal to 0mb!',
       },
     },
   },
-  memorieUsed: {
+  memoryUsed: {
     type: DataTypes.INTEGER,
     allowNull: true,
     validate: {
       min: {
         args: [0],
-        msg: 'memorieUsed field must be greater than or equal to 0mb!',
+        msg: 'memoryUsed field must be greater than or equal to 0mb!',
       },
     },
   },
@@ -81,10 +81,15 @@ Worker.init({
       },
     },
   },
+  createdAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
 }, {
   tableName: 'worker',
   sequelize: db,
-  timestamps: false,
+  timestamps: true,
+  updatedAt: false,
   indexes: [
     { name: 'worker_healthy_last_seen_at', fields: ['healthy', 'lastSeenAt'] },
   ],

@@ -21,11 +21,11 @@ WorkerHeartbeat.init({
     type: DataTypes.DOUBLE,
     allowNull: true,
   },
-  memorieTotal: {
+  memoryTotal: {
     type: DataTypes.INTEGER,
     allowNull: true,
   },
-  memorieUsed: {
+  memoryUsed: {
     type: DataTypes.INTEGER,
     allowNull: true,
   },

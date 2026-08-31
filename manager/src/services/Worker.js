@@ -51,7 +51,7 @@ class Worker {
       where: { id: { [Op.in]: ids } },
       attributes: [
         'id', 'name', 'url', 'healthy', 'lastSeenAt',
-        'cpuUsage', 'memorieTotal', 'memorieUsed', 'diskAvailable',
+        'cpuUsage', 'memoryTotal', 'memoryUsed', 'diskAvailable',
       ],
     });
 
@@ -104,13 +104,19 @@ class Worker {
     return worker;
   }
 
+  static readMemory(data) {
+    return {
+      memoryTotal: data.memoryTotal ?? data.memorieTotal,
+      memoryUsed: data.memoryUsed ?? data.memorieUsed,
+    };
+  }
+
   static async receiveHeartbeat(id, data) {
     const info = {
       healthy: true,
       lastSeenAt: Date.now(),
       cpuUsage: data.cpuUsage,
-      memorieTotal: data.memorieTotal,
-      memorieUsed: data.memorieUsed,
+      ...Worker.readMemory(data),
       diskAvailable: data.diskAvailable,
     };
 
@@ -123,8 +129,7 @@ class Worker {
     await HeartbeatModel.create({
       workerId: id,
       cpuUsage: data.cpuUsage,
-      memorieTotal: data.memorieTotal,
-      memorieUsed: data.memorieUsed,
+      ...Worker.readMemory(data),
       diskAvailable: data.diskAvailable,
     });
   }

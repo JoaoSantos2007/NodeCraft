@@ -25,7 +25,7 @@ class Instance {
     return db.transaction(async (t) => {
       // Create instance and game data in an unique command
       const instance = await Model.create({
-        owner: userId,
+        ownerId: userId,
         port,
         ...instanceData,
         [gameType]: gameData,
@@ -51,7 +51,7 @@ class Instance {
 
     const userInstances = await Model.findAll({
       where: {
-        owner: user.id,
+        ownerId: user.id,
       },
       include: instanceInclude,
     });
@@ -114,11 +114,8 @@ class Instance {
     if (!instance) throw new NotFound('Instance not found on this worker!');
     const workerHistory = data?.history || [];
 
-    // Wipe old lines
-    let history = [...instance.history, ...workerHistory];
-    if (history.length > config.instance.maxHistory) {
-      history = history.slice(history.length - config.instance.maxHistory);
-    }
+    // Trimming to config.instance.maxHistory is the model's beforeSave hook.
+    const history = [...instance.history, ...workerHistory];
 
     await instance.update({
       status: data?.status,
@@ -134,10 +131,10 @@ class Instance {
     // Throws NotFound if the target user does not exist.
     await User.readOne(newOwnerId);
 
-    if (instance.owner !== newOwnerId) {
+    if (instance.ownerId !== newOwnerId) {
       // A link from the new owner to the instance is now redundant.
       await Link.deleteByUserAndInstance(newOwnerId, id);
-      await instance.update({ owner: newOwnerId });
+      await instance.update({ ownerId: newOwnerId });
     }
 
     return Instance.readOne(id);

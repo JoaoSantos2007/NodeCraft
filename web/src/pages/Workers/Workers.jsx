@@ -80,7 +80,7 @@ export default function Workers() {
       ) : (
         <div className="workers-grid">
           {workers.map(w => {
-            const memPct = w.memorieTotal ? Math.round((w.memorieUsed / w.memorieTotal) * 100) : 0;
+            const memPct = w.memoryTotal ? Math.round((w.memoryUsed / w.memoryTotal) * 100) : 0;
             return (
               <div
                 key={w.id}
@@ -105,11 +105,11 @@ export default function Workers() {
                       showPercent={false}
                     />
                   )}
-                  {w.memorieTotal != null && (
+                  {w.memoryTotal != null && (
                     <ResourceBar
                       label="Memory"
-                      value={w.memorieUsed || 0}
-                      max={w.memorieTotal}
+                      value={w.memoryUsed || 0}
+                      max={w.memoryTotal}
                       unit="MB"
                     />
                   )}

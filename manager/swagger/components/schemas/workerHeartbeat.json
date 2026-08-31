@@ -14,12 +14,12 @@
       "nullable": true,
       "example": 23.5
     },
-    "memorieTotal": {
+    "memoryTotal": {
       "type": "integer",
       "nullable": true,
       "example": 16384
     },
-    "memorieUsed": {
+    "memoryUsed": {
       "type": "integer",
       "nullable": true,
       "example": 4096

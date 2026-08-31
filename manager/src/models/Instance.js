@@ -1,5 +1,7 @@
 import { Sequelize, DataTypes, Model } from 'sequelize';
 import db from '../../config/sequelize.js';
+import { isStringArray } from './validators.js';
+import config from '../../config/config.js';
 
 class Instance extends Model { }
 
@@ -17,7 +19,7 @@ Instance.init({
       key: 'id',
     },
   },
-  owner: {
+  ownerId: {
     type: DataTypes.UUID,
     allowNull: false,
     references: {
@@ -27,7 +29,7 @@ Instance.init({
     validate: {
       isUUID: {
         args: 4,
-        msg: 'owner field must be a user id!',
+        msg: 'ownerId field must be a user id!',
       },
     },
   },
@@ -54,7 +56,7 @@ Instance.init({
     allowNull: false,
     validate: {
       isIn: {
-        args: [['minecraft', 'hytale', 'terraria', 'kerbal']],
+        args: [config.instance.games],
         msg: 'type field must be a supported game!',
       },
     },
@@ -127,15 +129,7 @@ Instance.init({
     allowNull: false,
     defaultValue: [],
     validate: {
-      isValidArray(value) {
-        if (!Array.isArray(value)) {
-          throw new Error('History field must be an array!');
-        }
-
-        if (!value.every((item) => typeof item === 'string')) {
-          throw new Error('History must contain only strings!');
-        }
-      },
+      isValidArray: isStringArray('History'),
     },
   },
   lastActivityAt: {
@@ -156,13 +150,26 @@ Instance.init({
       },
     },
   },
+  createdAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
 }, {
   tableName: 'instance',
   sequelize: db,
-  timestamps: false,
+  timestamps: true,
+  updatedAt: false,
   indexes: [
     { unique: true, fields: ['workerId', 'port'], name: 'instance_worker_id_port_unique' },
   ],
+  hooks: {
+    beforeSave(instance) {
+      const history = instance.get('history');
+      if (!Array.isArray(history) || history.length <= config.instance.maxHistory) return;
+
+      instance.set('history', history.slice(history.length - config.instance.maxHistory));
+    },
+  },
 });
 
 export default Instance;

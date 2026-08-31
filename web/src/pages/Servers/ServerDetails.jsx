@@ -252,9 +252,9 @@ function OwnerTransfer({ instance, onChanged }) {
   const [confirming, setConfirming] = useState(false);
 
   const isRunning = instance.status === 'running';
-  const currentOwner = users.find(u => u.id === instance.owner);
+  const currentOwner = users.find(u => u.id === instance.ownerId);
   const target = users.find(u => u.id === selected);
-  const staged = !!selected && selected !== instance.owner;
+  const staged = !!selected && selected !== instance.ownerId;
 
   const transfer = useAction(async () => {
     if (!staged) return;
@@ -281,7 +281,7 @@ function OwnerTransfer({ instance, onChanged }) {
         <span className="admin-move-label admin-slot-a admin-row-label">Current</span>
         <div className="admin-chip admin-slot-a admin-row-control">
           <span className="admin-chip-name">{currentOwner?.name || 'Unknown'}</span>
-          <span className="admin-chip-sub">{currentOwner?.email || instance.owner}</span>
+          <span className="admin-chip-sub">{currentOwner?.email || instance.ownerId}</span>
         </div>
 
         <ArrowRight className="admin-arrow" size={16} />
@@ -294,7 +294,7 @@ function OwnerTransfer({ instance, onChanged }) {
           onChange={e => { setSelected(e.target.value); setConfirming(false); }}
         >
           <option value="">Select a user…</option>
-          {users.filter(u => u.id !== instance.owner).map(u => (
+          {users.filter(u => u.id !== instance.ownerId).map(u => (
             <option key={u.id} value={u.id}>{u.name} — {u.email}</option>
           ))}
         </Select>

@@ -67,7 +67,7 @@ export default function UserDetails() {
 
   const user = data?.user;
   const workers = workerData?.workers || [];
-  const owned = (instData?.instances || []).filter(i => i.owner === id);
+  const owned = (instData?.instances || []).filter(i => i.ownerId === id);
 
   // Memory/CPU limits are enforced across running instances only (that is when
   // the resources are actually occupied); disk counts every owned instance.

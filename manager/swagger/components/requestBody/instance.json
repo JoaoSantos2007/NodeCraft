@@ -5,10 +5,10 @@
         "schema": {
           "type": "object",
           "required": [
-            "owner"
+            "ownerId"
           ],
           "properties": {
-            "owner": {
+            "ownerId": {
               "type": "string",
               "format": "uuid",
               "example": "1e7ca2e6-519d-45af-ba5f-18305979ac8b"

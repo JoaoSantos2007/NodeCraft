@@ -55,11 +55,11 @@
               "type": "number",
               "example": 23.5
             },
-            "memorieTotal": {
+            "memoryTotal": {
               "type": "integer",
               "example": 16384
             },
-            "memorieUsed": {
+            "memoryUsed": {
               "type": "integer",
               "example": 4096
             },

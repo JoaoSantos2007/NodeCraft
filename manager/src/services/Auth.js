@@ -44,7 +44,7 @@ class Auth {
     if (user.admin) return [...config.instance.permissions, 'instance:owner'];
 
     const instance = await Instance.readOne(id);
-    if (instance.owner === user.id) return [...config.instance.permissions, 'instance:owner'];
+    if (instance.ownerId === user.id) return [...config.instance.permissions, 'instance:owner'];
 
     const permissions = await Link.readUserPermissions(user.id, id);
     return permissions || [];
@@ -60,7 +60,7 @@ class Auth {
       const instance = await Instance.readOne(id);
 
       // Verify if user is owner of the instance
-      if (instance.owner === user.id) return true;
+      if (instance.ownerId === user.id) return true;
 
       // Verify if user has any link with instance
       const permissions = await Link.readUserPermissions(user.id, id);

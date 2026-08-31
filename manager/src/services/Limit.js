@@ -7,7 +7,7 @@ class Limit {
     const user = await User.readOne(userId);
 
     const instances = await InstanceModel.findAll({
-      where: { owner: userId },
+      where: { ownerId: userId },
       attributes: ['memory', 'cpu', 'diskUsage', 'status'],
     });
 
@@ -50,7 +50,7 @@ class Limit {
   }
 
   static async verifyCanStart(instance) {
-    const { user, usage } = await Limit.readUsage(instance.owner);
+    const { user, usage } = await Limit.readUsage(instance.ownerId);
 
     if (usage.disk > user.maxDisk) {
       throw new Forbidden('You have exceeded your disk quota!');

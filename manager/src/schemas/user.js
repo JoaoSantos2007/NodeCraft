@@ -1,4 +1,5 @@
 import Joi from 'joi';
+import config from '../../config/config.js';
 
 const createUser = Joi.object({
   id: Joi.forbidden(),
@@ -37,7 +38,7 @@ const adminUpdateUser = Joi.object({
   maxCpu: Joi.number().integer().min(0),
   maxDisk: Joi.number().integer().min(0),
   allowedGames: Joi.array().items(
-    Joi.string().valid('minecraft', 'hytale', 'terraria', 'kerbal'),
+    Joi.string().valid(...config.instance.games),
   ),
   allowedWorkers: Joi.array().items(Joi.string().trim()),
 }).min(1);
