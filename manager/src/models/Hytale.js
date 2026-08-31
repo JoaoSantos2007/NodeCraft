@@ -12,7 +12,6 @@ Hytale.init(
         model: 'instance',
         key: 'id',
       },
-      onDelete: 'CASCADE',
     },
     servername: {
       type: DataTypes.STRING,

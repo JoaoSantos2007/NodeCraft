@@ -106,9 +106,14 @@
           "permissions": [
             "instance:read"
           ],
-          "user": null
+          "user": {
+            "id": "1e7ca2e6-519d-45af-ba5f-18305979ac8b",
+            "name": "Maria",
+            "email": "maria@example.com"
+          }
         }
-      ]
+      ],
+      "description": "Accounts this instance is shared with. The embedded `user` is limited to `id`, `name` and `email` — a link holder never sees another holder's admin flag, verification state or quotas."
     }
   },
   "example": {
@@ -162,7 +167,11 @@
         "permissions": [
           "instance:read"
         ],
-        "user": null
+        "user": {
+          "id": "1e7ca2e6-519d-45af-ba5f-18305979ac8b",
+          "name": "Maria",
+          "email": "maria@example.com"
+        }
       }
     ]
   }

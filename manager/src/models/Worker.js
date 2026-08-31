@@ -88,6 +88,13 @@ Worker.init({
   indexes: [
     { name: 'worker_healthy_last_seen_at', fields: ['healthy', 'lastSeenAt'] },
   ],
+  defaultScope: {
+    attributes: { exclude: ['apiKey', 'secret'] },
+  },
+  scopes: {
+    withSecret: { attributes: { exclude: ['apiKey'] } },
+    withApiKey: {},
+  },
 });
 
 export default Worker;

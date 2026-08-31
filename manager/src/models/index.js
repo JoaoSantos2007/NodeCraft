@@ -27,12 +27,13 @@ Link.belongsTo(Instance, {
 User.hasMany(Link, {
   foreignKey: 'userId',
   as: 'instances',
+  onDelete: 'CASCADE',
+  hooks: true,
 });
 
 Link.belongsTo(User, {
   foreignKey: 'userId',
   as: 'user',
-  onDelete: 'CASCADE',
 });
 
 // user <-> instance
@@ -159,10 +160,14 @@ const instanceInclude = [
   {
     model: Link,
     as: 'links',
+    // Same whitelist services/Link.js uses. Without it every link holder reads
+    // each other holder's admin flag, verified state and quota columns, since
+    // User's defaultScope only strips password and token hashes.
     include: {
       model: User,
       as: 'user',
       required: false,
+      attributes: ['id', 'name', 'email'],
     },
   },
   {

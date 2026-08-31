@@ -112,7 +112,7 @@ class Instance {
 
       await Limit.verifyCanStart(instance);
 
-      const worker = await WorkerService.readOne(instance.workerId);
+      const worker = await WorkerService.readOneWithSecret(instance.workerId);
 
       const route = `${worker.url}/server/${id}/run`;
       const response = await fetch(route, {
@@ -137,7 +137,7 @@ class Instance {
       const { id } = req.params;
 
       const instance = await Service.readOne(id);
-      const worker = await WorkerService.readOne(instance.workerId);
+      const worker = await WorkerService.readOneWithSecret(instance.workerId);
 
       const route = `${worker.url}/server/${id}/stop`;
       const response = await fetch(route, {
@@ -163,7 +163,7 @@ class Instance {
 
       const instance = await Service.readOne(id);
 
-      const worker = await WorkerService.readOne(instance.workerId);
+      const worker = await WorkerService.readOneWithSecret(instance.workerId);
 
       const route = `${worker.url}/server/${id}/restart`;
       const response = await fetch(route, {
@@ -214,7 +214,7 @@ class Instance {
       const { user } = req;
 
       const instance = await Service.readOne(id);
-      const worker = await WorkerService.readOne(instance.workerId);
+      const worker = await WorkerService.readOneWithSecret(instance.workerId);
 
       // Verify if user can write in console too
       const canWrite = await AuthService.checkPermission(user, 'instance:console:write', id);
@@ -245,7 +245,7 @@ class Instance {
       const { id } = req.params;
 
       const instance = await Service.readOne(id);
-      const worker = await WorkerService.readOne(instance.workerId);
+      const worker = await WorkerService.readOneWithSecret(instance.workerId);
 
       const route = `${worker.url}/server/${id}/backup`;
       const response = await fetch(route, {

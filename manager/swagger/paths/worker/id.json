@@ -25,7 +25,7 @@
   },
   "put": {
     "summary": "update a Worker (admin only)",
-    "description": "Updates a worker (e.g. `name`, `url`). Admin only.",
+    "description": "Updates a worker (e.g. `name`, `url`). Admin only. The `secret` field is write-only: send it to rotate the shared secret, or leave it blank/absent to keep the current one — no endpoint returns it after creation.",
     "tags": [
       "Worker"
     ],

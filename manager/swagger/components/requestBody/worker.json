@@ -34,6 +34,11 @@
             "url": {
               "type": "string",
               "example": "http://worker.webisk.com.br:9184"
+            },
+            "secret": {
+              "type": "string",
+              "description": "Replaces the shared secret the manager uses to authenticate against this worker. Write-only: it is never returned by any endpoint after creation, so send it only to rotate. An empty or blank string, or omitting the field, leaves the current secret unchanged. Rotating it here requires setting the same value as MANAGER_SECRET on the worker.",
+              "example": "eea07ccc96ed4bade91405eb9f68922b5e431eee0fbc4d0aaa82b25f4d97e723"
             }
           }
         }

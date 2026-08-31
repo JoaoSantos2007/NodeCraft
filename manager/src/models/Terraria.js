@@ -12,7 +12,6 @@ Terraria.init(
         model: 'instance',
         key: 'id',
       },
-      onDelete: 'CASCADE',
     },
     difficulty: {
       type: DataTypes.INTEGER,

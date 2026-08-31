@@ -15,7 +15,7 @@ const workerAuth = () => async (req, res, next) => {
 
     let worker = null;
     try {
-      worker = await Service.readOne(id);
+      worker = await Service.readOneWithApiKey(id);
     } catch {
       throw new Unathorized('Invalid Worker Token!');
     }
@@ -37,7 +37,7 @@ const workerOrAuth = (permission) => async (req, res, next) => {
 
   if (token && id) {
     try {
-      const worker = await Service.readOne(id);
+      const worker = await Service.readOneWithApiKey(id);
 
       if (Service.compareApiKey(token, worker.apiKey)) {
         req.worker = worker;

@@ -12,7 +12,6 @@ Minecraft.init(
         model: 'instance',
         key: 'id',
       },
-      onDelete: 'CASCADE',
     },
     software: {
       type: DataTypes.STRING,

@@ -1,6 +1,6 @@
 {
   "default": {
-    "description": "OK",
+    "description": "OK. Never includes the worker credentials: `secret` is write-only after creation and the hashed `apiKey` is never returned.",
     "content": {
       "application/json": {
         "schema": {

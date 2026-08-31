@@ -45,7 +45,8 @@ class BackupScheduler {
 
   static async runAll() {
     try {
-      const workers = await WorkerModel.findAll({ where: { healthy: true } });
+      // scope('withSecret'): triggerInstanceBackup authenticates with it.
+      const workers = await WorkerModel.scope('withSecret').findAll({ where: { healthy: true } });
 
       for (const worker of workers) {
         const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);

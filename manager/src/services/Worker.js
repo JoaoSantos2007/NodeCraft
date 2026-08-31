@@ -26,11 +26,13 @@ class Worker {
     const apiKey = generateRandomToken();
     const secret = generateRandomToken();
 
-    const worker = await Model.create({
+    const created = await Model.create({
       name: data.name,
       apiKey: hashToken(apiKey),
       secret,
     });
+
+    const worker = await Model.findByPk(created.id);
 
     return { worker, apiKey, secret };
   }
@@ -64,9 +66,33 @@ class Worker {
     return worker;
   }
 
+  // Internal only. Every caller authenticates to the worker with secret
+  static async readOneWithSecret(id) {
+    const worker = await Model.scope('withSecret').findByPk(id);
+
+    if (!worker) throw new NotFound('Worker not found!');
+
+    return worker;
+  }
+
+  // Internal only, for workerAuth's hashed-apiKey comparison.
+  static async readOneWithApiKey(id) {
+    const worker = await Model.scope('withApiKey').findByPk(id);
+
+    if (!worker) throw new NotFound('Worker not found!');
+
+    return worker;
+  }
+
   static async update(id, data) {
     const worker = await Worker.readOne(id);
-    await worker.update(data);
+
+    const changes = { ...data };
+    if (typeof changes.secret !== 'string' || changes.secret.trim() === '') {
+      delete changes.secret;
+    }
+
+    await worker.update(changes);
 
     return worker;
   }
