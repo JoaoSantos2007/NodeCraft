@@ -1,18 +1,12 @@
 import { DataTypes, Model } from 'sequelize';
 import db from '../../config/sequelize.js';
+import instanceIdColumn from './columns.js';
 
 class Minecraft extends Model { }
 
 Minecraft.init(
   {
-    instanceId: {
-      type: DataTypes.UUID,
-      primaryKey: true,
-      references: {
-        model: 'instance',
-        key: 'id',
-      },
-    },
+    instanceId: instanceIdColumn(),
     software: {
       type: DataTypes.STRING,
       defaultValue: 'vanilla',

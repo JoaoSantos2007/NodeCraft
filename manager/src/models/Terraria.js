@@ -1,18 +1,12 @@
 import { DataTypes, Model } from 'sequelize';
 import db from '../../config/sequelize.js';
+import instanceIdColumn from './columns.js';
 
 class Terraria extends Model { }
 
 Terraria.init(
   {
-    instanceId: {
-      type: DataTypes.UUID,
-      primaryKey: true,
-      references: {
-        model: 'instance',
-        key: 'id',
-      },
-    },
+    instanceId: instanceIdColumn(),
     difficulty: {
       type: DataTypes.INTEGER,
       allowNull: false,

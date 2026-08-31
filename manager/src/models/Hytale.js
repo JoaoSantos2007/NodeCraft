@@ -1,18 +1,12 @@
 import { DataTypes, Model } from 'sequelize';
 import db from '../../config/sequelize.js';
+import instanceIdColumn from './columns.js';
 
 class Hytale extends Model { }
 
 Hytale.init(
   {
-    instanceId: {
-      type: DataTypes.UUID,
-      primaryKey: true,
-      references: {
-        model: 'instance',
-        key: 'id',
-      },
-    },
+    instanceId: instanceIdColumn(),
     servername: {
       type: DataTypes.STRING,
       defaultValue: 'Nodecraft Hytale Server',

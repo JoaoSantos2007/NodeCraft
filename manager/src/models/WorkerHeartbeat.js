@@ -43,7 +43,7 @@ WorkerHeartbeat.init({
   sequelize: db,
   timestamps: false,
   indexes: [
-    { fields: ['workerId', 'createdAt'] },
+    { name: 'worker_heartbeat_worker_id_created_at', fields: ['workerId', 'createdAt'] },
     { name: 'worker_heartbeat_created_at', fields: ['createdAt'] },
   ],
 });

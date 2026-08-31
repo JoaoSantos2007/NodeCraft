@@ -75,7 +75,11 @@ Roster.init({
   timestamps: true,
   updatedAt: false,
   indexes: [
-    { unique: true, fields: ['instanceId', 'platform', 'identifier'] },
+    {
+      unique: true,
+      fields: ['instanceId', 'platform', 'identifier'],
+      name: 'roster_instance_platform_identifier_unique',
+    },
   ],
 });
 
