@@ -113,14 +113,11 @@ const config = {
   },
   roster: {
     access: ['host', 'member', 'guest'],
-    platforms: ['java', 'bedrock', 'steam'],
+    platforms: ['java', 'bedrock'],
     platformsByGame: {
       minecraft: ['java', 'bedrock'],
-      terraria: ['steam'],
+      terraria: [],
     },
-  },
-  resolvers: {
-    steamApiKey: process.env.STEAM_API_KEY || null,
   },
 };
 

@@ -1,48 +1,60 @@
-import { NotFound, ServiceUnavailable } from '../errors/index.js';
-import config from '../../config/config.js';
+import { NotFound, InvalidRequest, ServiceUnavailable } from '../errors/index.js';
 
-const providers = {
+const TIMEOUT = 10 * 1000;
+
+// Mojang returns the UUID unhyphenated; the game files expect the canonical form.
+const hyphenate = (id) => id.replace(/^(.{8})(.{4})(.{4})(.{4})(.{12})$/, '$1-$2-$3-$4-$5');
+
+const resolvers = {
   // Java: name → Mojang's UUID
   async java(input) {
     const url = `https://api.mojang.com/users/profiles/minecraft/${encodeURIComponent(input)}`;
-    const res = await fetch(url);
 
+    let res;
+    try {
+      res = await fetch(url, { signal: AbortSignal.timeout(TIMEOUT) });
+    } catch {
+      throw new ServiceUnavailable('Mojang API unavailable!');
+    }
+
+    if (res.status === 400) throw new InvalidRequest('Java player name is invalid!');
     if (res.status === 404 || res.status === 204) throw new NotFound('Java player not found!');
     if (!res.ok) throw new ServiceUnavailable('Mojang API unavailable!');
 
-    const { id, name } = await res.json();
+    let body;
+    try {
+      body = await res.json();
+    } catch {
+      throw new ServiceUnavailable('Mojang API unavailable!');
+    }
 
-    return { identifier: id, name };
+    return { identifier: hyphenate(body.id), name: body.name };
   },
 
   // Bedrock: gamertag → XUID (GeyserMC Public API)
   async bedrock(input) {
     const url = `https://api.geysermc.org/v2/xbox/xuid/${encodeURIComponent(input)}`;
-    const res = await fetch(url);
 
+    let res;
+    try {
+      res = await fetch(url, { signal: AbortSignal.timeout(TIMEOUT) });
+    } catch {
+      throw new ServiceUnavailable('GeyserMC API unavailable!');
+    }
+
+    if (res.status === 400) throw new InvalidRequest('Bedrock gamertag is invalid!');
     if (res.status === 404) throw new NotFound('Bedrock player not found!');
     if (!res.ok) throw new ServiceUnavailable('GeyserMC API unavailable!');
 
-    const { xuid } = await res.json();
+    let body;
+    try {
+      body = await res.json();
+    } catch {
+      throw new ServiceUnavailable('GeyserMC API unavailable!');
+    }
 
-    return { identifier: String(xuid), name: input };
-  },
-
-  // Steam: vanity → SteamID64 (needs STEAM_API_KEY)
-  async steam(input) {
-    const key = config.resolvers.steamApiKey;
-    if (!key) throw new ServiceUnavailable('Steam resolver not configured!');
-
-    const url = `https://api.steampowered.com/ISteamUser/ResolveVanityURL/v1/?key=${key}&vanityurl=${encodeURIComponent(input)}`;
-    const res = await fetch(url);
-
-    if (!res.ok) throw new ServiceUnavailable('Steam API unavailable!');
-
-    const { response } = await res.json();
-    if (response.success !== 1) throw new NotFound('Steam player not found!');
-
-    return { identifier: response.steamid, name: input };
+    return { identifier: String(body.xuid), name: input };
   },
 };
 
-export default providers;
+export default resolvers;

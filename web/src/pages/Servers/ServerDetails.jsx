@@ -106,14 +106,13 @@ const PERMISSION_LABELS = {
 const ROSTER_PLATFORMS = [
   { id: 'java',    label: 'Minecraft Java',    icon: Coffee,     color: 'green', placeholder: 'Java username…' },
   { id: 'bedrock', label: 'Minecraft Bedrock', icon: Smartphone, color: 'blue',  placeholder: 'Xbox gamertag…' },
-  { id: 'steam',   label: 'Steam',             icon: Signal,     color: 'gray',  placeholder: 'Steam vanity URL…' },
 ];
 // Which platforms a game exposes — mirrors config.roster.platformsByGame on the
-// manager. A game missing here falls back to every platform.
+// manager. A game missing here falls back to every platform; an empty list means
+// the game has no resolvable identity, so it has no allow-list at all.
 const PLATFORMS_BY_GAME = {
   minecraft: ['java', 'bedrock'],
-  counterstrike: ['steam'],
-  terraria: ['steam'],
+  terraria: [],
 };
 const platformsForGame = (game) => {
   const allowed = PLATFORMS_BY_GAME[game];
@@ -1271,6 +1270,11 @@ function PlayersTab({ instance, canEdit }) {
   const players = data?.rosters || [];
   const [dialog, setDialog] = useState(null);
 
+  // A game with no resolvable identity has no allow-list at all — separate from
+  // the user simply not having permission to edit one.
+  const hasPlatforms = platformsForGame(instance.type).length > 0;
+  const canAdd = canEdit && hasPlatforms;
+
   const onSaved = () => { setDialog(null); refetch(); };
   const onDelete = (rosterId) => instancesApi.deleteRoster(instance.id, rosterId).then(refetch);
 
@@ -1285,12 +1289,16 @@ function PlayersTab({ instance, canEdit }) {
               : `${players.length} ${players.length === 1 ? 'player' : 'players'} on the list`}
           </span>
         </div>
-        {canEdit && <Button size="sm" variant="secondary" icon={Plus} onClick={() => setDialog('new')}>Add player</Button>}
+        {canAdd && <Button size="sm" variant="secondary" icon={Plus} onClick={() => setDialog('new')}>Add player</Button>}
       </div>
 
       <div className="players-note">
         <Info size={14} />
-        <span>Roster changes take effect the next time the server restarts.</span>
+        <span>
+          {hasPlatforms
+            ? 'Roster changes take effect the next time the server restarts.'
+            : 'This game has no player identity NodeCraft can resolve, so there is no allow-list to manage.'}
+        </span>
       </div>
 
       {loading ? (
@@ -1298,9 +1306,13 @@ function PlayersTab({ instance, canEdit }) {
       ) : players.length === 0 ? (
         <div className="players-empty">
           <Users size={26} />
-          <h3>No players yet</h3>
-          <p>Add players by their in-game name to control who can join. We store each account&apos;s permanent ID, so a rename never breaks access.</p>
-          {canEdit && <Button size="sm" variant="secondary" icon={Plus} onClick={() => setDialog('new')}>Add player</Button>}
+          <h3>{hasPlatforms ? 'No players yet' : 'No allow-list for this game'}</h3>
+          <p>
+            {hasPlatforms
+              ? 'Add players by their in-game name to control who can join. We store each account’s permanent ID, so a rename never breaks access.'
+              : 'NodeCraft can’t resolve player identities for this game yet, so anyone who knows the address can join.'}
+          </p>
+          {canAdd && <Button size="sm" variant="secondary" icon={Plus} onClick={() => setDialog('new')}>Add player</Button>}
         </div>
       ) : (
         <div className="roster">
