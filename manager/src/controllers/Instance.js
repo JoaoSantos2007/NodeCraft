@@ -1,9 +1,10 @@
 import jwt from 'jsonwebtoken';
 import { Internal, InvalidRequest } from '../errors/index.js';
 import Service from '../services/Instance.js';
-import WorkerService from '../services/Worker.js';
 import AuthService from '../services/Auth.js';
 import Limit from '../services/Limit.js';
+import getWorkerContext from '../utils/getWorkerContext.js';
+import proxyFetch from '../utils/proxyFetch.js';
 
 class Instance {
   static async create(req, res, next) {
@@ -105,17 +106,15 @@ class Instance {
     try {
       const { id } = req.params;
 
-      const instance = await Service.readOne(id);
+      const { instance, worker } = await getWorkerContext(id);
 
       const running = instance?.status === 'running';
       if (running) throw new InvalidRequest('You cannot do this while instance is running!');
 
       await Limit.verifyCanStart(instance);
 
-      const worker = await WorkerService.readOneWithSecret(instance.workerId);
-
       const route = `${worker.url}/server/${id}/run`;
-      const response = await fetch(route, {
+      const response = await proxyFetch(route, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -136,11 +135,10 @@ class Instance {
     try {
       const { id } = req.params;
 
-      const instance = await Service.readOne(id);
-      const worker = await WorkerService.readOneWithSecret(instance.workerId);
+      const { instance, worker } = await getWorkerContext(id);
 
       const route = `${worker.url}/server/${id}/stop`;
-      const response = await fetch(route, {
+      const response = await proxyFetch(route, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -161,12 +159,10 @@ class Instance {
     try {
       const { id } = req.params;
 
-      const instance = await Service.readOne(id);
-
-      const worker = await WorkerService.readOneWithSecret(instance.workerId);
+      const { instance, worker } = await getWorkerContext(id);
 
       const route = `${worker.url}/server/${id}/restart`;
-      const response = await fetch(route, {
+      const response = await proxyFetch(route, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -213,8 +209,7 @@ class Instance {
       const { id } = req.params;
       const { user } = req;
 
-      const instance = await Service.readOne(id);
-      const worker = await WorkerService.readOneWithSecret(instance.workerId);
+      const { worker } = await getWorkerContext(id);
 
       // Verify if user can write in console too
       const canWrite = await AuthService.checkPermission(user, 'instance:console:write', id);
@@ -244,11 +239,10 @@ class Instance {
     try {
       const { id } = req.params;
 
-      const instance = await Service.readOne(id);
-      const worker = await WorkerService.readOneWithSecret(instance.workerId);
+      const { instance, worker } = await getWorkerContext(id);
 
       const route = `${worker.url}/server/${id}/backup`;
-      const response = await fetch(route, {
+      const response = await proxyFetch(route, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

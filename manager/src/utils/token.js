@@ -5,7 +5,7 @@ const hashToken = (token) => crypto.createHash('sha256').update(token).digest('h
 const generateRandomToken = () => crypto.randomBytes(64).toString('hex');
 
 const compareToken = (token, storedHash) => {
-  if (typeof storedHash !== 'string') return false;
+  if (typeof token !== 'string' || typeof storedHash !== 'string') return false;
 
   const hashed = hashToken(token);
   if (hashed.length !== storedHash.length) return false;

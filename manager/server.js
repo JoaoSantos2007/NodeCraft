@@ -2,6 +2,7 @@ import app from './src/app.js';
 import config from './config/config.js';
 import BackupScheduler from './src/services/Backup.js';
 import Worker from './src/services/Worker.js';
+import { verifyMailer } from './config/mailer.js';
 import logger from './config/logger.js';
 
 app.listen(config.app.port, async () => {
@@ -9,4 +10,6 @@ app.listen(config.app.port, async () => {
 
   Worker.startChecker();
   BackupScheduler.start();
+
+  await verifyMailer();
 });

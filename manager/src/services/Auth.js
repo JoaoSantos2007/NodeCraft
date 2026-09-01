@@ -5,6 +5,7 @@ import {
 } from '../errors/index.js';
 import sendEmail from '../utils/sendEmail.js';
 import renderTemplate from '../utils/renderTemplate.js';
+import formatDuration from '../utils/duration.js';
 import { hashToken, generateRandomToken, compareToken } from '../utils/token.js';
 import User from './User.js';
 import Instance from './Instance.js';
@@ -149,15 +150,18 @@ class Auth {
     // Send Email
     const link = `${config.app.verifyUrl}?token=${token}`;
     const html = await renderTemplate('verify.html', {
-      name: user.name || 'usuário',
+      title: 'Verify your account',
+      preheader: 'Confirm your email address to finish setting up your NodeCraft account.',
+      name: user.name || 'there',
       link,
       token,
+      expires: formatDuration(config.token.emailLifetime),
       year: new Date().getFullYear(),
     });
 
     await sendEmail({
       to: user.email,
-      subject: 'Verify your Nodecraft Account!',
+      subject: 'Verify your NodeCraft account!',
       html,
       text: `Link: ${link} | Token: ${token}`,
     });
@@ -193,16 +197,18 @@ class Auth {
 
     const link = `${config.app.resetPasswordUrl}?token=${token}`;
     const html = await renderTemplate('reset.html', {
-      name: user.name || 'usuário',
+      title: 'Reset your password',
+      preheader: 'Use the link inside to choose a new NodeCraft password.',
+      name: user.name || 'there',
       link,
       token,
-      expires: config.token.resetPasswordLifetime,
+      expires: formatDuration(config.token.resetPasswordLifetime),
       year: new Date().getFullYear(),
     });
 
     await sendEmail({
       to: user.email,
-      subject: 'Reset your Nodecraft account password!',
+      subject: 'Reset your NodeCraft account password!',
       html,
       text: `Link: ${link} | Token: ${token}`,
     });

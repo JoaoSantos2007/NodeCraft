@@ -12,15 +12,6 @@ async function proxyFetch(route, options) {
   return response;
 }
 
-/**
- * Reads a worker response as JSON without trusting it to be JSON.
- *
- * Whatever sits between the manager and the worker (nginx, a load balancer) can
- * answer in its place with an HTML error page — an upload above nginx's
- * `client_max_body_size` comes back as a 413 page, never reaching the worker.
- * Calling response.json() on that throws a raw SyntaxError, which the user sees
- * as a generic 500. Turn it into the status that actually happened instead.
- */
 async function readWorkerJson(response) {
   const body = await response.text();
 

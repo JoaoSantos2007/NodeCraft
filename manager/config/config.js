@@ -53,6 +53,7 @@ const config = {
   },
   email: {
     enable: process.env.EMAIL_ENABLE === 'true',
+    fromName: process.env.EMAIL_FROM_NAME || 'NodeCraft',
     host: process.env.EMAIL_HOST || null,
     port: process.env.EMAIL_PORT
       ? Number(process.env.EMAIL_PORT)
