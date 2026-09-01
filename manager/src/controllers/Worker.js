@@ -57,7 +57,7 @@ class Worker {
 
       const worker = await Service.update(id, body);
 
-      return res.status(201).json({ success: true, worker });
+      return res.status(200).json({ success: true, worker });
     } catch (err) {
       return next(err);
     }
@@ -68,7 +68,7 @@ class Worker {
       const id = req?.params?.id;
       const worker = await Service.delete(id);
 
-      return res.status(201).json({ success: true, worker });
+      return res.status(200).json({ success: true, worker });
     } catch (err) {
       return next(err);
     }

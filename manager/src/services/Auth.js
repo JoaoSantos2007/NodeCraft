@@ -1,8 +1,6 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import {
-  NotFound, InvalidRequest, Unathorized,
-} from '../errors/index.js';
+import { InvalidRequest, Unathorized } from '../errors/index.js';
 import sendEmail from '../utils/sendEmail.js';
 import renderTemplate from '../utils/renderTemplate.js';
 import formatDuration from '../utils/duration.js';
@@ -47,8 +45,7 @@ class Auth {
     const instance = await Instance.readOne(id);
     if (instance.ownerId === user.id) return [...config.instance.permissions, 'instance:owner'];
 
-    const permissions = await Link.readUserPermissions(user.id, id);
-    return permissions || [];
+    return Link.readUserPermissions(user.id, id);
   }
 
   static async checkPermission(user, permission, id) {
@@ -65,10 +62,8 @@ class Auth {
 
       // Verify if user has any link with instance
       const permissions = await Link.readUserPermissions(user.id, id);
-      if (!permissions) return false;
-      if (permissions?.includes(permission)) return true;
 
-      return false;
+      return permissions.includes(permission);
     }
 
     return false;
@@ -186,7 +181,8 @@ class Auth {
 
   static async forgotPassword(email) {
     const user = await User.readAllAttributes(null, email);
-    if (!user) throw new NotFound('User not found!');
+
+    if (!user) return;
 
     const token = generateRandomToken();
 
@@ -212,10 +208,6 @@ class Auth {
       html,
       text: `Link: ${link} | Token: ${token}`,
     });
-
-    const safeUser = await User.readOne(user.id);
-
-    return safeUser;
   }
 
   static async resetPassword(token, password) {
@@ -229,6 +221,7 @@ class Auth {
     // Change password and wipe tokens
     const hashedPassword = bcrypt.hashSync(password, 12);
     await User.update(user.id, { password: hashedPassword });
+    await Auth.wipeToken(user.id, 'refresh');
     await Auth.wipeToken(user.id, 'password');
 
     const safeUser = await User.readOne(user.id);

@@ -30,7 +30,7 @@
       "Worker"
     ],
     "responses": {
-      "201": {
+      "200": {
         "$ref": "../../components/responses/worker.json#/default"
       },
       "400": {
@@ -63,7 +63,7 @@
       "Worker"
     ],
     "responses": {
-      "201": {
+      "200": {
         "$ref": "../../components/responses/worker.json#/default"
       },
       "401": {

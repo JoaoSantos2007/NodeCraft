@@ -102,10 +102,9 @@ class Auth {
 
   static async validateAccount(req, res, next) {
     try {
-      const token = req?.body?.token;
-      if (typeof token !== 'string') throw new InvalidRequest('Email token is invalid!');
+      const { token } = req.body;
 
-      const user = await Service.validateAccount(token.trim());
+      const user = await Service.validateAccount(token);
 
       return res.status(200).json({ success: true, user });
     } catch (err) {
@@ -115,11 +114,11 @@ class Auth {
 
   static async forgotPassword(req, res, next) {
     try {
-      const email = req?.body?.email;
+      const { email } = req.body;
 
-      const user = await Service.forgotPassword(email);
+      await Service.forgotPassword(email);
 
-      return res.status(200).json({ success: true, user });
+      return res.status(200).json({ success: true });
     } catch (err) {
       return next(err);
     }
@@ -127,13 +126,9 @@ class Auth {
 
   static async resetPassword(req, res, next) {
     try {
-      const token = req?.body?.token;
-      const password = req?.body?.password;
+      const { token, password } = req.body;
 
-      if (typeof token !== 'string') throw new InvalidRequest('Reset password token is invalid!');
-      if (!password) throw new InvalidRequest('Password cannot be null!');
-
-      const user = await Service.resetPassword(token.trim(), password);
+      const user = await Service.resetPassword(token, password);
 
       return res.status(200).json({ success: true, user });
     } catch (err) {

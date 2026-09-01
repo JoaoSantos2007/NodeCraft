@@ -43,7 +43,7 @@
       "application/json": {
         "schema": {
           "type": "object",
-          "description": "Creates an instance. `workerId` is mandatory — there is no automatic placement — and must be one of the user's `allowedWorkers`. `game` must match `type`; sending a `game` block for a different game is rejected. `port`, `status` and `history` are server-assigned and rejected if sent.",
+          "description": "Creates an instance. `workerId` is mandatory \u2014 there is no automatic placement \u2014 and must be one of the user's `allowedWorkers`. `game` must match `type`; sending a `game` block for a different game is rejected. `port`, `status` and `history` are server-assigned and rejected if sent.",
           "required": [
             "name",
             "type",
@@ -115,7 +115,7 @@
       "application/json": {
         "schema": {
           "type": "object",
-          "description": "Updates an existing instance. Every property is optional, but `game` may only be sent together with `type` (it is validated against it), and sending `type` requires `game`. `type` itself is not persisted — it only selects which `game` schema applies. `workerId` cannot be changed here; use `PUT /instance/{id}/worker` (admin). The instance must be stopped.",
+          "description": "Updates an existing instance. Every property is optional, but `game` may only be sent together with `type` (it is validated against it), and sending `type` requires `game`. `type` itself is not persisted \u2014 it only selects which `game` schema applies. `workerId` cannot be changed here; use `PUT /instance/{id}/worker` (admin). The instance must be stopped.",
           "properties": {
             "name": {
               "type": "string",
@@ -131,7 +131,8 @@
                 "terraria",
                 "kerbal"
               ],
-              "example": "minecraft"
+              "example": "minecraft",
+              "description": "Selects which game schema validates `game`. Not persisted \u2014 the game of an instance cannot be changed."
             },
             "memory": {
               "type": "integer",
@@ -163,7 +164,8 @@
                 {
                   "$ref": "../schemas/terraria.json"
                 }
-              ]
+              ],
+              "description": "Game-specific settings. Optional: an update may change only instance fields. When sent, `type` must be sent too (it selects which game schema applies and is not persisted)."
             }
           }
         }

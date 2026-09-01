@@ -8,10 +8,11 @@ class File {
     try {
       const { id } = req.params;
       const { path, download } = req.query;
+      const toDownload = download === 'true';
 
       const { worker } = await getWorkerContext(id);
 
-      const route = `${worker.url}/server/${id}/files?path=${encodeURIComponent(path || '')}&download=${download || false}`;
+      const route = `${worker.url}/server/${id}/files?path=${encodeURIComponent(path || '')}&download=${toDownload}`;
       const response = await proxyFetch(route, {
         method: 'GET',
         headers: {
@@ -25,7 +26,7 @@ class File {
         return res.status(response.status).json(result);
       }
 
-      if (download) {
+      if (toDownload) {
         // Set a content-type from worker response or define a generic type
         res.setHeader('Content-Type', response.headers.get('content-type') || 'application/octet-stream');
 

@@ -1,6 +1,9 @@
 import { Router } from 'express';
 import Controller from '../controllers/Worker.js';
-import { auth, workerAuth, workerOrAuth } from '../middlewares/index.js';
+import {
+  auth, workerAuth, workerOrAuth, validate,
+} from '../middlewares/index.js';
+import { createWorker, updateWorker } from '../schemas/index.js';
 
 const router = Router();
 
@@ -28,11 +31,13 @@ router
   .post(
     '/worker',
     auth('admin'),
+    validate(createWorker),
     Controller.create,
   )
   .put(
     '/worker/:id',
     auth('admin'),
+    validate(updateWorker),
     Controller.update,
   )
   .delete(

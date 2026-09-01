@@ -1,8 +1,11 @@
 import { Router } from 'express';
 import Controller from '../controllers/Auth.js';
 import {
-  auth, verifyService, loginLimiter, emailLimiter,
+  auth, verifyService, loginLimiter, emailLimiter, validate,
 } from '../middlewares/index.js';
+import {
+  login, validateAccount, forgotPassword, resetPassword,
+} from '../schemas/index.js';
 
 const router = Router();
 
@@ -10,6 +13,7 @@ router
   .post(
     '/auth/login',
     loginLimiter,
+    validate(login),
     Controller.login,
   )
   .post(
@@ -33,18 +37,21 @@ router
     '/auth/validate',
     verifyService('email'),
     auth('logged'),
+    validate(validateAccount),
     Controller.validateAccount,
   )
   .post(
     '/auth/forgot',
     verifyService('email'),
     emailLimiter,
+    validate(forgotPassword),
     Controller.forgotPassword,
   )
   .post(
     '/auth/reset',
     verifyService('email'),
     loginLimiter,
+    validate(resetPassword),
     Controller.resetPassword,
   );
 

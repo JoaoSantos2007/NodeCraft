@@ -1,6 +1,6 @@
 import { hashSync } from 'bcrypt';
 import { User as Model, Link as LinkModel } from '../models/index.js';
-import { NotFound } from '../errors/index.js';
+import { NotFound, Internal } from '../errors/index.js';
 
 class User {
   static async create(data) {
@@ -49,20 +49,22 @@ class User {
   }
 
   static async readAllAttributes(id = null, email = null, token = null, tokenType = 'email') {
+    const tokenColumns = {
+      email: 'emailTokenHash',
+      password: 'resetPasswordTokenHash',
+      refresh: 'refreshTokenHash',
+    };
+
     const where = {};
     if (id) {
       where.id = id;
     } else if (email) {
       where.email = email;
-    } else if (token) {
-      if (tokenType === 'email') {
-        where.emailTokenHash = token;
-      } else if (tokenType === 'password') {
-        where.resetPasswordTokenHash = token;
-      } else if (tokenType === 'refresh') {
-        where.refreshTokenHash = token;
-      }
+    } else if (token && tokenColumns[tokenType]) {
+      where[tokenColumns[tokenType]] = token;
     }
+
+    if (Object.keys(where).length === 0) throw new Internal('A search criteria is required!');
 
     const user = await Model.scope(null).findOne({ where });
 

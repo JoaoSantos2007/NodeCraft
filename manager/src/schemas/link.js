@@ -12,7 +12,7 @@ const updateLink = Joi.object({
   id: Joi.forbidden(),
   instanceId: Joi.forbidden(),
   userId: Joi.forbidden(),
-  permissions: Joi.array(),
+  permissions: Joi.array().items(Joi.string().valid(...config.instance.permissions)),
 }).min(1);
 
 export { createLink, updateLink };

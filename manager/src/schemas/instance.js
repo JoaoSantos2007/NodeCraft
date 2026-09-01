@@ -48,7 +48,7 @@ const updateInstance = Joi.object({
       { is: 'terraria', then: terraria },
     ],
     otherwise: Joi.forbidden(),
-  }).required(),
+  }),
 }).min(1);
 
 const transferOwner = Joi.object({
