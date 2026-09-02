@@ -2,6 +2,37 @@ import config from '../../config/config.js';
 import { InvalidRequest, Unathorized } from '../errors/index.js';
 import Service from '../services/Auth.js';
 
+const isProd = !config.app.isDev;
+
+const cookieOptions = {
+  httpOnly: true,
+  secure: isProd,
+  sameSite: isProd ? 'strict' : 'Lax',
+};
+
+// The refresh cookie is scoped to its own route so it does not ride along with
+// every other request.
+const refreshCookieOptions = { ...cookieOptions, path: config.token.refreshCookiePath };
+
+const setAuthCookies = (res, { accessToken, refreshToken }) => {
+  res.cookie('accessToken', accessToken, {
+    ...cookieOptions,
+    maxAge: config.token.accessLifetime,
+  });
+
+  res.cookie('refreshToken', refreshToken, {
+    ...refreshCookieOptions,
+    maxAge: config.token.refreshLifetime,
+  });
+};
+
+// clearCookie only drops a cookie when the options match the ones it was set
+// with, so both halves reuse the objects above.
+const clearAuthCookies = (res) => {
+  res.clearCookie('accessToken', cookieOptions);
+  res.clearCookie('refreshToken', refreshCookieOptions);
+};
+
 class Auth {
   static async login(req, res, next) {
     try {
@@ -11,25 +42,7 @@ class Auth {
         user, accessToken, refreshToken,
       } = await Service.authenticate(body.email, body.password);
 
-      const isProd = !config.app.isDev;
-      const refreshPath = isProd ? '/api/auth/refresh' : '/auth/refresh';
-
-      // Set accessToken in response cookie
-      res.cookie('accessToken', accessToken, {
-        httpOnly: true,
-        secure: isProd,
-        sameSite: isProd ? 'strict' : 'Lax',
-        maxAge: config.token.accessLifetime,
-      });
-
-      // Set refreshToken in response cookie
-      res.cookie('refreshToken', refreshToken, {
-        httpOnly: true,
-        secure: isProd,
-        sameSite: isProd ? 'strict' : 'Lax',
-        path: refreshPath,
-        maxAge: config.token.refreshLifetime,
-      });
+      setAuthCookies(res, { accessToken, refreshToken });
 
       return res.status(200).json({ success: true, user });
     } catch (err) {
@@ -45,25 +58,7 @@ class Auth {
 
       const { user, accessToken, refreshToken } = await Service.refreshAuthentication(token);
 
-      const isProd = !config.app.isDev;
-      const refreshPath = isProd ? '/api/auth/refresh' : '/auth/refresh';
-
-      // Set accessToken in response cookie
-      res.cookie('accessToken', accessToken, {
-        httpOnly: true,
-        secure: isProd,
-        sameSite: isProd ? 'strict' : 'Lax',
-        maxAge: config.token.accessLifetime,
-      });
-
-      // Set refreshToken in response cookie
-      res.cookie('refreshToken', refreshToken, {
-        httpOnly: true,
-        secure: isProd,
-        sameSite: isProd ? 'strict' : 'Lax',
-        path: refreshPath,
-        maxAge: config.token.refreshLifetime,
-      });
+      setAuthCookies(res, { accessToken, refreshToken });
 
       return res.status(200).json({ success: true, user });
     } catch (err) {
@@ -75,11 +70,8 @@ class Auth {
     try {
       const { user } = req;
 
-      const refreshPath = config.app.isDev ? '/auth/refresh' : '/api/auth/refresh';
-
       await Service.wipeToken(user.id, 'refresh');
-      res.clearCookie('accessToken');
-      res.clearCookie('refreshToken', { path: refreshPath });
+      clearAuthCookies(res);
 
       return res.status(200).json({ success: true, user });
     } catch (err) {
