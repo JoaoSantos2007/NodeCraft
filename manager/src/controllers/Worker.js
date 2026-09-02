@@ -24,7 +24,7 @@ class Worker {
 
   static async readOne(req, res, next) {
     try {
-      const id = req?.params?.id;
+      const { id } = req.params;
       const worker = await Service.readOne(id);
 
       return res.status(200).json({ success: true, worker });
@@ -35,7 +35,7 @@ class Worker {
 
   static async create(req, res, next) {
     try {
-      const body = req?.body;
+      const { body } = req;
 
       const { worker, apiKey, secret } = await Service.create(body);
 
@@ -52,8 +52,8 @@ class Worker {
 
   static async update(req, res, next) {
     try {
-      const id = req?.params?.id;
-      const body = req?.body;
+      const { id } = req.params;
+      const { body } = req;
 
       const worker = await Service.update(id, body);
 
@@ -65,7 +65,7 @@ class Worker {
 
   static async delete(req, res, next) {
     try {
-      const id = req?.params?.id;
+      const { id } = req.params;
       const worker = await Service.delete(id);
 
       return res.status(200).json({ success: true, worker });
@@ -76,8 +76,8 @@ class Worker {
 
   static async heartbeat(req, res, next) {
     try {
-      const id = req?.params?.id;
-      const body = req?.body;
+      const { id } = req.params;
+      const { body } = req;
 
       await Service.receiveHeartbeat(id, body);
 
@@ -89,8 +89,9 @@ class Worker {
 
   static async readHeartbeats(req, res, next) {
     try {
-      const id = req?.params?.id;
+      const { id } = req.params;
       const range = req?.query?.range;
+
       const heartbeats = await Service.readHeartbeats(id, range);
 
       return res.status(200).json({ success: true, heartbeats });
@@ -101,7 +102,7 @@ class Worker {
 
   static async readInstances(req, res, next) {
     try {
-      const id = req?.params?.id;
+      const { id } = req.params;
       const instances = await InstanceService.readByWorker(id);
 
       return res.status(200).json({ success: true, instances });
@@ -112,11 +113,11 @@ class Worker {
 
   static async updateInstance(req, res, next) {
     try {
-      const workerId = req?.params?.workerId;
-      const id = req?.params?.instanceId;
-      const data = req?.body;
+      const { workerId } = req.params;
+      const { instanceId } = req.params;
+      const { body } = req;
 
-      await InstanceService.updateDetails(workerId, id, data);
+      await InstanceService.updateDetails(workerId, instanceId, body);
 
       return res.status(200).json({ success: true });
     } catch (err) {
@@ -126,11 +127,11 @@ class Worker {
 
   static async reportBackupResult(req, res, next) {
     try {
-      const workerId = req?.params?.workerId;
-      const instanceId = req?.params?.instanceId;
-      const data = req?.body;
+      const { workerId } = req.params;
+      const { instanceId } = req.params;
+      const { body } = req;
 
-      await InstanceService.updateBackupStatus(workerId, instanceId, data);
+      await InstanceService.updateBackupStatus(workerId, instanceId, body);
 
       return res.status(200).json({ success: true });
     } catch (err) {

@@ -1,5 +1,6 @@
 import { Op } from 'sequelize';
 import {
+  db,
   Worker as Model,
   WorkerHeartbeat as HeartbeatModel,
 } from '../models/index.js';
@@ -7,18 +8,34 @@ import { NotFound } from '../errors/index.js';
 import logger from '../../config/logger.js';
 import { hashToken, generateRandomToken, compareToken } from '../utils/token.js';
 
+const ONE_SECOND = 1000;
+const ONE_MINUTE = 60 * ONE_SECOND;
+const ONE_HOUR = 60 * ONE_MINUTE;
+const ONE_DAY = 24 * ONE_HOUR;
+
 const HEARTBEAT_RETENTION_DAYS = 7;
-const HEARTBEAT_RETENTION_MS = HEARTBEAT_RETENTION_DAYS * 24 * 60 * 60 * 1000;
-const DEAD_THRESHOLD = 3 * 60 * 1000; // 3 minutes
-const CHECK_INTERVAL = 60 * 1000; // 1 minute
-const PRUNE_INTERVAL = 60 * 60 * 1000; // 1 hour
+const HEARTBEAT_RETENTION_MS = HEARTBEAT_RETENTION_DAYS * ONE_DAY;
+const DEAD_THRESHOLD = 3 * ONE_MINUTE;
+const CHECK_INTERVAL = ONE_MINUTE;
+const PRUNE_INTERVAL = ONE_HOUR;
+
+const DEFAULT_RANGE = '24h';
 
 const HEARTBEAT_RANGES = {
-  '1h': 60 * 60 * 1000,
-  '6h': 6 * 60 * 60 * 1000,
-  '24h': 24 * 60 * 60 * 1000,
-  '3d': 3 * 24 * 60 * 60 * 1000,
-  '7d': 7 * 24 * 60 * 60 * 1000,
+  '1h': ONE_HOUR,
+  '6h': 6 * ONE_HOUR,
+  '24h': ONE_DAY,
+  '3d': 3 * ONE_DAY,
+  '7d': 7 * ONE_DAY,
+};
+
+// Same buckets the dashboard charts with.
+const HEARTBEAT_BUCKETS = {
+  '1h': ONE_MINUTE,
+  '6h': 5 * ONE_MINUTE,
+  '24h': 15 * ONE_MINUTE,
+  '3d': ONE_HOUR,
+  '7d': 2 * ONE_HOUR,
 };
 
 class Worker {
@@ -104,34 +121,21 @@ class Worker {
     return worker;
   }
 
-  static readMemory(data) {
-    return {
-      memoryTotal: data.memoryTotal ?? data.memorieTotal,
-      memoryUsed: data.memoryUsed ?? data.memorieUsed,
-    };
-  }
-
   static async receiveHeartbeat(id, data) {
-    const info = {
-      healthy: true,
-      lastSeenAt: Date.now(),
+    const metrics = {
       cpuUsage: data.cpuUsage,
-      ...Worker.readMemory(data),
+      memoryTotal: data.memoryTotal,
+      memoryUsed: data.memoryUsed,
       diskAvailable: data.diskAvailable,
     };
 
-    await Model.update(info, { where: { id } });
+    // lastSeenAt is a BIGINT of epoch ms — checkAll compares it as a number.
+    await Model.update(
+      { healthy: true, lastSeenAt: Date.now(), ...metrics },
+      { where: { id } },
+    );
 
-    await Worker.recordHeartbeat(id, data);
-  }
-
-  static async recordHeartbeat(id, data) {
-    await HeartbeatModel.create({
-      workerId: id,
-      cpuUsage: data.cpuUsage,
-      ...Worker.readMemory(data),
-      diskAvailable: data.diskAvailable,
-    });
+    await HeartbeatModel.create({ workerId: id, ...metrics });
   }
 
   static async pruneHeartbeats() {
@@ -151,18 +155,49 @@ class Worker {
   static async readHeartbeats(id, range) {
     await Worker.readOne(id);
 
-    const windowMs = HEARTBEAT_RANGES[range] || HEARTBEAT_RETENTION_MS;
+    const key = HEARTBEAT_RANGES[range] ? range : DEFAULT_RANGE;
+    const windowMs = HEARTBEAT_RANGES[key];
+    const bucketMs = HEARTBEAT_BUCKETS[key];
     const cutoff = new Date(Date.now() - windowMs);
 
-    const heartbeats = await HeartbeatModel.findAll({
+    // Heartbeats land every 15s, so a raw 7d window is ~40k rows for a chart
+    // that draws ~84 points. Averaging per bucket here keeps the payload small;
+    // the buckets match web/src/utils/metrics.js, which re-buckets the same way.
+    // The division has to floor, or every distinct timestamp becomes its own
+    // group and nothing is bucketed: sqlite's `/` is integer division on
+    // integers, but MySQL's returns a decimal — it needs DIV.
+    const bucketSeconds = bucketMs / ONE_SECOND;
+    const bucket = db.literal(db.getDialect() === 'sqlite'
+      ? `(CAST(strftime('%s', createdAt) AS INTEGER) / ${bucketSeconds})`
+      : `(UNIX_TIMESTAMP(createdAt) DIV ${bucketSeconds})`);
+
+    const rows = await HeartbeatModel.findAll({
       where: {
         workerId: id,
         createdAt: { [Op.gte]: cutoff },
       },
-      order: [['createdAt', 'ASC']],
+      attributes: [
+        [db.fn('MIN', db.col('createdAt')), 'createdAt'],
+        [db.fn('AVG', db.col('cpuUsage')), 'cpuUsage'],
+        [db.fn('AVG', db.col('memoryTotal')), 'memoryTotal'],
+        [db.fn('AVG', db.col('memoryUsed')), 'memoryUsed'],
+        [db.fn('AVG', db.col('diskAvailable')), 'diskAvailable'],
+      ],
+      group: [bucket],
+      order: [[db.fn('MIN', db.col('createdAt')), 'ASC']],
+      raw: true,
     });
 
-    return heartbeats;
+    // raw rows carry the driver's own shapes (a string on sqlite, a Date on
+    // mysql) and AVG turns the MB columns into floats. Normalise both so the
+    // response looks the same as it did row by row.
+    return rows.map((row) => ({
+      createdAt: new Date(row.createdAt).toISOString(),
+      cpuUsage: row.cpuUsage,
+      memoryTotal: row.memoryTotal === null ? null : Math.round(row.memoryTotal),
+      memoryUsed: row.memoryUsed === null ? null : Math.round(row.memoryUsed),
+      diskAvailable: row.diskAvailable === null ? null : Math.round(row.diskAvailable),
+    }));
   }
 
   static compareApiKey(apiKey, storedApiKey) {

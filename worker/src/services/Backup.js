@@ -64,10 +64,19 @@ class Backup {
     await StorageProvider.prune(`${id}/weekly/`, WEEKLY_RETENTION);
   }
 
+  // Why this instance has nothing to back up, or null when it does. Public so
+  // Server.backup can ask before stopping the container: finding out only after
+  // the stop took the server down for a backup that was never going to run.
+  static skipReason(instance) {
+    if (!config.storage.enable) return 'storage is disabled';
+    if (instance.type === 'counterstrike') return 'game does not support backups';
+
+    return null;
+  }
+
   static async execute(instance, force = false) {
     try {
-      if (!config.storage.enable) return { status: 'skipped' };
-      if (instance.type === 'counterstrike') return { status: 'skipped' };
+      if (Backup.skipReason(instance)) return { status: 'skipped' };
 
       // Verify need backups
       const info = await Backup.verifyNeeds(instance.id);

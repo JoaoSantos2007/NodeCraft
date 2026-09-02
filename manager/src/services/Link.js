@@ -3,12 +3,6 @@ import { Link as Model, User as UserModel } from '../models/index.js';
 import User from './User.js';
 
 class Link {
-  static async readAll() {
-    const links = await Model.findAll();
-
-    return links;
-  }
-
   static async readAllByInstance(instanceId) {
     const links = await Model.findAll({
       where: {

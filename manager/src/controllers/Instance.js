@@ -182,8 +182,7 @@ class Instance {
   static async remapPort(req, res, next) {
     try {
       const { id } = req.params;
-      const port = await Service.selectPort();
-      const instance = await Service.update(id, { port });
+      const instance = await Service.remapPort(id);
 
       return res.status(200).json({ success: true, instance });
     } catch (err) {

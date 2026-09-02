@@ -1,7 +1,7 @@
 {
   "put": {
     "summary": "report an Instance backup result to the manager (worker auth)",
-    "description": "Called by the worker after a backup run. Updates lastBackupStatus and lastBackupAt on the instance.",
+    "description": "Called by the worker after a backup run. Updates lastBackupStatus and, unless the status is `skipped`, lastBackupAt on the instance. It does not touch backupRequestedAt, which the scheduler stamps when it requests the backup. Scoped to the worker hosting the instance.",
     "tags": [
       "Worker"
     ],

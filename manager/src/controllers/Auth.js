@@ -5,11 +5,11 @@ import Service from '../services/Auth.js';
 class Auth {
   static async login(req, res, next) {
     try {
-      const data = req.body;
+      const { body } = req;
 
       const {
         user, accessToken, refreshToken,
-      } = await Service.authenticate(data.email, data.password);
+      } = await Service.authenticate(body.email, body.password);
 
       const isProd = !config.app.isDev;
       const refreshPath = isProd ? '/api/auth/refresh' : '/auth/refresh';

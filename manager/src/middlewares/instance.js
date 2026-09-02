@@ -16,22 +16,4 @@ const verifyNotRunning = async (req, res, next) => {
   }
 };
 
-const verifyRunning = async (req, res, next) => {
-  try {
-    const id = req?.params?.id;
-
-    const instance = await Service.readOne(id);
-    const running = instance.status === 'running';
-
-    if (!running) throw new InvalidRequest('You cannot do this while instance is not running!');
-
-    return next();
-  } catch (err) {
-    return next(err);
-  }
-};
-
-export {
-  verifyNotRunning,
-  verifyRunning,
-};
+export default verifyNotRunning;

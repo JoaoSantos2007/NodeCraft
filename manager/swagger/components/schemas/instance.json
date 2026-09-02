@@ -69,6 +69,14 @@
       "type": "string",
       "format": "date-time",
       "nullable": true,
+      "example": "2026-07-17T03:00:00.000Z",
+      "description": "When the last backup finished (the worker reported its result). Null until one completes."
+    },
+    "backupRequestedAt": {
+      "type": "string",
+      "format": "date-time",
+      "nullable": true,
+      "description": "When the scheduler last asked a worker to back this instance up. Stamped at request time, so it moves ahead of lastBackupAt while a backup is in flight; the nightly run uses it to avoid triggering the same instance twice.",
       "example": "2026-07-17T03:00:00.000Z"
     },
     "lastBackupStatus": {
@@ -113,7 +121,7 @@
           }
         }
       ],
-      "description": "Accounts this instance is shared with. The embedded `user` is limited to `id`, `name` and `email` — a link holder never sees another holder's admin flag, verification state or quotas."
+      "description": "Accounts this instance is shared with. The embedded `user` is limited to `id`, `name` and `email` \u2014 a link holder never sees another holder's admin flag, verification state or quotas."
     },
     "createdAt": {
       "type": "string",
@@ -138,6 +146,7 @@
     "history": [],
     "lastActivityAt": "2026-07-17T02:45:00.000Z",
     "lastBackupAt": "2026-07-17T03:00:00.000Z",
+    "backupRequestedAt": "2026-07-17T03:00:00.000Z",
     "lastBackupStatus": "success",
     "minecraft": {
       "software": "paper",

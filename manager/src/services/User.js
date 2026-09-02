@@ -1,10 +1,10 @@
-import { hashSync } from 'bcrypt';
+import { hash } from 'bcrypt';
 import { User as Model, Link as LinkModel } from '../models/index.js';
 import { NotFound, Internal } from '../errors/index.js';
 
 class User {
   static async create(data) {
-    const hashedPassword = hashSync(data.password, 12);
+    const hashedPassword = await hash(data.password, 12);
 
     const user = await Model.create({
       name: data.name,

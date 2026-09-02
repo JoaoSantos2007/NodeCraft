@@ -94,6 +94,12 @@ const config = {
       'instance:roster:edit',
     ],
   },
+  worker: {
+    // Timeout of every manager -> worker request that is not streaming a file.
+    timeout: process.env.WORKER_TIMEOUT
+      ? Number(process.env.WORKER_TIMEOUT)
+      : 15 * ONE_SECOND,
+  },
   rateLimit: {
     windowMs: process.env.RATE_LIMIT_WINDOW
       ? Number(process.env.RATE_LIMIT_WINDOW)

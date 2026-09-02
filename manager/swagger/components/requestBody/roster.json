@@ -47,8 +47,15 @@
       "application/json": {
         "schema": {
           "type": "object",
-          "description": "Partial update — send `access`, `privileged`, or both. At least one property is required; an empty body returns `400`. `platform`, `name` and `identifier` are immutable and rejected if sent.",
+          "description": "Partial update \u2014 send `name`, `access`, `privileged`, or any combination. At least one property is required; an empty body returns `400`. `platform` and `identifier` are immutable and rejected if sent. Sending `name` re-resolves the player against the game API to refresh the cached name: it must resolve to the same identifier, otherwise it is another player and the request returns `400`.",
           "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 50,
+              "description": "New known name of the same player (e.g. after a rename). Re-resolved server-side.",
+              "example": "Notch"
+            },
             "access": {
               "type": "string",
               "enum": [

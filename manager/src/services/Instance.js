@@ -18,8 +18,7 @@ class Instance {
     const TargetModel = gameModels[gameType];
     if (!TargetModel) throw new Internal('Game model not found!');
 
-    // Pick up a server port
-    const port = await Instance.selectPort();
+    const port = await Instance.selectPort(instanceData.workerId);
 
     // Use a Transaction to ensure: either everything is recorded or nothing is.
     return db.transaction(async (t) => {
@@ -49,23 +48,17 @@ class Instance {
   static async personalRead(user) {
     if (user.admin) return Instance.readAll();
 
-    const userInstances = await Model.findAll({
-      where: {
-        ownerId: user.id,
-      },
-      include: instanceInclude,
-    });
-
     const instancesId = await Link.readInstancesIdByUserLink(user.id);
 
-    const linkInstances = await Model.findAll({
+    const instances = await Model.findAll({
       where: {
-        id: { [Op.in]: instancesId },
+        [Op.or]: [
+          { ownerId: user.id },
+          { id: { [Op.in]: instancesId } },
+        ],
       },
       include: instanceInclude,
     });
-
-    const instances = [...userInstances, ...linkInstances];
 
     return instances;
   }
@@ -132,7 +125,6 @@ class Instance {
     await User.readOne(newOwnerId);
 
     if (instance.ownerId !== newOwnerId) {
-      // A link from the new owner to the instance is now redundant.
       await Link.deleteByUserAndInstance(newOwnerId, id);
       await instance.update({ ownerId: newOwnerId });
     }
@@ -148,9 +140,30 @@ class Instance {
       await Worker.readOne(workerId);
     }
 
-    await instance.update({ workerId: workerId || null });
+    const changes = { workerId: workerId || null };
+
+    // The port is free on the current worker but may be taken on the new one.
+    if (workerId && workerId !== instance.workerId) {
+      const collision = await Model.findOne({
+        where: {
+          workerId,
+          port: instance.port,
+        },
+      });
+
+      if (collision) changes.port = await Instance.selectPort(workerId);
+    }
+
+    await instance.update(changes);
 
     return Instance.readOne(id);
+  }
+
+  static async remapPort(id) {
+    const instance = await Instance.readOne(id);
+    const port = await Instance.selectPort(instance.workerId);
+
+    return Instance.update(id, { port });
   }
 
   static async delete(id) {
@@ -171,33 +184,37 @@ class Instance {
     });
   }
 
-  static async selectPort() {
-    const instances = await Instance.readAll();
+  static async selectPort(workerId = null) {
+    const instances = await Model.findAll({
+      where: { workerId },
+      attributes: ['port'],
+    });
+    const { minPort, maxPort } = config.instance;
+
     const usedPorts = [];
-    const availablePorts = [];
+    let availablePort;
 
     // Find used ports
     instances.forEach((instance) => {
       const serverPort = instance.port;
 
-      if (!usedPorts.includes(serverPort) && !!serverPort) usedPorts.push(serverPort);
+      if (serverPort > minPort && serverPort < maxPort) {
+        usedPorts.push(serverPort);
+      }
     });
 
-    // Find available ports
-    for (let port = config.instance.minPort; port <= config.instance.maxPort; port += 1) {
+    // Verify max used ports
+    if (maxPort - minPort <= usedPorts.length) throw new Error('No port available!');
+
+    // Find available port
+    for (let port = minPort; port <= maxPort; port += 1) {
       if (!usedPorts.includes(port)) {
-        availablePorts.push(port);
+        availablePort = port;
+        break;
       }
     }
 
-    // Abort if no port available
-    if (availablePorts.length === 0) throw new Error('No port available!');
-
-    // Pick a freedom port
-    const randomIndex = Math.floor(Math.random() * availablePorts.length);
-    const randomPort = availablePorts[randomIndex];
-
-    return randomPort;
+    return availablePort;
   }
 }
 

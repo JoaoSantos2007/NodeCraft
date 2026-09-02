@@ -140,6 +140,12 @@ Instance.init({
     type: DataTypes.DATE,
     allowNull: true,
   },
+  // When the scheduler last asked a worker to back this instance up. Stamped at
+  // request time, unlike lastBackupAt, which waits for the worker to report.
+  backupRequestedAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
   lastBackupStatus: {
     type: DataTypes.STRING,
     allowNull: true,

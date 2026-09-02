@@ -1,7 +1,7 @@
 {
   "get": {
     "summary": "read a Worker's heartbeat history (admin only)",
-    "description": "Returns the worker's recorded heartbeats within `range` (default 7 days), oldest first — used to plot hardware-usage history. Admin only.",
+    "description": "Returns the worker's heartbeat history within `range` (`1h`, `6h`, `24h`, `3d`, `7d`; anything else falls back to `24h`), oldest first \u2014 used to plot hardware-usage history. Admin only. Heartbeats are recorded every ~15s, so the rows are averaged into time buckets sized by the range (1min for `1h` up to 2h for `7d`): each item is one bucket, and `createdAt` is the timestamp of its first heartbeat.",
     "tags": [
       "Worker"
     ],

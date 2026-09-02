@@ -47,6 +47,20 @@ class Limit {
     if (usage.count >= user.maxInstances) {
       throw new Forbidden('You have reached your instance limit!');
     }
+
+    if (usage.disk >= user.maxDisk) {
+      throw new Forbidden('You have exceeded your disk quota!');
+    }
+
+    const { memory, cpu } = InstanceModel.build(instanceData);
+
+    if (memory > user.maxMemory) {
+      throw new Forbidden('This instance asks for more memory than your quota!');
+    }
+
+    if (cpu > user.maxCpu) {
+      throw new Forbidden('This instance asks for more cpu than your quota!');
+    }
   }
 
   static async verifyCanStart(instance) {
