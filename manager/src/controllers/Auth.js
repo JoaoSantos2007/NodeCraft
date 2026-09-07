@@ -10,8 +10,6 @@ const cookieOptions = {
   sameSite: isProd ? 'strict' : 'Lax',
 };
 
-// The refresh cookie is scoped to its own route so it does not ride along with
-// every other request.
 const refreshCookieOptions = { ...cookieOptions, path: config.token.refreshCookiePath };
 
 const setAuthCookies = (res, { accessToken, refreshToken }) => {
@@ -26,8 +24,6 @@ const setAuthCookies = (res, { accessToken, refreshToken }) => {
   });
 };
 
-// clearCookie only drops a cookie when the options match the ones it was set
-// with, so both halves reuse the objects above.
 const clearAuthCookies = (res) => {
   res.clearCookie('accessToken', cookieOptions);
   res.clearCookie('refreshToken', refreshCookieOptions);

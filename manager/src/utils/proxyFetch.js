@@ -1,4 +1,5 @@
 import { ServiceUnavailable, PayloadTooLarge, Internal } from '../errors/index.js';
+import getWorkerContext from './getWorkerContext.js';
 
 async function proxyFetch(route, options) {
   let response;
@@ -10,6 +11,33 @@ async function proxyFetch(route, options) {
   }
 
   return response;
+}
+
+async function proxyToWorker(id, {
+  route,
+  method = 'GET',
+  body,
+  headers,
+}) {
+  const { worker } = await getWorkerContext(id);
+
+  const options = {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      ...headers,
+      Authorization: `Bearer ${worker.secret}`,
+    },
+  };
+
+  if (typeof body?.pipe === 'function') {
+    options.body = body;
+    options.duplex = 'half';
+  } else if (body !== undefined) {
+    options.body = JSON.stringify(body);
+  }
+
+  return proxyFetch(`${worker.url}/server/${id}${route}`, options);
 }
 
 async function readWorkerJson(response) {
@@ -26,5 +54,11 @@ async function readWorkerJson(response) {
   }
 }
 
-export { readWorkerJson };
+async function sendWorkerJson(res, response, successStatus = 200) {
+  const result = await readWorkerJson(response);
+
+  return res.status(response.ok ? successStatus : response.status).json(result);
+}
+
+export { readWorkerJson, proxyToWorker, sendWorkerJson };
 export default proxyFetch;
