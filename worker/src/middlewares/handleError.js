@@ -9,13 +9,12 @@ const handleError = (err, req, res, next) => {
       err,
       path: req.path,
       method: req.method,
-      body: req.body,
+      // Only the shape of the body, never its values: instance payloads from
+      // the manager carry env vars (RCON password among them).
+      bodyKeys: Object.keys(req.body || {}),
       params: req.params,
       query: req.query,
     }, 'Unhandled internal error');
-
-    // eslint-disable-next-line no-console
-    console.error(err);
 
     return new Base().send(res);
   }
@@ -24,9 +23,6 @@ const handleError = (err, req, res, next) => {
     logger.error({
       err,
     }, 'Internal server error');
-
-    // eslint-disable-next-line no-console
-    console.error(err);
   }
 
   return err.send(res);

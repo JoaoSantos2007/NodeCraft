@@ -3,12 +3,6 @@ import { Link as Model, User as UserModel } from '../models/index.js';
 import User from './User.js';
 
 class Link {
-  static async readAll() {
-    const links = await Model.findAll();
-
-    return links;
-  }
-
   static async readAllByInstance(instanceId) {
     const links = await Model.findAll({
       where: {
@@ -36,15 +30,13 @@ class Link {
     return link;
   }
 
-  static async readByUserAndInstance(userId, instanceId) {
+  static async findByUserAndInstance(userId, instanceId) {
     const link = await Model.findOne({
       where: {
         instanceId,
         userId,
       },
     });
-
-    if (!link) throw new NotFound('Link not found!');
 
     return link;
   }
@@ -87,7 +79,7 @@ class Link {
   }
 
   static async deleteByUserAndInstance(userId, instanceId) {
-    const link = await Link.readByUserAndInstance(userId, instanceId);
+    const link = await Link.findByUserAndInstance(userId, instanceId);
     if (link) await link.destroy();
 
     return link;
@@ -110,7 +102,7 @@ class Link {
   }
 
   static async readUserPermissions(userId, instanceId) {
-    const link = await Link.readByUserAndInstance(userId, instanceId);
+    const link = await Link.findByUserAndInstance(userId, instanceId);
 
     return link?.permissions || [];
   }

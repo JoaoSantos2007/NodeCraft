@@ -1,19 +1,15 @@
-import { hashSync } from 'bcrypt';
+import { hash } from 'bcrypt';
 import { User as Model, Link as LinkModel } from '../models/index.js';
-import { NotFound } from '../errors/index.js';
+import { NotFound, Internal } from '../errors/index.js';
 
 class User {
   static async create(data) {
-    const hashedPassword = hashSync(data.password, 12);
+    const hashedPassword = await hash(data.password, 12);
 
     const user = await Model.create({
       name: data.name,
       email: data.email,
       password: hashedPassword,
-      javaGamertag: data.javaGamertag,
-      bedrockGamertag: data.bedrockGamertag,
-      gender: data.gender,
-      birthDate: data.birthDate,
     });
 
     return user.id;
@@ -41,11 +37,11 @@ class User {
     return user;
   }
 
-  // Public profile lookup (GET /user/:id): scalar fields only (default scope
-  // already hides secrets). Omits the `instances` link list so a logged user
-  // can't enumerate which instances another user is linked to.
   static async readProfile(id) {
-    const user = await Model.findOne({ where: { id } });
+    const user = await Model.findOne({
+      where: { id },
+      attributes: ['id', 'name'],
+    });
 
     if (!user) throw new NotFound('User not found!');
 
@@ -53,20 +49,22 @@ class User {
   }
 
   static async readAllAttributes(id = null, email = null, token = null, tokenType = 'email') {
+    const tokenColumns = {
+      email: 'emailTokenHash',
+      password: 'resetPasswordTokenHash',
+      refresh: 'refreshTokenHash',
+    };
+
     const where = {};
     if (id) {
       where.id = id;
     } else if (email) {
       where.email = email;
-    } else if (token) {
-      if (tokenType === 'email') {
-        where.emailTokenHash = token;
-      } else if (tokenType === 'password') {
-        where.resetPasswordTokenHash = token;
-      } else if (tokenType === 'refresh') {
-        where.refreshTokenHash = token;
-      }
+    } else if (token && tokenColumns[tokenType]) {
+      where[tokenColumns[tokenType]] = token;
     }
+
+    if (Object.keys(where).length === 0) throw new Internal('A search criteria is required!');
 
     const user = await Model.scope(null).findOne({ where });
 

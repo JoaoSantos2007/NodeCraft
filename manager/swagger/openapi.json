@@ -3,11 +3,38 @@
   "info": {
     "title": "NodeCraft",
     "version": "1.0.0",
-    "description": "Central manager API for the NodeCraft game-server hosting platform. It handles authentication, users and quotas, game instances (create/configure/run/backup), per-instance sharing via links, file management (proxied to the workers) and the worker fleet that runs the instances via Docker.\n\n**Authentication:** most routes require a JWT access token (15min) sent in the `accessToken` httpOnly cookie, refreshed through `/auth/refresh`. Some routes are admin only, and the `/worker/*` reporting routes are called by the workers themselves using their API key."
+    "description": "Central manager API for the NodeCraft game-server hosting platform. It handles authentication, users and quotas, game instances (create/configure/run/backup), per-instance sharing via links, file management (proxied to the workers) and the worker fleet that runs the instances via Docker.\n\n**Authentication:** most routes require a JWT access token (15min) sent in the `accessToken` httpOnly cookie, refreshed through `/auth/refresh`. Some routes are admin only, and the `/worker/*` reporting routes are called by the workers themselves using their API key.\n\n**Authorization:** authentication only proves who you are — each route additionally requires a specific permission (`admin`, `instance:read`, `instance:files:write`, …), stated in the operation description. OpenAPI cannot express these for cookie/API-key schemes, so the lock icon means \"needs a token\", not \"you are allowed\". A valid token without the required permission returns `403`.\n\n**Unknown routes:** any path not documented here returns `404` with the standard error body (`error: \"NOT_FOUND\"`).\n\n**Rate limiting:** the unauthenticated routes (`/auth/login`, `/auth/refresh`, `/auth/reset`, `/auth/forgot`, `/auth/verify`, `POST /user`) are throttled per client IP and answer `429` once the window is exhausted. Failed logins count toward the limit; successful ones do not. Responses carry the standard `RateLimit` headers (`limit`, `remaining`, `reset`).\n\n**Request bodies:** JSON payloads are capped at 100 kB — anything larger is rejected with `413` before the route runs. Malformed JSON returns `400` from the parser, with the parse error in `details`; schema violations return `400` from validation, with one entry per offending field. Every operation that accepts a body can therefore answer `400` or `413` regardless of its own rules."
   },
   "servers": [
     {
-      "url": "http://localhost:3000"
+      "url": "/",
+      "description": "Same origin serving these docs."
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "cookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "accessToken",
+        "description": "JWT access token (15min), set as an httpOnly cookie by `POST /auth/login`. The browser sends it automatically on same-origin requests, so \"Try it out\" works from these docs once you are logged in — there is nothing to paste into Authorize (the cookie is httpOnly and cannot be set from JavaScript)."
+      },
+      "refreshCookie": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "refreshToken",
+        "description": "Opaque refresh token (3 days), stored hashed (SHA-256) in the database and set as an httpOnly cookie scoped to the refresh path. Used only by `POST /auth/refresh` to mint a new access token."
+      },
+      "workerApiKey": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Worker API key sent as `Authorization: Bearer <MANAGER_API_KEY>`, compared against the SHA-256 hash in `worker.apiKey`. Used by the worker→manager reporting routes, not by the frontend."
+      }
+    }
+  },
+  "security": [
+    {
+      "cookieAuth": []
     }
   ],
   "tags": [
@@ -164,10 +191,11 @@
     "/": {
       "get": {
         "summary": "API root",
-        "description": "Public health/info endpoint. Returns basic API metadata (name, version, docs link and author). No authentication required.",
+        "description": "Public health/info endpoint. Returns basic API metadata (name, version and author). No authentication required. The `docs` field is only present in development — `/docs` is not mounted in production.",
         "tags": [
           "Root"
         ],
+        "security": [],
         "responses": {
           "200": {
             "description": "OK",

@@ -52,8 +52,8 @@ export default function Dashboard() {
   const totalCpu      = workers.length > 0
     ? workers.reduce((s, w) => s + (w.cpuUsage || 0), 0) / workers.length
     : 0;
-  const totalMemUsed  = workers.reduce((s, w) => s + (w.memorieUsed  || 0), 0);
-  const totalMemTotal = workers.reduce((s, w) => s + (w.memorieTotal || 0), 0);
+  const totalMemUsed  = workers.reduce((s, w) => s + (w.memoryUsed  || 0), 0);
+  const totalMemTotal = workers.reduce((s, w) => s + (w.memoryTotal || 0), 0);
   const memPct = totalMemTotal > 0 ? Math.round((totalMemUsed / totalMemTotal) * 100) : 0;
 
   const loadError = instErr || workErr;
@@ -135,8 +135,8 @@ export default function Dashboard() {
                   {w.cpuUsage != null && (
                     <ResourceBar label="CPU" value={w.cpuUsage} max={100} unit="%" showPercent={false} />
                   )}
-                  {w.memorieTotal != null && (
-                    <ResourceBar label="RAM" value={w.memorieUsed || 0} max={w.memorieTotal} unit="MB" />
+                  {w.memoryTotal != null && (
+                    <ResourceBar label="RAM" value={w.memoryUsed || 0} max={w.memoryTotal} unit="MB" />
                   )}
                 </div>
                 <div className="dash-worker-footer">

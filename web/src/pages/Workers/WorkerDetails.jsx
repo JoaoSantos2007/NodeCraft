@@ -105,8 +105,8 @@ export default function WorkerDetails() {
               {worker.cpuUsage != null && (
                 <ResourceBar label="CPU" value={worker.cpuUsage} max={100} unit="%" showPercent={false} />
               )}
-              {worker.memorieTotal != null && (
-                <ResourceBar label="Memory" value={worker.memorieUsed || 0} max={worker.memorieTotal} unit="MB" />
+              {worker.memoryTotal != null && (
+                <ResourceBar label="Memory" value={worker.memoryUsed || 0} max={worker.memoryTotal} unit="MB" />
               )}
               {worker.diskAvailable != null && (
                 <div className="disk-info">

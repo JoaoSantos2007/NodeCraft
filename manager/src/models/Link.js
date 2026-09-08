@@ -1,6 +1,6 @@
 import { Sequelize, DataTypes, Model } from 'sequelize';
 import db from '../../config/sequelize.js';
-import config from '../../config/config.js';
+import { isPermissionArray } from './validators.js';
 
 class Link extends Model { }
 
@@ -31,27 +31,21 @@ Link.init({
     allowNull: false,
     defaultValue: [],
     validate: {
-      isValidArray(value) {
-        if (!Array.isArray(value)) {
-          throw new Error('Permissions field must be an array!');
-        }
-
-        if (!value.every((item) => typeof item === 'string')) {
-          throw new Error('Permissions must contain only strings!');
-        }
-
-        value.forEach((item) => {
-          if (!config.instance.permissions.includes(item)) {
-            throw new Error(`${item} is an invalid permission!`);
-          }
-        });
-      },
+      isValidArray: isPermissionArray('Permissions'),
     },
+  },
+  createdAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
   },
 }, {
   tableName: 'link',
   sequelize: db,
-  timestamps: false,
+  timestamps: true,
+  updatedAt: false,
+  indexes: [
+    { unique: true, fields: ['instanceId', 'userId'], name: 'link_instance_id_user_id_unique' },
+  ],
 });
 
 export default Link;

@@ -16,9 +16,9 @@ const updateRoster = Joi.object({
   instanceId: Joi.forbidden(),
   identifier: Joi.forbidden(),
   platform: Joi.forbidden(),
-  name: Joi.forbidden(),
-  access: Joi.string().trim().valid(...config.roster.access).required(),
+  name: Joi.string().trim().min(1).max(50),
+  access: Joi.string().trim().valid(...config.roster.access),
   privileged: Joi.boolean(),
-});
+}).min(1);
 
 export { createRoster, updateRoster };

@@ -1,7 +1,6 @@
 import User from '../services/User.js';
 import { Forbidden, Unathorized } from '../errors/index.js';
 import Service from '../services/Auth.js';
-import handleError from './handleError.js';
 
 const auth = (permission) => async (req, res, next) => {
   try {
@@ -30,7 +29,7 @@ const auth = (permission) => async (req, res, next) => {
     // Throw forbidden error if user is not authorized
     throw new Forbidden(`You need ${permission}!`);
   } catch (err) {
-    return handleError(err, req, res);
+    return next(err);
   }
 };
 

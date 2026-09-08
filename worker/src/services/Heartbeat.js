@@ -43,8 +43,8 @@ class Hearbeat {
     return {
       port: config.app.port,
       cpuUsage: parseFloat(cpu.currentLoad.toFixed(2)),
-      memorieTotal: toMB(mem.total),
-      memorieUsed: toMB(mem.active),
+      memoryTotal: toMB(mem.total),
+      memoryUsed: toMB(mem.active),
       diskAvailable: toMB(rootDisk.size - rootDisk.used),
     };
   }

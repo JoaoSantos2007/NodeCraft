@@ -1,19 +1,12 @@
 import { DataTypes, Model } from 'sequelize';
 import db from '../../config/sequelize.js';
+import instanceIdColumn from './columns.js';
 
 class Terraria extends Model { }
 
 Terraria.init(
   {
-    instanceId: {
-      type: DataTypes.UUID,
-      primaryKey: true,
-      references: {
-        model: 'instance',
-        key: 'id',
-      },
-      onDelete: 'CASCADE',
-    },
+    instanceId: instanceIdColumn(),
     difficulty: {
       type: DataTypes.INTEGER,
       allowNull: false,
@@ -36,7 +29,7 @@ Terraria.init(
       validate: {
         len: {
           args: [0, 32],
-          msg: 'password field must have a length between 2 and 32!',
+          msg: 'password field must have a length between 0 and 32!',
         },
       },
     },

@@ -4,8 +4,8 @@ import Link from './Link.js';
 import Worker from './Worker.js';
 import WorkerHeartbeat from './WorkerHeartbeat.js';
 import db from '../../config/sequelize.js';
+import config from '../../config/config.js';
 import Minecraft from './Minecraft.js';
-import CounterStrike from './CounterStrike.js';
 import Kerbal from './Kerbal.js';
 import Hytale from './Hytale.js';
 import Terraria from './Terraria.js';
@@ -28,24 +28,25 @@ Link.belongsTo(Instance, {
 User.hasMany(Link, {
   foreignKey: 'userId',
   as: 'instances',
+  onDelete: 'CASCADE',
+  hooks: true,
 });
 
 Link.belongsTo(User, {
   foreignKey: 'userId',
   as: 'user',
-  onDelete: 'CASCADE',
 });
 
 // user <-> instance
 User.hasMany(Instance, {
-  foreignKey: 'owner',
+  foreignKey: 'ownerId',
   as: 'ownedInstances',
   onDelete: 'CASCADE',
   hooks: true,
 });
 
 Instance.belongsTo(User, {
-  foreignKey: 'owner',
+  foreignKey: 'ownerId',
   as: 'ownerUser',
 });
 
@@ -84,18 +85,6 @@ Instance.hasOne(Minecraft, {
 });
 
 Minecraft.belongsTo(Instance, {
-  foreignKey: 'instanceId',
-});
-
-// instance <--> counter strike
-Instance.hasOne(CounterStrike, {
-  foreignKey: 'instanceId',
-  as: 'counterstrike',
-  onDelete: 'CASCADE',
-  hooks: true,
-});
-
-CounterStrike.belongsTo(Instance, {
   foreignKey: 'instanceId',
 });
 
@@ -148,23 +137,28 @@ Roster.belongsTo(Instance, {
   as: 'instance',
 });
 
-// Set default game models
+// The one place a game name is bound to its model. config.instance.games holds
+// the names (validators and Joi schemas read it); this holds the models.
 const gameModels = {
   minecraft: Minecraft,
-  counterstrike: CounterStrike,
   kerbal: Kerbal,
   hytale: Hytale,
   terraria: Terraria,
 };
 
+// Fail at boot if models games are different from config games
+const registered = Object.keys(gameModels).sort();
+const configured = [...config.instance.games].sort();
+
+if (registered.join() !== configured.join()) {
+  throw new Error(
+    `gameModels and config.instance.games disagree: [${registered}] vs [${configured}]`,
+  );
+}
+
 // Define instances query include
 const instanceInclude = [
-  { model: Minecraft, as: 'minecraft', required: false },
-  { model: CounterStrike, as: 'counterstrike', required: false },
-  { model: Kerbal, as: 'kerbal', required: false },
-  { model: Hytale, as: 'hytale', required: false },
-  { model: Terraria, as: 'terraria', required: false },
-  // Only expose safe worker fields to clients (never apiKey/secret).
+  ...Object.entries(gameModels).map(([as, model]) => ({ model, as, required: false })),
   {
     model: Worker,
     as: 'worker',
@@ -178,6 +172,7 @@ const instanceInclude = [
       model: User,
       as: 'user',
       required: false,
+      attributes: ['id', 'name', 'email'],
     },
   },
   {

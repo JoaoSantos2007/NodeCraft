@@ -21,11 +21,11 @@ WorkerHeartbeat.init({
     type: DataTypes.DOUBLE,
     allowNull: true,
   },
-  memorieTotal: {
+  memoryTotal: {
     type: DataTypes.INTEGER,
     allowNull: true,
   },
-  memorieUsed: {
+  memoryUsed: {
     type: DataTypes.INTEGER,
     allowNull: true,
   },
@@ -43,7 +43,7 @@ WorkerHeartbeat.init({
   sequelize: db,
   timestamps: false,
   indexes: [
-    { fields: ['workerId', 'createdAt'] },
+    { name: 'worker_heartbeat_worker_id_created_at', fields: ['workerId', 'createdAt'] },
     { name: 'worker_heartbeat_created_at', fields: ['createdAt'] },
   ],
 });

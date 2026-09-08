@@ -9,8 +9,14 @@
       "200": {
         "$ref": "../../components/responses/auth.json#/userVerified"
       },
+      "400": {
+        "$ref": "../../components/responses/error.json#/InvalidRequest"
+      },
       "401": {
         "$ref": "../../components/responses/error.json#/Unathorized"
+      },
+      "413": {
+        "$ref": "../../components/responses/error.json#/PayloadTooLarge"
       },
       "500": {
         "$ref": "../../components/responses/error.json#/Internal"

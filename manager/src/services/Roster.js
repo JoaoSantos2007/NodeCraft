@@ -1,6 +1,6 @@
 import { InvalidRequest, NotFound } from '../errors/index.js';
 import { Roster as Model, Instance as InstanceModel } from '../models/index.js';
-import providers from '../utils/resolvers.js';
+import resolvers from '../utils/resolvers.js';
 import config from '../../config/config.js';
 
 class Roster {
@@ -44,7 +44,22 @@ class Roster {
 
   static async update(instanceId, rosterId, data) {
     const roster = await Roster.readOne(instanceId, rosterId);
-    await roster.update(data);
+
+    await Roster.assertPlatformAllowed(instanceId, roster.platform);
+
+    const changes = { ...data };
+
+    if (data.name && data.name !== roster.name) {
+      const resolved = await Roster.resolve(roster.platform, data.name);
+
+      if (resolved.identifier !== roster.identifier) {
+        throw new InvalidRequest('That name belongs to another player. Add them as a new entry!');
+      }
+
+      changes.name = resolved.name;
+    }
+
+    await roster.update(changes);
 
     return roster;
   }
@@ -61,16 +76,20 @@ class Roster {
     if (!instance) throw new NotFound('Instance not found!');
 
     const allowed = config.roster.platformsByGame[instance.type] || config.roster.platforms;
+    if (!allowed.length) {
+      throw new InvalidRequest(`The roster is not available for ${instance.type}!`);
+    }
+
     if (!allowed.includes(platform)) {
       throw new InvalidRequest(`Platform "${platform}" is not available for ${instance.type}!`);
     }
   }
 
   static async resolve(platform, input) {
-    const provider = providers[platform];
-    if (!provider) throw new InvalidRequest(`Unsupported platform: ${platform}`);
+    const resolver = resolvers[platform];
+    if (!resolver) throw new InvalidRequest(`Unsupported platform: ${platform}`);
 
-    return provider(input);
+    return resolver(input);
   }
 }
 

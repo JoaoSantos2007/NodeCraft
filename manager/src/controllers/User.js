@@ -3,9 +3,9 @@ import Service from '../services/User.js';
 class User {
   static async create(req, res, next) {
     try {
-      const data = req.body;
+      const { body } = req;
 
-      const userId = await Service.create(data);
+      const userId = await Service.create(body);
       const user = await Service.readOne(userId);
 
       return res.status(201).json({ success: true, user });
@@ -17,6 +17,7 @@ class User {
   static async read(req, res, next) {
     try {
       const { user } = req;
+
       return res.status(200).json({ success: true, user });
     } catch (err) {
       return next(err);
@@ -46,10 +47,10 @@ class User {
 
   static async update(req, res, next) {
     try {
-      const data = req.body;
+      const { body } = req;
       const { user } = req;
 
-      const userUpdated = await Service.update(user.id, data);
+      const userUpdated = await Service.update(user.id, body);
 
       return res.status(200).json({ success: true, user: userUpdated });
     } catch (err) {
@@ -59,10 +60,10 @@ class User {
 
   static async updateOther(req, res, next) {
     try {
-      const data = req.body;
+      const { body } = req;
       const { id } = req.params;
 
-      const user = await Service.update(id, data);
+      const user = await Service.update(id, body);
 
       return res.status(200).json({ success: true, user });
     } catch (err) {

@@ -5,6 +5,7 @@
     "tags": [
       "Auth"
     ],
+    "security": [],
     "responses": {
       "200": {
         "$ref": "../../components/responses/user.json#/default"
@@ -14,6 +15,12 @@
       },
       "401": {
         "$ref": "../../components/responses/error.json#/Unathorized"
+      },
+      "413": {
+        "$ref": "../../components/responses/error.json#/PayloadTooLarge"
+      },
+      "429": {
+        "$ref": "../../components/responses/error.json#/TooManyRequests"
       },
       "500": {
         "$ref": "../../components/responses/error.json#/Internal"

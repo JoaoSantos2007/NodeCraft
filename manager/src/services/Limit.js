@@ -7,7 +7,7 @@ class Limit {
     const user = await User.readOne(userId);
 
     const instances = await InstanceModel.findAll({
-      where: { owner: userId },
+      where: { ownerId: userId },
       attributes: ['memory', 'cpu', 'diskUsage', 'status'],
     });
 
@@ -47,10 +47,24 @@ class Limit {
     if (usage.count >= user.maxInstances) {
       throw new Forbidden('You have reached your instance limit!');
     }
+
+    if (usage.disk >= user.maxDisk) {
+      throw new Forbidden('You have exceeded your disk quota!');
+    }
+
+    const { memory, cpu } = InstanceModel.build(instanceData);
+
+    if (memory > user.maxMemory) {
+      throw new Forbidden('This instance asks for more memory than your quota!');
+    }
+
+    if (cpu > user.maxCpu) {
+      throw new Forbidden('This instance asks for more cpu than your quota!');
+    }
   }
 
   static async verifyCanStart(instance) {
-    const { user, usage } = await Limit.readUsage(instance.owner);
+    const { user, usage } = await Limit.readUsage(instance.ownerId);
 
     if (usage.disk > user.maxDisk) {
       throw new Forbidden('You have exceeded your disk quota!');

@@ -65,12 +65,21 @@ Roster.init({
     allowNull: false,
     defaultValue: false,
   },
+  createdAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
 }, {
   tableName: 'roster',
   sequelize: db,
-  timestamps: false,
+  timestamps: true,
+  updatedAt: false,
   indexes: [
-    { unique: true, fields: ['instanceId', 'platform', 'identifier'] },
+    {
+      unique: true,
+      fields: ['instanceId', 'platform', 'identifier'],
+      name: 'roster_instance_platform_identifier_unique',
+    },
   ],
 });
 

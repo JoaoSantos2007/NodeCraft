@@ -1,22 +1,14 @@
 import { DataTypes, Model } from 'sequelize';
 import db from '../../config/sequelize.js';
+import instanceIdColumn from './columns.js';
 
 class Minecraft extends Model { }
 
 Minecraft.init(
   {
-    instanceId: {
-      type: DataTypes.UUID,
-      primaryKey: true,
-      references: {
-        model: 'instance',
-        key: 'id',
-      },
-      onDelete: 'CASCADE',
-    },
+    instanceId: instanceIdColumn(),
     software: {
       type: DataTypes.STRING,
-      values: ['vanilla', 'paper', 'purpur'],
       defaultValue: 'vanilla',
       allowNull: false,
       validate: {
@@ -28,12 +20,11 @@ Minecraft.init(
     },
     bedrock: {
       type: DataTypes.BOOLEAN,
-      allowNull: true,
+      allowNull: false,
       defaultValue: false,
     },
     gamemode: {
       type: DataTypes.STRING,
-      values: ['survival', 'creative', 'adventure'],
       allowNull: false,
       defaultValue: 'survival',
       validate: {
@@ -45,7 +36,6 @@ Minecraft.init(
     },
     difficulty: {
       type: DataTypes.STRING,
-      values: ['peaceful', 'easy', 'normal', 'hard'],
       allowNull: false,
       defaultValue: 'normal',
       validate: {
@@ -62,7 +52,7 @@ Minecraft.init(
       validate: {
         len: {
           args: [0, 50],
-          msg: 'seed field must have a length between 0 and 32!',
+          msg: 'seed field must have a length between 0 and 50!',
         },
       },
     },
@@ -80,7 +70,6 @@ Minecraft.init(
     levelType: {
       type: DataTypes.STRING,
       defaultValue: 'minecraft:normal',
-      values: ['minecraft:normal', 'minecraft:flat', 'minecraft:large_biomes', 'minecraft:amplified'],
       allowNull: false,
       validate: {
         isIn: {
@@ -126,7 +115,7 @@ Minecraft.init(
       validate: {
         min: {
           args: [0],
-          msg: 'idle field must be greater than or equal to -1!',
+          msg: 'idle field must be greater than or equal to 0!',
         },
         max: {
           args: [1440],

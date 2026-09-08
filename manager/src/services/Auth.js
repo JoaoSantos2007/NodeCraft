@@ -1,42 +1,56 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import {
-  NotFound, InvalidRequest, Unathorized,
-} from '../errors/index.js';
+import { InvalidRequest, Unathorized, Internal } from '../errors/index.js';
 import sendEmail from '../utils/sendEmail.js';
 import renderTemplate from '../utils/renderTemplate.js';
-import { hashToken, generateRandomToken } from '../utils/token.js';
+import formatDuration from '../utils/duration.js';
+import { hashToken, generateRandomToken, compareToken } from '../utils/token.js';
 import User from './User.js';
 import Instance from './Instance.js';
 import Link from './Link.js';
 import config from '../../config/config.js';
 
+const TOKEN_TYPES = {
+  email: {
+    hash: 'emailTokenHash',
+    expires: 'emailTokenExpires',
+    lifetime: config.token.emailLifetime,
+  },
+  password: {
+    hash: 'resetPasswordTokenHash',
+    expires: 'resetPasswordTokenExpires',
+    lifetime: config.token.resetPasswordLifetime,
+  },
+  refresh: {
+    hash: 'refreshTokenHash',
+    expires: 'refreshTokenExpires',
+    lifetime: config.token.refreshLifetime,
+  },
+};
+
+const ABSENT_USER_HASH = '$2b$12$tA/bo5q3JorZEK53n9z9hO2TcbiIXJEhATHDhv7DtLHjTlNArrPG.';
+
+const tokenFields = (type) => {
+  const fields = TOKEN_TYPES[type];
+  if (!fields) throw new Internal(`Unknown token type: ${type}`);
+
+  return fields;
+};
+
 class Auth {
   static async saveToken(id, token, type = 'email') {
-    const hashedToken = hashToken(token);
+    const { hash, expires, lifetime } = tokenFields(type);
 
-    if (type === 'email') {
-      await User.update(id, {
-        emailTokenHash: hashedToken,
-        emailTokenExpires: (Date.now() + config.token.emailLifetime),
-      });
-    } else if (type === 'password') {
-      await User.update(id, {
-        resetPasswordTokenHash: hashedToken,
-        resetPasswordTokenExpires: (Date.now() + config.token.resetPasswordLifetime),
-      });
-    } else if (type === 'refresh') {
-      await User.update(id, {
-        refreshTokenHash: hashedToken,
-        refreshTokenExpires: (Date.now() + config.token.refreshLifetime),
-      });
-    }
+    await User.update(id, {
+      [hash]: hashToken(token),
+      [expires]: Date.now() + lifetime,
+    });
   }
 
   static async wipeToken(id, type = 'email') {
-    if (type === 'email') await User.update(id, { emailTokenHash: null, emailTokenExpires: null });
-    else if (type === 'password') await User.update(id, { resetPasswordTokenHash: null, resetPasswordTokenExpires: null });
-    else if (type === 'refresh') await User.update(id, { refreshTokenHash: null, refreshTokenExpires: null });
+    const { hash, expires } = tokenFields(type);
+
+    await User.update(id, { [hash]: null, [expires]: null });
   }
 
   // Returns the permissions a user effectively has on an instance
@@ -44,10 +58,9 @@ class Auth {
     if (user.admin) return [...config.instance.permissions, 'instance:owner'];
 
     const instance = await Instance.readOne(id);
-    if (instance.owner === user.id) return [...config.instance.permissions, 'instance:owner'];
+    if (instance.ownerId === user.id) return [...config.instance.permissions, 'instance:owner'];
 
-    const permissions = await Link.readUserPermissions(user.id, id);
-    return permissions || [];
+    return Link.readUserPermissions(user.id, id);
   }
 
   static async checkPermission(user, permission, id) {
@@ -60,14 +73,12 @@ class Auth {
       const instance = await Instance.readOne(id);
 
       // Verify if user is owner of the instance
-      if (instance.owner === user.id) return true;
+      if (instance.ownerId === user.id) return true;
 
       // Verify if user has any link with instance
       const permissions = await Link.readUserPermissions(user.id, id);
-      if (!permissions) return false;
-      if (permissions?.includes(permission)) return true;
 
-      return false;
+      return permissions.includes(permission);
     }
 
     return false;
@@ -89,9 +100,12 @@ class Auth {
 
   static verifyJWTToken(token) {
     try {
-      const payload = jwt.verify(token, config.token.jwtSecret);
+      const payload = jwt.verify(token, config.token.jwtSecret, { audience: 'api' });
+      if (payload.purpose !== 'access') throw new Unathorized('Token is invalid!');
+
       return payload;
     } catch (err) {
+      if (err instanceof Unathorized) throw err;
       if (err.name === 'TokenExpiredError') {
         throw new Unathorized('Token is expired!');
       } else if (err.name === 'JsonWebTokenError') {
@@ -106,10 +120,9 @@ class Auth {
 
   static async authenticate(email, password) {
     const user = await User.readAllAttributes(null, email);
-    if (!user) throw new Unathorized('Email or Password is invalid!');
 
-    const passwordsAreEqual = await bcrypt.compare(password, user.password);
-    if (!passwordsAreEqual) throw new Unathorized('Email or Password is invalid!');
+    const passwordsAreEqual = await bcrypt.compare(password, user?.password || ABSENT_USER_HASH);
+    if (!user || !passwordsAreEqual) throw new Unathorized('Email or Password is invalid!');
 
     const accessToken = Auth.generateAccessToken(user.id);
     const refreshToken = generateRandomToken();
@@ -125,7 +138,7 @@ class Auth {
     const user = await User.readAllAttributes(null, null, hashedToken, 'refresh');
 
     if (!user || !user?.refreshTokenHash) throw new InvalidRequest('Refresh token is invalid!');
-    if (hashedToken !== user.refreshTokenHash) throw new InvalidRequest('Refresh token is invalid!');
+    if (!compareToken(token, user.refreshTokenHash)) throw new InvalidRequest('Refresh token is invalid!');
     if (user.refreshTokenExpires < Date.now()) throw new InvalidRequest('Refresh token is expiried!');
 
     const accessToken = Auth.generateAccessToken(user.id);
@@ -144,17 +157,20 @@ class Auth {
     await Auth.saveToken(user.id, token, 'email');
 
     // Send Email
-    const link = `${config.site.validateUrl}?token=${token}`;
+    const link = `${config.app.verifyUrl}?token=${token}`;
     const html = await renderTemplate('verify.html', {
-      name: user.name || 'usuário',
+      title: 'Verify your account',
+      preheader: 'Confirm your email address to finish setting up your NodeCraft account.',
+      name: user.name || 'there',
       link,
       token,
+      expires: formatDuration(config.token.emailLifetime),
       year: new Date().getFullYear(),
     });
 
     await sendEmail({
       to: user.email,
-      subject: 'Verify your Nodecraft Account!',
+      subject: 'Verify your NodeCraft account!',
       html,
       text: `Link: ${link} | Token: ${token}`,
     });
@@ -165,7 +181,7 @@ class Auth {
     const user = await User.readAllAttributes(null, null, hashedToken, 'email');
 
     if (!user || !user?.emailTokenHash) throw new InvalidRequest('Email token is invalid!');
-    if (hashedToken !== user.emailTokenHash) throw new InvalidRequest('Email token is invalid!');
+    if (!compareToken(token, user.emailTokenHash)) throw new InvalidRequest('Email token is invalid!');
     if (user.emailTokenExpires < Date.now()) throw new InvalidRequest('Email token is expired!');
 
     // Set verified account and wipe tokens
@@ -179,7 +195,8 @@ class Auth {
 
   static async forgotPassword(email) {
     const user = await User.readAllAttributes(null, email);
-    if (!user) throw new NotFound('User not found!');
+
+    if (!user) return;
 
     const token = generateRandomToken();
 
@@ -188,25 +205,23 @@ class Auth {
 
     // Send Email
 
-    const link = `${config.site.resetUrl}?token=${token}`;
+    const link = `${config.app.resetPasswordUrl}?token=${token}`;
     const html = await renderTemplate('reset.html', {
-      name: user.name || 'usuário',
+      title: 'Reset your password',
+      preheader: 'Use the link inside to choose a new NodeCraft password.',
+      name: user.name || 'there',
       link,
       token,
-      expires: config.token.resetPasswordLifetime,
+      expires: formatDuration(config.token.resetPasswordLifetime),
       year: new Date().getFullYear(),
     });
 
     await sendEmail({
       to: user.email,
-      subject: 'Reset your Nodecraft account password!',
+      subject: 'Reset your NodeCraft account password!',
       html,
       text: `Link: ${link} | Token: ${token}`,
     });
-
-    const safeUser = await User.readOne(user.id);
-
-    return safeUser;
   }
 
   static async resetPassword(token, password) {
@@ -214,12 +229,13 @@ class Auth {
     const user = await User.readAllAttributes(null, null, hashedToken, 'password');
 
     if (!user || !user?.resetPasswordTokenHash) throw new InvalidRequest('Reset password token is invalid!');
-    if (hashedToken !== user.resetPasswordTokenHash) throw new InvalidRequest('Reset password token is invalid!');
+    if (!compareToken(token, user.resetPasswordTokenHash)) throw new InvalidRequest('Reset password token is invalid!');
     if (user.resetPasswordTokenExpires < Date.now()) throw new InvalidRequest('Reset password token is expiried!');
 
     // Change password and wipe tokens
-    const hashedPassword = bcrypt.hashSync(password, 12);
+    const hashedPassword = await bcrypt.hash(password, 12);
     await User.update(user.id, { password: hashedPassword });
+    await Auth.wipeToken(user.id, 'refresh');
     await Auth.wipeToken(user.id, 'password');
 
     const safeUser = await User.readOne(user.id);

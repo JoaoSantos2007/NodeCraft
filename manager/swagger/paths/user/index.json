@@ -23,6 +23,7 @@
     "tags": [
       "User"
     ],
+    "security": [],
     "responses": {
       "201": {
         "$ref": "../../components/responses/user.json#/default"
@@ -32,6 +33,12 @@
       },
       "401": {
         "$ref": "../../components/responses/error.json#/Unathorized"
+      },
+      "413": {
+        "$ref": "../../components/responses/error.json#/PayloadTooLarge"
+      },
+      "429": {
+        "$ref": "../../components/responses/error.json#/TooManyRequests"
       },
       "500": {
         "$ref": "../../components/responses/error.json#/Internal"
@@ -56,6 +63,9 @@
       },
       "401": {
         "$ref": "../../components/responses/error.json#/Unathorized"
+      },
+      "413": {
+        "$ref": "../../components/responses/error.json#/PayloadTooLarge"
       },
       "500": {
         "$ref": "../../components/responses/error.json#/Internal"

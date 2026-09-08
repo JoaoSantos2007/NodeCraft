@@ -91,8 +91,8 @@ export default function Monitoring() {
                   {w.cpuUsage != null && (
                     <ResourceBar label="CPU" value={w.cpuUsage} max={100} unit="%" showPercent={false} />
                   )}
-                  {w.memorieTotal != null && (
-                    <ResourceBar label="RAM" value={w.memorieUsed || 0} max={w.memorieTotal} unit="MB" />
+                  {w.memoryTotal != null && (
+                    <ResourceBar label="RAM" value={w.memoryUsed || 0} max={w.memoryTotal} unit="MB" />
                   )}
                 </div>
                 <div className="monitoring-worker-footer">

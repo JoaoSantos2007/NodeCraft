@@ -13,13 +13,16 @@ Worker.init({
     type: DataTypes.STRING,
     allowNull: false,
     validate: {
+      notEmpty: {
+        msg: 'name field cannot be empty!',
+      },
       is: {
         args: /^[a-zA-ZÀ-ÿ0-9\s]+$/i,
         msg: 'name field must be valid!',
       },
       len: {
         args: [3, 32],
-        msg: 'name field must have a length between 2 and 32!',
+        msg: 'name field must have a length between 3 and 32!',
       },
     },
   },
@@ -48,23 +51,23 @@ Worker.init({
     type: DataTypes.DOUBLE,
     allowNull: true,
   },
-  memorieTotal: {
+  memoryTotal: {
     type: DataTypes.INTEGER,
     allowNull: true,
     validate: {
       min: {
         args: [0],
-        msg: 'memorieTotal field must be greater than or equal to 0mb!',
+        msg: 'memoryTotal field must be greater than or equal to 0mb!',
       },
     },
   },
-  memorieUsed: {
+  memoryUsed: {
     type: DataTypes.INTEGER,
     allowNull: true,
     validate: {
       min: {
         args: [0],
-        msg: 'memorieUsed field must be greater than or equal to 0mb!',
+        msg: 'memoryUsed field must be greater than or equal to 0mb!',
       },
     },
   },
@@ -78,13 +81,25 @@ Worker.init({
       },
     },
   },
+  createdAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
 }, {
   tableName: 'worker',
   sequelize: db,
-  timestamps: false,
+  timestamps: true,
+  updatedAt: false,
   indexes: [
     { name: 'worker_healthy_last_seen_at', fields: ['healthy', 'lastSeenAt'] },
   ],
+  defaultScope: {
+    attributes: { exclude: ['apiKey', 'secret'] },
+  },
+  scopes: {
+    withSecret: { attributes: { exclude: ['apiKey'] } },
+    withApiKey: {},
+  },
 });
 
 export default Worker;

@@ -56,7 +56,6 @@
                   "allowedGames": [
                     "minecraft",
                     "hytale",
-                    "counterstrike",
                     "terraria",
                     "kerbal"
                   ],
@@ -88,6 +87,32 @@
               "success": true,
               "users": []
             }
+          }
+        }
+      }
+    }
+  },
+  "byId": {
+    "description": "OK. Only `id` and `name` are returned — for every caller, including admins and when reading your own account. Email, quotas, `verified` and the `admin` flag are never exposed by this route: use `GET /user` for your own full profile, or `GET /user/all` (admin) for the full records.",
+    "content": {
+      "application/json": {
+        "schema": {
+          "type": "object",
+          "properties": {
+            "success": {
+              "type": "boolean",
+              "example": true
+            },
+            "user": {
+              "$ref": "../schemas/user.json"
+            }
+          }
+        },
+        "example": {
+          "success": true,
+          "user": {
+            "id": "3f2504e0-4f89-11d3-9a0c-0305e82c3301",
+            "name": "joao"
           }
         }
       }

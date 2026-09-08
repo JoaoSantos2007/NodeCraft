@@ -1,17 +1,18 @@
 import mailer from '../../config/mailer.js';
 import config from '../../config/config.js';
+import { ServiceUnavailable } from '../errors/index.js';
 
 const sendEmail = async ({
-  to, subject, html, text = '',
+  to, subject, html, text,
 }) => {
-  await mailer.verify();
+  if (!config.email.enable) throw new ServiceUnavailable('Email service is not set!');
 
   await mailer.sendMail({
-    from: `"Nodecraft API " <${config.email.user}>`,
+    from: `"${config.email.fromName}" <${config.email.user}>`,
     to,
     subject,
     html,
-    text,
+    ...(text ? { text } : {}),
   });
 };
 

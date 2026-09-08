@@ -12,11 +12,10 @@
           "properties": {
             "platform": {
               "type": "string",
-              "description": "Player platform. The accepted values depend on the instance's game: Minecraft accepts `java`/`bedrock`, Counter-Strike and Terraria accept `steam`. Sending a platform the game doesn't support returns `400`.",
+              "description": "Player platform. The accepted values depend on the instance's game: Minecraft accepts `java`/`bedrock`. Games with no restriction configured (Kerbal, Hytale) accept any platform. Terraria identifies players by Steam, which the server cannot resolve, so its roster is unavailable and every platform returns `400`. Sending a platform the game doesn't support returns `400`.",
               "enum": [
                 "java",
-                "bedrock",
-                "steam"
+                "bedrock"
               ],
               "example": "java"
             },
@@ -48,10 +47,15 @@
       "application/json": {
         "schema": {
           "type": "object",
-          "required": [
-            "access"
-          ],
+          "description": "Partial update \u2014 send `name`, `access`, `privileged`, or any combination. At least one property is required; an empty body returns `400`. `platform` and `identifier` are immutable and rejected if sent. Sending `name` re-resolves the player against the game API to refresh the cached name: it must resolve to the same identifier, otherwise it is another player and the request returns `400`.",
           "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 50,
+              "description": "New known name of the same player (e.g. after a rename). Re-resolved server-side.",
+              "example": "Notch"
+            },
             "access": {
               "type": "string",
               "enum": [
@@ -65,7 +69,8 @@
               "type": "boolean",
               "example": true
             }
-          }
+          },
+          "minProperties": 1
         }
       }
     }

@@ -11,8 +11,6 @@ import User from './User.js';
 import Worker from './Worker.js';
 import config from '../../config/config.js';
 
-const MAX_INSTANCE_HISTORY = 45;
-
 class Instance {
   static async create(userId, instanceData, gameData) {
     // Select game model
@@ -20,14 +18,13 @@ class Instance {
     const TargetModel = gameModels[gameType];
     if (!TargetModel) throw new Internal('Game model not found!');
 
-    // Pick up a server port
-    const port = await Instance.selectPort();
+    const port = await Instance.selectPort(instanceData.workerId);
 
     // Use a Transaction to ensure: either everything is recorded or nothing is.
     return db.transaction(async (t) => {
       // Create instance and game data in an unique command
       const instance = await Model.create({
-        owner: userId,
+        ownerId: userId,
         port,
         ...instanceData,
         [gameType]: gameData,
@@ -51,23 +48,17 @@ class Instance {
   static async personalRead(user) {
     if (user.admin) return Instance.readAll();
 
-    const userInstances = await Model.findAll({
-      where: {
-        owner: user.id,
-      },
-      include: instanceInclude,
-    });
-
     const instancesId = await Link.readInstancesIdByUserLink(user.id);
 
-    const linkInstances = await Model.findAll({
+    const instances = await Model.findAll({
       where: {
-        id: { [Op.in]: instancesId },
+        [Op.or]: [
+          { ownerId: user.id },
+          { id: { [Op.in]: instancesId } },
+        ],
       },
       include: instanceInclude,
     });
-
-    const instances = [...userInstances, ...linkInstances];
 
     return instances;
   }
@@ -116,11 +107,8 @@ class Instance {
     if (!instance) throw new NotFound('Instance not found on this worker!');
     const workerHistory = data?.history || [];
 
-    // Wipe old lines
-    let history = [...instance.history, ...workerHistory];
-    if (history.length > MAX_INSTANCE_HISTORY) {
-      history = history.slice(history.length - MAX_INSTANCE_HISTORY);
-    }
+    // Trimming to config.instance.maxHistory is the model's beforeSave hook.
+    const history = [...instance.history, ...workerHistory];
 
     await instance.update({
       status: data?.status,
@@ -136,10 +124,9 @@ class Instance {
     // Throws NotFound if the target user does not exist.
     await User.readOne(newOwnerId);
 
-    if (instance.owner !== newOwnerId) {
-      // A link from the new owner to the instance is now redundant.
+    if (instance.ownerId !== newOwnerId) {
       await Link.deleteByUserAndInstance(newOwnerId, id);
-      await instance.update({ owner: newOwnerId });
+      await instance.update({ ownerId: newOwnerId });
     }
 
     return Instance.readOne(id);
@@ -153,9 +140,30 @@ class Instance {
       await Worker.readOne(workerId);
     }
 
-    await instance.update({ workerId: workerId || null });
+    const changes = { workerId: workerId || null };
+
+    // The port is free on the current worker but may be taken on the new one.
+    if (workerId && workerId !== instance.workerId) {
+      const collision = await Model.findOne({
+        where: {
+          workerId,
+          port: instance.port,
+        },
+      });
+
+      if (collision) changes.port = await Instance.selectPort(workerId);
+    }
+
+    await instance.update(changes);
 
     return Instance.readOne(id);
+  }
+
+  static async remapPort(id) {
+    const instance = await Instance.readOne(id);
+    const port = await Instance.selectPort(instance.workerId);
+
+    return Instance.update(id, { port });
   }
 
   static async delete(id) {
@@ -176,33 +184,37 @@ class Instance {
     });
   }
 
-  static async selectPort() {
-    const instances = await Instance.readAll();
+  static async selectPort(workerId = null) {
+    const instances = await Model.findAll({
+      where: { workerId },
+      attributes: ['port'],
+    });
+    const { minPort, maxPort } = config.instance;
+
     const usedPorts = [];
-    const availablePorts = [];
+    let availablePort;
 
     // Find used ports
     instances.forEach((instance) => {
       const serverPort = instance.port;
 
-      if (!usedPorts.includes(serverPort) && !!serverPort) usedPorts.push(serverPort);
+      if (serverPort > minPort && serverPort < maxPort) {
+        usedPorts.push(serverPort);
+      }
     });
 
-    // Find available ports
-    for (let port = config.instance.minPort; port <= config.instance.maxPort; port += 1) {
+    // Verify max used ports
+    if (maxPort - minPort <= usedPorts.length) throw new Error('No port available!');
+
+    // Find available port
+    for (let port = minPort; port <= maxPort; port += 1) {
       if (!usedPorts.includes(port)) {
-        availablePorts.push(port);
+        availablePort = port;
+        break;
       }
     }
 
-    // Abort if no port available
-    if (availablePorts.length === 0) throw new Error('No port available!');
-
-    // Pick a freedom port
-    const randomIndex = Math.floor(Math.random() * availablePorts.length);
-    const randomPort = availablePorts[randomIndex];
-
-    return randomPort;
+    return availablePort;
   }
 }
 

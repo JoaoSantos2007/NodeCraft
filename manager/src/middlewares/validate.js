@@ -1,5 +1,4 @@
 import { InvalidRequest } from '../errors/index.js';
-import handleError from './handleError.js';
 
 const validate = (schema, property = 'body') => (req, res, next) => {
   const data = req[property];
@@ -9,9 +8,17 @@ const validate = (schema, property = 'body') => (req, res, next) => {
     stripUnknown: true,
     convert: true,
   });
-  if (error) return handleError(new InvalidRequest(error.details), req, res);
+  if (error) {
+    return next(new InvalidRequest(error.details));
+  }
 
-  req[property] = value;
+  Object.defineProperty(req, property, {
+    value,
+    writable: true,
+    enumerable: true,
+    configurable: true,
+  });
+
   return next();
 };
 

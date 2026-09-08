@@ -1,4 +1,5 @@
 import { ServiceUnavailable, PayloadTooLarge, Internal } from '../errors/index.js';
+import getWorkerContext from './getWorkerContext.js';
 
 async function proxyFetch(route, options) {
   let response;
@@ -12,15 +13,33 @@ async function proxyFetch(route, options) {
   return response;
 }
 
-/**
- * Reads a worker response as JSON without trusting it to be JSON.
- *
- * Whatever sits between the manager and the worker (nginx, a load balancer) can
- * answer in its place with an HTML error page — an upload above nginx's
- * `client_max_body_size` comes back as a 413 page, never reaching the worker.
- * Calling response.json() on that throws a raw SyntaxError, which the user sees
- * as a generic 500. Turn it into the status that actually happened instead.
- */
+async function proxyToWorker(id, {
+  route,
+  method = 'GET',
+  body,
+  headers,
+}) {
+  const { worker } = await getWorkerContext(id);
+
+  const options = {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      ...headers,
+      Authorization: `Bearer ${worker.secret}`,
+    },
+  };
+
+  if (typeof body?.pipe === 'function') {
+    options.body = body;
+    options.duplex = 'half';
+  } else if (body !== undefined) {
+    options.body = JSON.stringify(body);
+  }
+
+  return proxyFetch(`${worker.url}/server/${id}${route}`, options);
+}
+
 async function readWorkerJson(response) {
   const body = await response.text();
 
@@ -35,5 +54,11 @@ async function readWorkerJson(response) {
   }
 }
 
-export { readWorkerJson };
+async function sendWorkerJson(res, response, successStatus = 200) {
+  const result = await readWorkerJson(response);
+
+  return res.status(response.ok ? successStatus : response.status).json(result);
+}
+
+export { readWorkerJson, proxyToWorker, sendWorkerJson };
 export default proxyFetch;

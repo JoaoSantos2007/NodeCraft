@@ -1,16 +1,23 @@
 {
   "post": {
     "summary": "forgot User password",
-    "description": "Starts the password-reset flow: generates a temporary reset token and emails it to the user. Public route (no authentication). Requires the email service to be available (503 otherwise).",
+    "description": "Starts the password-reset flow: generates a temporary reset token and emails it to the user. Public route (no authentication). Always answers 200 with no user data, whether or not the email has an account, so the route cannot be used to probe which emails are registered. Requires the email service to be available (503 otherwise).",
     "tags": [
       "Auth"
     ],
+    "security": [],
     "responses": {
       "200": {
-        "$ref": "../../components/responses/user.json#/default"
+        "$ref": "../../components/responses/auth.json#/forgotSent"
       },
-      "404": {
-        "$ref": "../../components/responses/error.json#/NotFound"
+      "400": {
+        "$ref": "../../components/responses/error.json#/InvalidRequest"
+      },
+      "413": {
+        "$ref": "../../components/responses/error.json#/PayloadTooLarge"
+      },
+      "429": {
+        "$ref": "../../components/responses/error.json#/TooManyRequests"
       },
       "500": {
         "$ref": "../../components/responses/error.json#/Internal"

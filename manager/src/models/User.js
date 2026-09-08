@@ -1,5 +1,7 @@
 import { Sequelize, DataTypes, Model } from 'sequelize';
 import db from '../../config/sequelize.js';
+import { isStringArray } from './validators.js';
+import config from '../../config/config.js';
 
 class User extends Model { }
 
@@ -34,7 +36,7 @@ User.init({
     unique: true,
     validate: {
       isEmail: {
-        msg: 'email is already registered!',
+        msg: 'email field must be correct!',
       },
       len: {
         args: [1, 257],
@@ -122,17 +124,9 @@ User.init({
   allowedGames: {
     type: DataTypes.JSON,
     allowNull: false,
-    defaultValue: ['minecraft', 'hytale', 'counterstrike', 'terraria', 'kerbal'],
+    defaultValue: [...config.instance.games],
     validate: {
-      isValidArray(value) {
-        if (!Array.isArray(value)) {
-          throw new Error('allowedGames field must be an array!');
-        }
-
-        if (!value.every((item) => typeof item === 'string')) {
-          throw new Error('allowedGames must contain only strings!');
-        }
-      },
+      isValidArray: isStringArray('allowedGames'),
     },
   },
   allowedWorkers: {
@@ -140,21 +134,18 @@ User.init({
     allowNull: false,
     defaultValue: [],
     validate: {
-      isValidArray(value) {
-        if (!Array.isArray(value)) {
-          throw new Error('allowedWorkers field must be an array!');
-        }
-
-        if (!value.every((item) => typeof item === 'string')) {
-          throw new Error('allowedWorkers must contain only strings!');
-        }
-      },
+      isValidArray: isStringArray('allowedWorkers'),
     },
+  },
+  createdAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
   },
 }, {
   tableName: 'user',
   sequelize: db,
-  timestamps: false,
+  timestamps: true,
+  updatedAt: false,
   defaultScope: {
     attributes: {
       exclude: [

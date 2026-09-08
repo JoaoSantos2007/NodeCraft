@@ -11,8 +11,8 @@
     },
     "identifier": {
       "type": "string",
-      "description": "Canonical, immutable game identity resolved by the server: Mojang UUID (java), XUID (bedrock) or SteamID64 (steam).",
-      "example": "069a79f444e94726a5befca90e38aaf5"
+      "description": "Canonical, immutable game identity resolved by the server: Mojang UUID (java) or XUID (bedrock).",
+      "example": "069a79f4-44e9-4726-a5be-fca90e38aaf5"
     },
     "name": {
       "type": "string",
@@ -23,8 +23,7 @@
       "type": "string",
       "enum": [
         "java",
-        "bedrock",
-        "steam"
+        "bedrock"
       ],
       "example": "java"
     },
@@ -42,6 +41,13 @@
       "type": "boolean",
       "description": "Whether the identity becomes op/admin on the server.",
       "example": false
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time",
+      "nullable": true,
+      "description": "When the record was created. Null for rows that predate the column (migration 20260830120000).",
+      "example": "2026-07-17T02:45:00.000Z"
     }
   }
 }

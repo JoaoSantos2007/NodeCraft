@@ -1,6 +1,7 @@
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
+import config from '../../config/config.js';
 import user from './user.js';
 import instance from './instance.js';
 import worker from './worker.js';
@@ -9,18 +10,22 @@ import root from './root.js';
 
 const routes = (app) => {
   app.use((req, res, next) => {
-    const origin = req.headers.origin;
-    const allowed = (process.env.CORS_ORIGIN || 'http://localhost:3030').split(',').map(s => s.trim());
+    const origin = req?.headers?.origin;
+    const allowed = Boolean(origin) && config.app.corsOrigins.includes(origin);
 
-    if (origin && allowed.includes(origin)) {
+    res.vary('Origin');
+
+    if (allowed) {
       res.header('Access-Control-Allow-Origin', origin);
+      res.header('Access-Control-Allow-Credentials', 'true');
     }
 
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH');
-    res.header('Access-Control-Allow-Credentials', 'true');
-
     if (req.method === 'OPTIONS') {
+      if (allowed) {
+        res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+        res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH');
+      }
+
       return res.status(204).end();
     }
 

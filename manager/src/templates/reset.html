@@ -1,93 +1,125 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Redefinição de senha</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="supported-color-schemes" content="dark" />
+    <title>{{title}}</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap" />
+    <style>
+      :root { color-scheme: dark; supported-color-schemes: dark; }
+      body { margin: 0 !important; padding: 0 !important; width: 100% !important; background-color: #0A0A0A; -webkit-text-size-adjust: 100%; }
+      table { border-collapse: collapse; mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+      a { color: #8FD9EE; }
+
+      @media only screen and (max-width: 620px) {
+        .shell { padding: 16px !important; }
+        .pad { padding: 28px 22px !important; }
+        .headline { font-size: 22px !important; }
+      }
+    </style>
   </head>
-  <body style="margin:0;padding:0;background:#f4f4f4;font-family:Arial,Helvetica,sans-serif;">
-    <table width="100%" cellpadding="0" cellspacing="0">
+  <body style="margin:0;padding:0;background-color:#0A0A0A;">
+
+    <!-- Preheader: the preview line inbox clients show next to the subject -->
+    <div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;">
+      {{preheader}}
+      &#8199;&#65279;&#847; &#8199;&#65279;&#847; &#8199;&#65279;&#847; &#8199;&#65279;&#847; &#8199;&#65279;&#847; &#8199;&#65279;&#847; &#8199;&#65279;&#847;
+    </div>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#0A0A0A" style="background-color:#0A0A0A;">
       <tr>
-        <td align="center" style="padding:24px;">
-          <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:6px;overflow:hidden;">
+        <td class="shell" align="center" style="padding:40px 24px;">
 
-            <!-- Header -->
+          <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" bgcolor="#18181B" style="width:100%;max-width:600px;background-color:#18181B;border:1px solid #27272A;">
+
+            <!-- Masthead. The mark is drawn in table cells rather than an image:
+                 it needs no asset host and still renders when a client blocks
+                 images, which is the default in most of them. The grid is the
+                 16x16 pixel art of web/public/favicon.svg, one logo pixel per 4px
+                 cell, with equal neighbours merged into colspans. Regenerate it
+                 from that file if the logo changes. -->
             <tr>
-              <td style="background:#000000;padding:20px;text-align:center;">
-                <span style="color:#ffffff;font-size:20px;font-weight:bold;">
-                  Nodecraft
-                </span>
+              <td style="padding:26px 32px;border-bottom:1px solid #27272A;">
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                  <tr>
+                    <td valign="middle" style="padding-right:14px;">
+
+                      <table role="presentation" width="64" cellpadding="0" cellspacing="0" border="0" style="width:64px;border-collapse:collapse;">
+                  <tr style="height:4px;line-height:4px;mso-line-height-rule:exactly;"><td colspan="16" width="64" bgcolor="#18181B" style="font-size:0;line-height:0;">&nbsp;</td></tr>
+                  <tr style="height:4px;line-height:4px;mso-line-height-rule:exactly;"><td colspan="5" width="20" bgcolor="#18181B" style="font-size:0;line-height:0;">&nbsp;</td><td colspan="7" width="28" bgcolor="#1B2430" style="font-size:0;line-height:0;">&nbsp;</td><td colspan="4" width="16" bgcolor="#18181B" style="font-size:0;line-height:0;">&nbsp;</td></tr>
+                  <tr style="height:4px;line-height:4px;mso-line-height-rule:exactly;"><td colspan="4" width="16" bgcolor="#18181B" style="font-size:0;line-height:0;">&nbsp;</td><td colspan="2" width="8" bgcolor="#1B2430" style="font-size:0;line-height:0;">&nbsp;</td><td colspan="4" width="16" bgcolor="#BDEBF7" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#63C2E6" style="font-size:0;line-height:0;">&nbsp;</td><td colspan="4" width="16" bgcolor="#1B2430" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#18181B" style="font-size:0;line-height:0;">&nbsp;</td></tr>
+                  <tr style="height:4px;line-height:4px;mso-line-height-rule:exactly;"><td colspan="4" width="16" bgcolor="#18181B" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#1B2430" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#63C2E6" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#46A6D4" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#EAFBFF" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#46A6D4" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#63C2E6" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#46A6D4" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#BDEBF7" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#A9763F" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#5E3F20" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#1B2430" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#18181B" style="font-size:0;line-height:0;">&nbsp;</td></tr>
+                  <tr style="height:4px;line-height:4px;mso-line-height-rule:exactly;"><td colspan="4" width="16" bgcolor="#18181B" style="font-size:0;line-height:0;">&nbsp;</td><td colspan="2" width="8" bgcolor="#1B2430" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#63C2E6" style="font-size:0;line-height:0;">&nbsp;</td><td colspan="3" width="12" bgcolor="#2E7FB0" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#63C2E6" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#46A6D4" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#8A5E32" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#5E3F20" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#1B2430" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#18181B" style="font-size:0;line-height:0;">&nbsp;</td></tr>
+                  <tr style="height:4px;line-height:4px;mso-line-height-rule:exactly;"><td colspan="5" width="20" bgcolor="#18181B" style="font-size:0;line-height:0;">&nbsp;</td><td colspan="5" width="20" bgcolor="#1B2430" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#A9763F" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#63C2E6" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#46A6D4" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#2E7FB0" style="font-size:0;line-height:0;">&nbsp;</td><td colspan="2" width="8" bgcolor="#1B2430" style="font-size:0;line-height:0;">&nbsp;</td></tr>
+                  <tr style="height:4px;line-height:4px;mso-line-height-rule:exactly;"><td colspan="7" width="28" bgcolor="#18181B" style="font-size:0;line-height:0;">&nbsp;</td><td colspan="2" width="8" bgcolor="#1B2430" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#A9763F" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#8A5E32" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#2E7FB0" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#63C2E6" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#EAFBFF" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#63C2E6" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#1B2430" style="font-size:0;line-height:0;">&nbsp;</td></tr>
+                  <tr style="height:4px;line-height:4px;mso-line-height-rule:exactly;"><td colspan="6" width="24" bgcolor="#18181B" style="font-size:0;line-height:0;">&nbsp;</td><td colspan="2" width="8" bgcolor="#1B2430" style="font-size:0;line-height:0;">&nbsp;</td><td colspan="2" width="8" bgcolor="#A9763F" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#5E3F20" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#1B2430" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#BDEBF7" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#63C2E6" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#2E7FB0" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#1B2430" style="font-size:0;line-height:0;">&nbsp;</td></tr>
+                  <tr style="height:4px;line-height:4px;mso-line-height-rule:exactly;"><td colspan="5" width="20" bgcolor="#18181B" style="font-size:0;line-height:0;">&nbsp;</td><td colspan="2" width="8" bgcolor="#1B2430" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#A9763F" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#8A5E32" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#5E3F20" style="font-size:0;line-height:0;">&nbsp;</td><td colspan="2" width="8" bgcolor="#1B2430" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#BDEBF7" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#46A6D4" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#2E7FB0" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#1B2430" style="font-size:0;line-height:0;">&nbsp;</td></tr>
+                  <tr style="height:4px;line-height:4px;mso-line-height-rule:exactly;"><td colspan="4" width="16" bgcolor="#18181B" style="font-size:0;line-height:0;">&nbsp;</td><td colspan="2" width="8" bgcolor="#1B2430" style="font-size:0;line-height:0;">&nbsp;</td><td colspan="2" width="8" bgcolor="#A9763F" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#5E3F20" style="font-size:0;line-height:0;">&nbsp;</td><td colspan="3" width="12" bgcolor="#1B2430" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#BDEBF7" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#63C2E6" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#2E7FB0" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#1B2430" style="font-size:0;line-height:0;">&nbsp;</td></tr>
+                  <tr style="height:4px;line-height:4px;mso-line-height-rule:exactly;"><td colspan="3" width="12" bgcolor="#18181B" style="font-size:0;line-height:0;">&nbsp;</td><td colspan="2" width="8" bgcolor="#1B2430" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#A9763F" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#8A5E32" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#5E3F20" style="font-size:0;line-height:0;">&nbsp;</td><td colspan="2" width="8" bgcolor="#1B2430" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#18181B" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#1B2430" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#63C2E6" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#46A6D4" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#2E7FB0" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#1B2430" style="font-size:0;line-height:0;">&nbsp;</td></tr>
+                  <tr style="height:4px;line-height:4px;mso-line-height-rule:exactly;"><td colspan="2" width="8" bgcolor="#18181B" style="font-size:0;line-height:0;">&nbsp;</td><td colspan="2" width="8" bgcolor="#1B2430" style="font-size:0;line-height:0;">&nbsp;</td><td colspan="2" width="8" bgcolor="#A9763F" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#5E3F20" style="font-size:0;line-height:0;">&nbsp;</td><td colspan="2" width="8" bgcolor="#1B2430" style="font-size:0;line-height:0;">&nbsp;</td><td colspan="2" width="8" bgcolor="#18181B" style="font-size:0;line-height:0;">&nbsp;</td><td colspan="2" width="8" bgcolor="#1B2430" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#63C2E6" style="font-size:0;line-height:0;">&nbsp;</td><td colspan="2" width="8" bgcolor="#1B2430" style="font-size:0;line-height:0;">&nbsp;</td></tr>
+                  <tr style="height:4px;line-height:4px;mso-line-height-rule:exactly;"><td width="4" bgcolor="#18181B" style="font-size:0;line-height:0;">&nbsp;</td><td colspan="2" width="8" bgcolor="#1B2430" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#A9763F" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#8A5E32" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#5E3F20" style="font-size:0;line-height:0;">&nbsp;</td><td colspan="2" width="8" bgcolor="#1B2430" style="font-size:0;line-height:0;">&nbsp;</td><td colspan="4" width="16" bgcolor="#18181B" style="font-size:0;line-height:0;">&nbsp;</td><td colspan="3" width="12" bgcolor="#1B2430" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#18181B" style="font-size:0;line-height:0;">&nbsp;</td></tr>
+                  <tr style="height:4px;line-height:4px;mso-line-height-rule:exactly;"><td width="4" bgcolor="#18181B" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#1B2430" style="font-size:0;line-height:0;">&nbsp;</td><td colspan="2" width="8" bgcolor="#A9763F" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#5E3F20" style="font-size:0;line-height:0;">&nbsp;</td><td colspan="2" width="8" bgcolor="#1B2430" style="font-size:0;line-height:0;">&nbsp;</td><td colspan="9" width="36" bgcolor="#18181B" style="font-size:0;line-height:0;">&nbsp;</td></tr>
+                  <tr style="height:4px;line-height:4px;mso-line-height-rule:exactly;"><td width="4" bgcolor="#18181B" style="font-size:0;line-height:0;">&nbsp;</td><td width="4" bgcolor="#1B2430" style="font-size:0;line-height:0;">&nbsp;</td><td colspan="2" width="8" bgcolor="#5E3F20" style="font-size:0;line-height:0;">&nbsp;</td><td colspan="2" width="8" bgcolor="#1B2430" style="font-size:0;line-height:0;">&nbsp;</td><td colspan="10" width="40" bgcolor="#18181B" style="font-size:0;line-height:0;">&nbsp;</td></tr>
+                  <tr style="height:4px;line-height:4px;mso-line-height-rule:exactly;"><td width="4" bgcolor="#18181B" style="font-size:0;line-height:0;">&nbsp;</td><td colspan="4" width="16" bgcolor="#1B2430" style="font-size:0;line-height:0;">&nbsp;</td><td colspan="11" width="44" bgcolor="#18181B" style="font-size:0;line-height:0;">&nbsp;</td></tr>
+                      </table>
+
+                    </td>
+                    <td valign="middle" style="font-family:'Silkscreen','Courier New',Courier,monospace;font-size:19px;font-weight:700;color:#E8EEF5;letter-spacing:1px;line-height:1;">
+                      NODECRAFT
+                    </td>
+                  </tr>
+                </table>
               </td>
             </tr>
 
-            <!-- Content -->
+            <!-- Message -->
             <tr>
-              <td style="padding:24px;color:#333333;">
-                <p style="font-size:16px;margin:0 0 16px;">
-                  Olá, {{name}} 👋
-                </p>
+              <td class="pad" style="padding:34px 32px 36px;">
+                <p style="font-family:'Space Grotesk',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:11px;font-weight:600;letter-spacing:1.6px;color:#63C2E6;margin:0 0 14px;line-height:1;">ACCOUNT SECURITY</p>
 
-                <p style="font-size:14px;line-height:1.6;margin:0 0 16px;">
-                  Recebemos uma solicitação para redefinir a senha da sua conta
-                  na <strong>Nodecraft</strong>.
-                </p>
+                <h1 class="headline" style="font-family:'Space Grotesk',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:26px;font-weight:600;line-height:1.25;color:#E8EEF5;margin:0 0 16px;">Set a new password</h1>
 
-                <p style="font-size:14px;line-height:1.6;margin:0 0 24px;">
-                  Para criar uma nova senha, clique no botão abaixo:
-                </p>
+                <p style="font-family:'Space Grotesk',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;font-weight:400;line-height:1.7;color:#B6C2D2;margin:0 0 28px;">Hi {{name}} &mdash; someone asked to reset the password on this NodeCraft account. Choose a new one below.</p>
 
-                <p style="text-align:center;margin:0 0 24px;">
-                  <a href="{{link}}"
-                     style="
-                       display:inline-block;
-                       background:#000000;
-                       color:#ffffff;
-                       text-decoration:none;
-                       padding:12px 24px;
-                       border-radius:4px;
-                       font-weight:bold;
-                     ">
-                    Redefinir senha
-                  </a>
-                </p>
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 30px;">
+                  <tr>
+                    <td bgcolor="#63C2E6" style="background-color:#63C2E6;border-bottom:3px solid #2E7FB0;">
+                      <a href="{{link}}" style="display:inline-block;padding:14px 30px;font-family:'Space Grotesk',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;font-weight:700;color:#0C1118;text-decoration:none;letter-spacing:0.2px;">Reset password</a>
+                    </td>
+                  </tr>
+                </table>
 
-                                <p style="font-size:12px;color:#666666;line-height:1.4;margin:0 0 16px;">
-                  Se preferir, copie e cole o token abaixo no aplicativo:
-                </p>
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                  <tr>
+                    <td style="border-top:1px solid #27272A;padding:26px 0 0;">
+                      <p style="font-family:'Space Grotesk',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:12px;font-weight:400;line-height:1.6;color:#8293A8;margin:0 0 10px;">Button not working? Paste this token into the app:</p>
 
-                <p
-                  style="
-                    font-size:12px;
-                    color:#333333;
-                    background:#f2f2f2;
-                    padding:8px;
-                    border-radius:4px;
-                    word-break:break-all;
-                    font-family:monospace;
-                    margin:0 0 24px;
-                  "
-                >
-                  {{token}}
-                </p>
+                      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 22px;">
+                        <tr>
+                          <td bgcolor="#0F0F12" style="background-color:#0F0F12;border:1px solid #27272A;padding:13px 15px;font-family:'JetBrains Mono','Fira Code',Consolas,'Courier New',monospace;font-size:12px;line-height:1.7;color:#8FD9EE;word-break:break-all;">{{token}}</td>
+                        </tr>
+                      </table>
 
-                <p style="font-size:12px;color:#666666;line-height:1.4;margin:0 0 12px;">
-                  Este link é válido por {{expires}}.
-                </p>
-
-                <p style="font-size:12px;color:#666666;line-height:1.4;margin:0;">
-                  Se você não solicitou a redefinição de senha, ignore este email.
-                  Sua conta continuará segura.
-                </p>
-              </td>
-            </tr>
-
-            <!-- Footer -->
-            <tr>
-              <td style="padding:16px;text-align:center;font-size:12px;color:#999999;">
-                © {{year}} Nodecraft. Todos os direitos reservados.
+                      <p style="font-family:'Space Grotesk',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:12px;font-weight:400;line-height:1.6;color:#8293A8;margin:0;">This link works for {{expires}}. If you didn&rsquo;t ask for a reset, ignore this email &mdash; your password stays as it is.</p>
+                    </td>
+                  </tr>
+                </table>
               </td>
             </tr>
 
           </table>
+
+          <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;">
+            <tr>
+              <td style="padding:20px 4px 0;font-family:'Space Grotesk',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:11px;line-height:1.6;color:#8293A8;">
+                NodeCraft only sends account and security messages to this address.<br />
+                &copy; {{year}} NodeCraft
+              </td>
+            </tr>
+          </table>
+
         </td>
       </tr>
     </table>

@@ -1,5 +1,6 @@
 {
   "create": {
+    "required": true,
     "content": {
       "application/json": {
         "schema": {
@@ -17,7 +18,23 @@
               "example": [
                 "instance:read",
                 "instance:execute"
-              ]
+              ],
+              "items": {
+                "type": "string",
+                "enum": [
+                  "instance:read",
+                  "instance:edit",
+                  "instance:execute",
+                  "instance:backup",
+                  "instance:console:read",
+                  "instance:console:write",
+                  "instance:files:read",
+                  "instance:files:write",
+                  "instance:files:edit",
+                  "instance:roster:edit"
+                ]
+              },
+              "description": "Instance permissions granted to the linked account. Only the values listed here are accepted; instance:owner is not grantable."
             }
           }
         }
@@ -25,6 +42,7 @@
     }
   },
   "update": {
+    "required": true,
     "content": {
       "application/json": {
         "schema": {
@@ -35,7 +53,23 @@
               "example": [
                 "instance:read",
                 "instance:execute"
-              ]
+              ],
+              "items": {
+                "type": "string",
+                "enum": [
+                  "instance:read",
+                  "instance:edit",
+                  "instance:execute",
+                  "instance:backup",
+                  "instance:console:read",
+                  "instance:console:write",
+                  "instance:files:read",
+                  "instance:files:write",
+                  "instance:files:edit",
+                  "instance:roster:edit"
+                ]
+              },
+              "description": "Instance permissions granted to the linked account. Only the values listed here are accepted; instance:owner is not grantable."
             }
           }
         }

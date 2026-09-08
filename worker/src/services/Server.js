@@ -8,6 +8,11 @@ import logger from '../../config/logger.js';
 import config from '../../config/config.js';
 import Manager from './Manager.js';
 
+// Instances with a backup in flight. The manager's backup endpoint is
+// fire-and-forget, so a second request for the same instance would stop a
+// container that is mid-backup and race the restart and the status report.
+const backingUp = new Set();
+
 class Server {
   static async run(instance) {
     try {
@@ -48,6 +53,24 @@ class Server {
   }
 
   static async backup(instance) {
+    // Asked before anything else: a backup that was never going to run must not
+    // cost the instance a stop/start, and the manager still needs the result.
+    const skipReason = Backup.skipReason(instance);
+    if (skipReason) {
+      logger.info(`Skipping backup for instance ${instance.id}: ${skipReason}`);
+      await Manager.reportBackupResult(instance.id, { status: 'skipped' });
+
+      return;
+    }
+
+    if (backingUp.has(instance.id)) {
+      logger.warn(`Backup for instance ${instance.id} is already running, ignoring the request`);
+
+      return;
+    }
+
+    backingUp.add(instance.id);
+
     const isRunning = instance.status === 'running';
     let result = { status: 'failed' };
 
@@ -61,6 +84,8 @@ class Server {
       // Always bring the instance back up if it was running, even if the backup failed
       if (isRunning) await Server.run(instance);
       await Manager.reportBackupResult(instance.id, result);
+
+      backingUp.delete(instance.id);
     }
   }
 

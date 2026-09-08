@@ -1,6 +1,6 @@
-/* eslint-disable no-console */
 import { Sequelize } from 'sequelize';
 import config from './config.js';
+import logger from './logger.js';
 
 const databaseConfig = config.database;
 let sequelizeConfig;
@@ -41,14 +41,18 @@ if (databaseConfig.enable) {
   };
 }
 
+const target = databaseConfig.enable
+  ? `mysql ${sequelizeConfig.host}/${sequelizeConfig.database}`
+  : `sqlite ${sequelizeConfig.storage}`;
+
 const db = new Sequelize(sequelizeConfig);
 
 try {
   await db.authenticate();
 
-  console.log('Connected to Database!');
+  logger.info({ target }, 'Connected to database');
 } catch (err) {
-  console.error('Unable to connect to the database: ', err);
+  logger.error({ err, target }, 'Unable to connect to the database');
 }
 
 export default db;

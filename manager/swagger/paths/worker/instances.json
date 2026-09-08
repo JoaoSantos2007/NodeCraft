@@ -5,6 +5,14 @@
     "tags": [
       "Worker"
     ],
+    "security": [
+      {
+        "workerApiKey": []
+      },
+      {
+        "cookieAuth": []
+      }
+    ],
     "responses": {
       "200": {
         "$ref": "../../components/responses/worker.json#/instances"

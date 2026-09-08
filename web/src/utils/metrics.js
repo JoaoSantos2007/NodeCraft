@@ -43,8 +43,8 @@ function bucketWorker(heartbeats, bucketMs) {
       buckets.set(key, b);
     }
     if (hb.cpuUsage != null) { b.cpu += hb.cpuUsage; b.cpuN += 1; }
-    if (hb.memorieUsed != null && hb.memorieTotal != null) {
-      b.memUsed += hb.memorieUsed; b.memTotal += hb.memorieTotal; b.memN += 1;
+    if (hb.memoryUsed != null && hb.memoryTotal != null) {
+      b.memUsed += hb.memoryUsed; b.memTotal += hb.memoryTotal; b.memN += 1;
     }
     if (hb.diskAvailable != null) { b.disk += hb.diskAvailable; b.diskN += 1; }
   }

@@ -2,34 +2,43 @@ import config from '../../config/config.js';
 import { InvalidRequest, Unathorized } from '../errors/index.js';
 import Service from '../services/Auth.js';
 
+const isProd = !config.app.isDev;
+
+const cookieOptions = {
+  httpOnly: true,
+  secure: isProd,
+  sameSite: isProd ? 'strict' : 'Lax',
+};
+
+const refreshCookieOptions = { ...cookieOptions, path: config.token.refreshCookiePath };
+
+const setAuthCookies = (res, { accessToken, refreshToken }) => {
+  res.cookie('accessToken', accessToken, {
+    ...cookieOptions,
+    maxAge: config.token.accessLifetime,
+  });
+
+  res.cookie('refreshToken', refreshToken, {
+    ...refreshCookieOptions,
+    maxAge: config.token.refreshLifetime,
+  });
+};
+
+const clearAuthCookies = (res) => {
+  res.clearCookie('accessToken', cookieOptions);
+  res.clearCookie('refreshToken', refreshCookieOptions);
+};
+
 class Auth {
   static async login(req, res, next) {
     try {
-      const data = req.body;
+      const { body } = req;
 
       const {
         user, accessToken, refreshToken,
-      } = await Service.authenticate(data.email, data.password);
+      } = await Service.authenticate(body.email, body.password);
 
-      const isProd = config.app.stage !== 'DEV';
-      const refreshPath = isProd ? '/api/auth/refresh' : '/auth/refresh';
-
-      // Set accessToken in response cookie
-      res.cookie('accessToken', accessToken, {
-        httpOnly: true,
-        secure: isProd,
-        sameSite: isProd ? 'strict' : 'Lax',
-        maxAge: 15 * 60 * 1000,
-      });
-
-      // Set refreshToken in response cookie
-      res.cookie('refreshToken', refreshToken, {
-        httpOnly: true,
-        secure: isProd,
-        sameSite: isProd ? 'strict' : 'Lax',
-        path: refreshPath,
-        maxAge: 3 * 24 * 60 * 60 * 1000,
-      });
+      setAuthCookies(res, { accessToken, refreshToken });
 
       return res.status(200).json({ success: true, user });
     } catch (err) {
@@ -45,25 +54,7 @@ class Auth {
 
       const { user, accessToken, refreshToken } = await Service.refreshAuthentication(token);
 
-      const isProd = config.app.stage !== 'DEV';
-      const refreshPath = isProd ? '/api/auth/refresh' : '/auth/refresh';
-
-      // Set accessToken in response cookie
-      res.cookie('accessToken', accessToken, {
-        httpOnly: true,
-        secure: isProd,
-        sameSite: isProd ? 'strict' : 'Lax',
-        maxAge: 15 * 60 * 1000,
-      });
-
-      // Set refreshToken in response cookie
-      res.cookie('refreshToken', refreshToken, {
-        httpOnly: true,
-        secure: isProd,
-        sameSite: isProd ? 'strict' : 'Lax',
-        path: refreshPath,
-        maxAge: 3 * 24 * 60 * 60 * 1000,
-      });
+      setAuthCookies(res, { accessToken, refreshToken });
 
       return res.status(200).json({ success: true, user });
     } catch (err) {
@@ -75,11 +66,8 @@ class Auth {
     try {
       const { user } = req;
 
-      const refreshPath = config.app.stage !== 'DEV' ? '/api/auth/refresh' : '/auth/refresh';
-
       await Service.wipeToken(user.id, 'refresh');
-      res.clearCookie('accessToken');
-      res.clearCookie('refreshToken', { path: refreshPath });
+      clearAuthCookies(res);
 
       return res.status(200).json({ success: true, user });
     } catch (err) {
@@ -102,10 +90,9 @@ class Auth {
 
   static async validateAccount(req, res, next) {
     try {
-      const token = req?.body?.token;
-      if (typeof token !== 'string') throw new InvalidRequest('Email token is invalid!');
+      const { token } = req.body;
 
-      const user = await Service.validateAccount(token.trim());
+      const user = await Service.validateAccount(token);
 
       return res.status(200).json({ success: true, user });
     } catch (err) {
@@ -115,11 +102,11 @@ class Auth {
 
   static async forgotPassword(req, res, next) {
     try {
-      const email = req?.body?.email;
+      const { email } = req.body;
 
-      const user = await Service.forgotPassword(email);
+      await Service.forgotPassword(email);
 
-      return res.status(200).json({ success: true, user });
+      return res.status(200).json({ success: true });
     } catch (err) {
       return next(err);
     }
@@ -127,13 +114,9 @@ class Auth {
 
   static async resetPassword(req, res, next) {
     try {
-      const token = req?.body?.token;
-      const password = req?.body?.password;
+      const { token, password } = req.body;
 
-      if (typeof token !== 'string') throw new InvalidRequest('Reset password token is invalid!');
-      if (!password) throw new InvalidRequest('Password cannot be null!');
-
-      const user = await Service.resetPassword(token.trim(), password);
+      const user = await Service.resetPassword(token, password);
 
       return res.status(200).json({ success: true, user });
     } catch (err) {
