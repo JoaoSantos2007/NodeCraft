@@ -41,11 +41,17 @@
       "404": {
         "$ref": "../../components/responses/error.json#/NotFound"
       },
+      "413": {
+        "$ref": "../../components/responses/error.json#/PayloadTooLarge"
+      },
       "500": {
         "$ref": "../../components/responses/error.json#/Internal"
       },
       "503": {
         "$ref": "../../components/responses/error.json#/UnavailableService"
+      },
+      "507": {
+        "$ref": "../../components/responses/error.json#/InsufficientStorage"
       }
     }
   },

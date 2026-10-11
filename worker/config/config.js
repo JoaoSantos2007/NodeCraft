@@ -4,6 +4,17 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const absoutePath = path.resolve(process.cwd());
+const MIB = 1024 * 1024;
+
+const fileLimitBytes = (name, defaultMb) => {
+  const mb = process.env[name] ? Number(process.env[name]) : defaultMb;
+
+  if (!Number.isSafeInteger(mb) || mb <= 0 || mb > Number.MAX_SAFE_INTEGER / MIB) {
+    throw new Error(`${name} must be a positive integer in MiB`);
+  }
+
+  return mb * MIB;
+};
 
 const config = {
   app: {
@@ -19,6 +30,11 @@ const config = {
     absolute: absoutePath,
     instances: process.env.INSTANCE_PATH || path.join(absoutePath, 'instances'),
     temp: process.env.TEMP_PATH || path.join(absoutePath, 'temp'),
+  },
+  files: {
+    maxUploadBytes: fileLimitBytes('FILE_MAX_UPLOAD_MB', 512),
+    maxOperationBytes: fileLimitBytes('FILE_MAX_OPERATION_MB', 2048),
+    minFreeBytes: fileLimitBytes('FILE_MIN_FREE_MB', 512),
   },
   manager: {
     url: process.env.MANAGER_URL,

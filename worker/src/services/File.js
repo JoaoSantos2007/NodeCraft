@@ -9,10 +9,14 @@ import {
   readdir,
   writeFile,
   rename,
-  cp,
+  mkdtemp,
+  statfs,
+  link,
 } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
 import * as unzipper from 'unzipper';
 import { createWriteStream } from 'node:fs';
+import { Transform } from 'node:stream';
 import { pipeline, finished } from 'node:stream/promises';
 import Path from 'path';
 import archiver from 'archiver';
@@ -20,11 +24,145 @@ import logger from '../../config/logger.js';
 import config from '../../config/config.js';
 
 import { openInsideInstance, visitInstanceFiles } from '../utils/verifyPaths.js';
-import { InvalidRequest } from '../errors/index.js';
+import { DIRECTORY_BYTES, diskBytes } from '../utils/diskUsage.js';
+import { InvalidRequest, PayloadTooLarge, InsufficientStorage } from '../errors/index.js';
 
 const TEMP_LIFETIME = 900000;
+const activeBackups = new Set();
+
+const byteLimiter = (limit, counter) => new Transform({
+  transform(chunk, encoding, callback) {
+    const state = counter;
+    state.written += chunk.length;
+
+    callback(state.written > limit ? new PayloadTooLarge('Operation exceeds the disk limit!') : null, chunk);
+  },
+});
+
+const withStagedPath = async (destinyPath, prefix, writePayload) => {
+  const stage = await mkdtemp(Path.join(Path.dirname(destinyPath), prefix));
+  const output = Path.join(stage, 'payload');
+
+  try {
+    await writePayload(output);
+    await rename(output, destinyPath);
+    return true;
+  } finally {
+    await rm(stage, { recursive: true, force: true });
+  }
+};
+
+const copyEntry = async ({ handle, stats, name }, output, counter, maxBytes) => {
+  const target = Path.join(output, name);
+
+  if (stats.isDirectory()) {
+    await mkdir(target, { recursive: true });
+    return;
+  }
+
+  await mkdir(Path.dirname(target), { recursive: true });
+  await pipeline(
+    handle.createReadStream({ autoClose: false }),
+    byteLimiter(maxBytes, counter),
+    createWriteStream(target, { flags: 'wx' }),
+  );
+};
+
+const chargeZipBytes = (counter, maxBytes) => {
+  const state = counter;
+  state.written += DIRECTORY_BYTES;
+  if (state.written > maxBytes) throw new PayloadTooLarge('ZIP exceeds the disk limit!');
+};
+
+const zipEntryTarget = (output, name) => {
+  const target = Path.resolve(output, name);
+  const relative = Path.relative(output, target);
+
+  if (!name || name.includes('\\') || name.includes('\0') || Path.isAbsolute(name)
+    || relative === '..' || relative.startsWith(`..${Path.sep}`) || Path.isAbsolute(relative)) {
+    throw new InvalidRequest('ZIP contains an invalid path!');
+  }
+
+  return target;
+};
+
+const ensureZipDirectories = async (output, target, directories, counter, maxBytes) => {
+  const relative = Path.relative(output, target);
+  if (!relative) return;
+
+  let current = output;
+  for (const part of relative.split(Path.sep)) {
+    current = Path.join(current, part);
+
+    if (!directories.has(current)) {
+      chargeZipBytes(counter, maxBytes);
+      await mkdir(current);
+      directories.add(current);
+    }
+  }
+};
+
+const extractZipEntry = async (entry, output, directories, counter, maxBytes) => {
+  const target = zipEntryTarget(output, entry.path);
+
+  if (entry.type === 'Directory') {
+    await ensureZipDirectories(output, target, directories, counter, maxBytes);
+    entry.autodrain();
+  } else if (entry.type === 'File') {
+    await ensureZipDirectories(output, Path.dirname(target), directories, counter, maxBytes);
+    chargeZipBytes(counter, maxBytes);
+    await pipeline(entry, byteLimiter(maxBytes, counter), createWriteStream(target, { flags: 'wx' }));
+  } else {
+    throw new InvalidRequest('ZIP contains an unsupported entry!');
+  }
+};
+
+const extractZipArchive = async (handle, output, maxBytes) => {
+  const counter = { written: DIRECTORY_BYTES };
+  const directories = new Set([output]);
+  let entries = 0;
+
+  await mkdir(output);
+  if (counter.written > maxBytes) throw new PayloadTooLarge('ZIP exceeds the disk limit!');
+
+  const archive = handle.createReadStream({ start: 0, autoClose: false })
+    .pipe(unzipper.Parse({ forceStream: true }));
+
+  for await (const entry of archive) {
+    entries += 1;
+    if (entries > 10000) throw new PayloadTooLarge('ZIP has too many entries!');
+    await extractZipEntry(entry, output, directories, counter, maxBytes);
+  }
+};
 
 class File {
+  static async createFile(path, content) {
+    const temp = Path.join(Path.dirname(path), `.nodecraft-create-${randomUUID()}`);
+
+    try {
+      await writeFile(temp, content, { flag: 'wx' });
+      await link(temp, path);
+    } finally {
+      await rm(temp, { force: true });
+    }
+  }
+
+  static async replaceFile(path, content, root) {
+    const free = await statfs(root);
+
+    if (Buffer.byteLength(content) + config.files.minFreeBytes > free.bavail * free.bsize) {
+      throw new InsufficientStorage('No disk space is available to edit this file!');
+    }
+
+    const temp = Path.join(Path.dirname(path), `.nodecraft-edit-${randomUUID()}`);
+    try {
+      await writeFile(temp, content, { flag: 'wx' });
+      await rename(temp, path);
+    } finally {
+      await rm(temp, { force: true });
+    }
+  }
+
   static async verifyExists(path) {
     try {
       await access(path);
@@ -66,7 +204,7 @@ class File {
     let bytes = 0;
 
     await visitInstanceFiles(path, '', async ({ stats }) => {
-      if (stats.isFile()) bytes += stats.size;
+      bytes += diskBytes(stats);
     });
 
     return bytes / (1024 * 1024);
@@ -177,16 +315,19 @@ class File {
     }
   }
 
-  static async copy(originPath, destinyPath) {
-    try {
-      await cp(originPath, destinyPath, { recursive: true });
+  static async copy(originPath, destinyPath, instancePath, maxBytes) {
+    const relative = Path.relative(originPath, destinyPath);
 
-      return true;
-    } catch (err) {
-      logger.error({ err }, 'Error to copy paths');
-
-      return false;
+    if (!relative.startsWith('..') && !Path.isAbsolute(relative)) {
+      throw new InvalidRequest('A directory cannot be copied into itself!');
     }
+
+    return withStagedPath(destinyPath, '.nodecraft-copy-', async (output) => {
+      const counter = { written: 0 };
+      await visitInstanceFiles(instancePath, Path.relative(instancePath, originPath), (entry) => (
+        copyEntry(entry, output, counter, maxBytes)
+      ));
+    });
   }
 
   static async move(originPath, destinyPath) {
@@ -223,7 +364,8 @@ class File {
       const now = Date.now();
 
       for (const item of items) {
-        const createdAt = Number(item);
+        if (activeBackups.has(Path.join(tempPath, item))) continue;
+        const createdAt = Number(item.split('-')[0]);
 
         if (!Number.isInteger(createdAt) || now - createdAt >= TEMP_LIFETIME) {
           await File.delete(Path.join(tempPath, item));
@@ -236,6 +378,16 @@ class File {
 
   static async makeZip(outputPath, paths, instancePath) {
     const output = createWriteStream(outputPath);
+    try {
+      await File.streamZip(output, paths, instancePath);
+      return outputPath;
+    } catch (err) {
+      await rm(outputPath, { force: true });
+      throw err;
+    }
+  }
+
+  static async streamZip(output, paths, instancePath) {
     const archive = archiver('zip', { zlib: { level: 6 } });
 
     // Attach immediately: traversal can fail while the output is also failing.
@@ -273,17 +425,16 @@ class File {
 
       await archive.finalize();
       await completion;
-      return outputPath;
+      return true;
     } catch (err) {
       archive.destroy(err);
       output.destroy(err);
       await completion.catch(() => {});
-      await rm(outputPath, { force: true });
       throw err;
     }
   }
 
-  static async unzip(fromZip, toPath, instancePath) {
+  static async unzip(fromZip, toPath, instancePath, maxBytes) {
     const root = await realpath(instancePath);
     const { handle, stats } = await openInsideInstance(root, fromZip);
 
@@ -296,13 +447,9 @@ class File {
         throw new InvalidRequest('The file is not a ZIP!');
       }
 
-      await File.createOneDirectory(toPath);
-      await pipeline(
-        handle.createReadStream({ start: 0, autoClose: false }),
-        unzipper.Extract({ path: toPath }),
-      );
-
-      return true;
+      return await withStagedPath(toPath, '.nodecraft-unzip-', (output) => (
+        extractZipArchive(handle, output, maxBytes)
+      ));
     } finally {
       await handle.close();
     }
@@ -337,15 +484,50 @@ class File {
     const paths = backupPaths[instance.type];
     if (!paths) throw new Error(`No backup paths defined for game type: ${instance.type}`);
 
-    const tempPath = await File.createTemp();
-    const backupName = `backup-${Date.now()}.zip`;
-    const backupPath = Path.join(tempPath, backupName);
+    // Pin before the first await so maintenance cannot race directory creation.
+    const tempPath = Path.join(config.paths.temp, `${Date.now()}-${randomUUID()}`);
+    activeBackups.add(tempPath);
+    const backupPath = Path.join(tempPath, `backup-${Date.now()}-${randomUUID()}.zip`);
 
-    await File.makeZip(backupPath, paths, instancePath);
+    try {
+      await mkdir(tempPath, { recursive: true });
+      await File.makeZip(backupPath, paths, instancePath);
+      await File.validateBackup(backupPath, instance.type);
+      const { size } = await stat(backupPath);
+      return { backupPath, backupSize: size / (1024 * 1024) };
+    } catch (err) {
+      await File.releaseBackup(backupPath);
+      throw err;
+    }
+  }
 
-    const backupSize = await File.getSize(backupPath);
+  static async validateBackup(backupPath, game) {
+    const archive = await unzipper.Open.file(backupPath);
+    const required = {
+      minecraft: (name) => name === 'world/level.dat',
+      terraria: (name) => name.startsWith('Worlds/') && name.endsWith('.wld'),
+      kerbal: (name) => name.startsWith('Universe/'),
+      hytale: (name) => name.startsWith('universe/'),
+    };
+    let hasWorld = false;
+    // Read every entry back: a valid directory alone does not prove the ZIP is readable.
+    for (const entry of archive.files) {
+      if (entry.type !== 'File') continue;
+      let bytes = 0;
+      for await (const chunk of entry.stream()) bytes += chunk.length;
+      if (bytes !== entry.uncompressedSize) throw new Error(`Invalid backup entry: ${entry.path}`);
+      if (bytes > 0 && required[game](entry.path)) hasWorld = true;
+    }
+    if (!hasWorld) throw new Error(`Backup has no non-empty world data for ${game}`);
+  }
 
-    return { backupPath, backupSize };
+  static async releaseBackup(backupPath) {
+    const tempPath = Path.dirname(backupPath);
+    try {
+      await File.delete(tempPath);
+    } finally {
+      activeBackups.delete(tempPath);
+    }
   }
 }
 

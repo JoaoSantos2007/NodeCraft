@@ -75,7 +75,7 @@ NodeCraft runs in a self-hosted environment behind Nginx and systemd, with deplo
 
 Administrators configure each user's allowed games and workers, maximum instance count, CPU, memory and disk allowance. Server slots and reported disk usage count across all owned instances; CPU and memory usage count instances that are running or starting. A stopped server therefore keeps its files and slot while releasing its active CPU and memory allocation.
 
-The worker applies CPU and memory settings when starting an instance and reports its disk usage to the manager. Disk allowance is currently checked when creating or starting instances; it is not a filesystem quota on uploads or archive extraction.
+The worker applies CPU and memory settings when starting an instance and reports its disk usage to the manager. File uploads, copies, edits and archive extraction are bounded by the owner's remaining disk allowance and worker file limits. Game processes can still write to their volumes directly; enforcing a hard limit on those writes requires a filesystem or volume quota on the host.
 
 Worker charts show CPU usage, used and total memory, and available disk space. The manager retains seven days of heartbeat history, with views from one hour to seven days. Server status and recent history help distinguish a requested action from its eventual result on the worker.
 

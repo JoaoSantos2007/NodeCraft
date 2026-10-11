@@ -3,6 +3,7 @@ import Controller from '../controllers/File.js';
 import verifyPath from '../middlewares/file.js';
 import uploader from '../middlewares/uploader.js';
 import verifyManager from '../middlewares/manager.js';
+import diskBudget from '../middlewares/diskBudget.js';
 
 const router = Router();
 
@@ -18,6 +19,7 @@ router
     '/:id/files/create',
     verifyManager,
     verifyPath(true),
+    diskBudget,
     Controller.create,
   )
 
@@ -25,7 +27,8 @@ router
     '/:id/files/upload',
     verifyManager,
     verifyPath(true),
-    uploader.single('file'),
+    diskBudget,
+    uploader,
     Controller.upload,
   )
 
@@ -33,6 +36,7 @@ router
     '/:id/files/edit',
     verifyManager,
     verifyPath(),
+    diskBudget,
     Controller.update,
   )
 
@@ -40,6 +44,7 @@ router
     '/:id/files/delete',
     verifyManager,
     verifyPath(false, true),
+    diskBudget,
     Controller.delete,
   )
 
@@ -47,6 +52,7 @@ router
     '/:id/files/transfer',
     verifyManager,
     verifyPath(true),
+    diskBudget,
     Controller.transfer,
   )
 
@@ -54,6 +60,7 @@ router
     '/:id/files/unzip',
     verifyManager,
     verifyPath(true),
+    diskBudget,
     Controller.unzip,
   );
 

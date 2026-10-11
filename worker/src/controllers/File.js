@@ -1,10 +1,18 @@
 import Path from 'path';
-import { realpath } from 'node:fs/promises';
+import {
+  realpath, stat, rename, mkdir, statfs, rm,
+} from 'node:fs/promises';
 import { pipeline } from 'node:stream/promises';
 import { openInsideInstance } from '../utils/verifyPaths.js';
 import config from '../../config/config.js';
 import Service from '../services/File.js';
-import { InvalidRequest } from '../errors/index.js';
+import { InvalidRequest, PayloadTooLarge, InsufficientStorage } from '../errors/index.js';
+import { treeBytes } from '../middlewares/diskBudget.js';
+import { DIRECTORY_BYTES, diskBytes } from '../utils/diskUsage.js';
+
+const reportUsage = async (req, res) => {
+  res.setHeader('X-Instance-Disk-Bytes', String(await treeBytes(req.diskBudget.root)));
+};
 
 class File {
   static async read(req, res, next) {
@@ -31,13 +39,9 @@ class File {
 
         content = await handle.readFile('utf8');
       } else if (toDownload) {
-        const tempPath = await Service.createTemp();
-        const downloadName = `download-${Date.now()}.zip`;
-        const downloadPath = Path.join(tempPath, downloadName);
-
-        await Service.makeZip(downloadPath, [fullPath], instancePath);
-
-        return res.download(downloadPath);
+        res.attachment(`${Path.basename(fullPath)}.zip`);
+        await Service.streamZip(res, [fullPath], instancePath);
+        return undefined;
       } else {
         content = await Service.readOneDirectory(fullPath, true, instancePath);
       }
@@ -65,8 +69,17 @@ class File {
       const instancePath = Path.join(config.paths.instances, req.params.id);
       const fullDestiny = Path.join(instancePath, destiny);
 
-      if (body.type === 'file') await Service.createOneFile(fullDestiny, body.content);
-      if (body.type === 'directory') await Service.createOneDirectory(fullDestiny);
+      if (body.type === 'file') {
+        const content = body.content || '';
+        await req.diskBudget.check(Math.max(DIRECTORY_BYTES, Buffer.byteLength(content)));
+        await Service.createFile(fullDestiny, content);
+      }
+      if (body.type === 'directory') {
+        await req.diskBudget.check(DIRECTORY_BYTES);
+        await mkdir(fullDestiny);
+      }
+
+      await reportUsage(req, res);
 
       return res.status(201).json({
         success: true,
@@ -80,6 +93,13 @@ class File {
   static async upload(req, res, next) {
     try {
       const { destiny } = req.query;
+
+      const size = diskBytes(await stat(req.tempUploadPath));
+      if (size > req.diskBudget.remainingBytes) {
+        throw new PayloadTooLarge('Upload exceeds the owner disk quota!');
+      }
+      await rename(req.tempUploadPath, req.uploadTarget);
+      await reportUsage(req, res);
 
       return res.status(201).json({
         success: true,
@@ -102,7 +122,12 @@ class File {
 
       if (pathType !== 'file') throw new InvalidRequest('This path must be a file');
 
-      await Service.createOneFile(fullPath, content);
+      const oldSize = diskBytes(await stat(fullPath));
+      const newSize = Math.max(DIRECTORY_BYTES, Buffer.byteLength(content));
+      await req.diskBudget.check(Math.max(0, newSize - oldSize));
+      await Service.replaceFile(fullPath, content, req.diskBudget.root);
+
+      await reportUsage(req, res);
 
       return res.status(200).json({
         success: true,
@@ -121,7 +146,9 @@ class File {
       const instancePath = Path.join(config.paths.instances, req.params.id);
       const fullPath = Path.join(instancePath, path);
 
-      await Service.delete(fullPath);
+      await rm(fullPath, { recursive: true });
+
+      await reportUsage(req, res);
 
       return res.status(200).json({
         success: true,
@@ -141,9 +168,18 @@ class File {
       const fullPath = Path.join(instancePath, path);
       const fullDestiny = Path.join(instancePath, destiny);
 
-      if (actions === 'move') await Service.move(fullPath, fullDestiny);
-      else if (actions === 'copy') await Service.copy(fullPath, fullDestiny);
-      else throw new InvalidRequest('Transfer action is invalid!');
+      if (actions === 'move') await rename(fullPath, fullDestiny);
+      else if (actions === 'copy') {
+        const size = await treeBytes(fullPath);
+        if (size > config.files.maxOperationBytes) {
+          throw new PayloadTooLarge('Copy exceeds the operation limit!');
+        }
+        await req.diskBudget.check(size);
+        const limit = Math.min(size, req.diskBudget.remainingBytes, config.files.maxOperationBytes);
+        await Service.copy(fullPath, fullDestiny, instancePath, limit);
+      } else throw new InvalidRequest('Transfer action is invalid!');
+
+      await reportUsage(req, res);
 
       return res.status(200).json({
         success: true,
@@ -164,7 +200,14 @@ class File {
       const fullDestiny = Path.join(instancePath, destiny);
 
       // The ZIP signature and contents are read through the same verified handle.
-      await Service.unzip(fullPath, fullDestiny, instancePath);
+      const free = await statfs(req.diskBudget.root);
+      const available = free.bavail * free.bsize - config.files.minFreeBytes;
+      if (available <= 0) throw new InsufficientStorage('No disk space is available for extraction!');
+      const quotaLimit = Math.min(req.diskBudget.remainingBytes, config.files.maxOperationBytes);
+      const maxBytes = Math.floor(Math.min(quotaLimit, available));
+      await Service.unzip(fullPath, fullDestiny, instancePath, maxBytes);
+
+      await reportUsage(req, res);
 
       return res.status(200).json({
         success: true,

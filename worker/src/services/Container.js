@@ -1,4 +1,5 @@
 import Path from 'path';
+import { randomBytes } from 'node:crypto';
 import docker from '../../config/docker.js';
 import logger from '../../config/logger.js';
 import { Internal } from '../errors/index.js';
@@ -14,7 +15,7 @@ class Container {
     return manifest.latest.release;
   }
 
-  static async defineMinecraft(instance, path) {
+  static async defineMinecraft(instance, path, rconPassword) {
     const gameData = instance?.minecraft;
     if (!gameData) throw new Error('instance has no minecraft config!');
 
@@ -23,7 +24,7 @@ class Container {
     const enviroment = [
       'EULA=TRUE',
       'ENABLE_RCON=true',
-      'RCON_PASSWORD=nodecraft',
+      `RCON_PASSWORD=${rconPassword}`,
       'RCON_PORT=25575',
       `UID=${config.system.puid}`,
       `GID=${config.system.pgid}`,
@@ -189,14 +190,29 @@ class Container {
 
   static async create(instance) {
     const existsContainer = await Container.get(instance.id);
-    if (existsContainer) return existsContainer;
+    if (existsContainer) {
+      if (instance.type !== 'minecraft') return { container: existsContainer };
+
+      const details = await existsContainer.inspect();
+      const password = details.Config?.Env?.find((value) => value.startsWith('RCON_PASSWORD='))
+        ?.slice('RCON_PASSWORD='.length);
+
+      // Existing containers with the shared password must be replaced before startup.
+      if (/^[0-9a-f]{64}$/.test(password || '')) {
+        return { container: existsContainer, rconPassword: password };
+      }
+
+      await existsContainer.remove({ force: true });
+    }
 
     const instancePath = Path.join(config.paths.instances, instance.id);
     let info = null;
+    let rconPassword;
 
     switch (instance.type) {
       case 'minecraft':
-        info = await Container.defineMinecraft(instance, instancePath);
+        rconPassword = randomBytes(32).toString('hex');
+        info = await Container.defineMinecraft(instance, instancePath, rconPassword);
         break;
       case 'counterstrike':
         info = Container.defineCounterStrike(instance, instancePath);
@@ -243,16 +259,17 @@ class Container {
       },
     });
 
-    return container;
+    return { container, rconPassword };
   }
 
-  static async get(id) {
+  static async get(id, strict = false) {
     try {
       const container = docker.getContainer(`Nodecraft_${id}`);
       await container.inspect();
 
       return container;
-    } catch {
+    } catch (err) {
+      if (strict && err.statusCode !== 404) throw err;
       return null;
     }
   }
@@ -296,10 +313,10 @@ class Container {
     }
   }
 
-  static async stop(id) {
+  static async stop(id, strict = false) {
     try {
       // Read container
-      const container = await Container.get(id);
+      const container = await Container.get(id, strict);
       if (!container) return;
 
       // Get container info
@@ -310,12 +327,21 @@ class Container {
       if (isRunning) {
         try {
           await container.stop({ t: 20 }); // SIGTERM
-        } catch {
+        } catch (err) {
+          if (strict) throw err;
           await container.kill(); // SIGKILL
+        }
+      }
+      if (strict) {
+        const stopped = await container.inspect();
+
+        if (stopped.State.Running || stopped.State.Restarting || stopped.State.ExitCode === 137) {
+          throw new Error('Container did not stop cleanly; backup aborted');
         }
       }
     } catch (err) {
       logger.error({ err }, 'Error to stop container');
+      if (strict) throw err;
     }
   }
 

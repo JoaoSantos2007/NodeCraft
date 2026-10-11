@@ -76,6 +76,18 @@ class Instance {
     return instance;
   }
 
+  static async readFileBudget(id) {
+    const instance = await Model.findByPk(id, { attributes: ['ownerId', 'diskUsage'] });
+    if (!instance) throw new NotFound('Instance not found!');
+
+    return { ownerId: instance.ownerId, diskUsage: instance.diskUsage };
+  }
+
+  static async updateDiskUsage(id, diskUsage) {
+    const [updated] = await Model.update({ diskUsage }, { where: { id } });
+    if (updated === 0) throw new NotFound('Instance not found!');
+  }
+
   static async readByWorker(id) {
     const instances = await Model.findAll({
       where: {
@@ -89,6 +101,7 @@ class Instance {
 
   static async markStarting(id, restart = false) {
     const current = await Instance.readOne(id);
+    let previousStatus;
 
     await Limit.withOwner(current.ownerId, async (transaction) => {
       const instance = await Model.findByPk(id, { transaction, lock: transaction.LOCK.UPDATE });
@@ -101,10 +114,15 @@ class Instance {
 
       await Limit.verifyCanStart(instance, transaction);
 
+      previousStatus = instance.status;
       await instance.update({ status: 'starting' }, { transaction });
     });
 
-    return Instance.readOne(id);
+    return { instance: await Instance.readOne(id), previousStatus };
+  }
+
+  static async restoreStartingStatus(id, previousStatus) {
+    await Model.update({ status: previousStatus }, { where: { id, status: 'starting' } });
   }
 
   static async update(id, instanceData, gameData = null) {

@@ -1,6 +1,7 @@
 import { Readable } from 'stream';
 import { pipeline } from 'stream/promises';
 import { proxyToWorker, readWorkerJson, sendWorkerJson } from '../utils/proxyFetch.js';
+import withFileBudget from '../utils/fileBudget.js';
 
 class File {
   static async read(req, res, next) {
@@ -50,11 +51,12 @@ class File {
       const { id } = req.params;
       const { destiny } = req.query;
 
-      const response = await proxyToWorker(id, {
+      const response = await withFileBudget(id, (diskBudgetBytes) => proxyToWorker(id, {
         route: `/files/create?destiny=${encodeURIComponent(destiny || '')}`,
         method: 'POST',
         body: req.body || {},
-      });
+        diskBudgetBytes,
+      }));
 
       return await sendWorkerJson(res, response, 201);
     } catch (err) {
@@ -67,7 +69,7 @@ class File {
       const { id } = req.params;
       const { destiny } = req.query;
 
-      const response = await proxyToWorker(id, {
+      const response = await withFileBudget(id, (diskBudgetBytes) => proxyToWorker(id, {
         streaming: true,
         route: `/files/upload?destiny=${encodeURIComponent(destiny || '')}`,
         method: 'POST',
@@ -75,7 +77,8 @@ class File {
           'Content-Type': req.headers['content-type'],
         },
         body: req,
-      });
+        diskBudgetBytes,
+      }));
 
       return await sendWorkerJson(res, response, 201);
     } catch (err) {
@@ -88,11 +91,12 @@ class File {
       const { id } = req.params;
       const { path } = req.query;
 
-      const response = await proxyToWorker(id, {
+      const response = await withFileBudget(id, (diskBudgetBytes) => proxyToWorker(id, {
         method: 'PUT',
         route: `/files/edit?path=${encodeURIComponent(path || '')}`,
         body: req.body || {},
-      });
+        diskBudgetBytes,
+      }));
 
       return await sendWorkerJson(res, response, 200);
     } catch (err) {
@@ -105,10 +109,11 @@ class File {
       const { id } = req.params;
       const { path } = req.query;
 
-      const response = await proxyToWorker(id, {
+      const response = await withFileBudget(id, (diskBudgetBytes) => proxyToWorker(id, {
         method: 'DELETE',
         route: `/files/delete?path=${encodeURIComponent(path || '')}`,
-      });
+        diskBudgetBytes,
+      }));
 
       return await sendWorkerJson(res, response, 200);
     } catch (err) {
@@ -121,10 +126,11 @@ class File {
       const { id } = req.params;
       const { path, destiny, actions } = req.query;
 
-      const response = await proxyToWorker(id, {
+      const response = await withFileBudget(id, (diskBudgetBytes) => proxyToWorker(id, {
         route: `/files/transfer?path=${encodeURIComponent(path || '')}&destiny=${encodeURIComponent(destiny || '')}&actions=${encodeURIComponent(actions || '')}`,
         method: 'POST',
-      });
+        diskBudgetBytes,
+      }));
 
       return await sendWorkerJson(res, response, 200);
     } catch (err) {
@@ -137,10 +143,11 @@ class File {
       const { id } = req.params;
       const { path, destiny } = req.query;
 
-      const response = await proxyToWorker(id, {
+      const response = await withFileBudget(id, (diskBudgetBytes) => proxyToWorker(id, {
         route: `/files/unzip?path=${encodeURIComponent(path || '')}&destiny=${encodeURIComponent(destiny || '')}`,
         method: 'POST',
-      });
+        diskBudgetBytes,
+      }));
 
       return await sendWorkerJson(res, response, 200);
     } catch (err) {
