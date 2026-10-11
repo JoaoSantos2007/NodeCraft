@@ -10,12 +10,6 @@ Implementado em 06/10/2026: o middleware usa `verifyNoSymlinks()` para rejeitar 
 
 Validação: sete cenários automatizados com arquivos temporários reais, sem Docker ou storage, cobrindo links, caminhos inválidos, proteção da raiz e operações comuns.
 
-## W10 — Operações de arquivos podem esgotar o disco compartilhado
-
-**Local:** `worker/src/middlewares/uploader.js`; `worker/src/services/File.js` (`copy`, `unzip`); `manager/src/routes/file.js`.
-
-Upload não limita tamanho, e cópia/descompactação não limitam os bytes gravados nem consultam a cota. Um usuário com escrita de arquivos pode enviar arquivos grandes ou expandir/copiar conteúdo repetidamente, inclusive com a instância parada, até comprometer o armazenamento dos demais servidores. A correção do proxy de upload não elimina esse problema.
-
 ## W12 — Backup sem dados substitui cópias úteis na retenção
 
 **Local:** `worker/src/services/File.js:237-284,311-348`; `worker/src/services/Backup.js:77-106`.

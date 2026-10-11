@@ -28,6 +28,7 @@ async function proxyToWorker(id, {
   body,
   headers,
   streaming = false,
+  diskBudgetBytes,
 }) {
   const { worker } = await getWorkerContext(id);
 
@@ -38,6 +39,7 @@ async function proxyToWorker(id, {
       'Content-Type': 'application/json',
       ...headers,
       Authorization: `Bearer ${worker.secret}`,
+      ...(diskBudgetBytes === undefined ? {} : { 'X-Disk-Budget-Bytes': String(diskBudgetBytes) }),
     },
   };
 

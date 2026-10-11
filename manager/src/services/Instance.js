@@ -76,6 +76,18 @@ class Instance {
     return instance;
   }
 
+  static async readFileBudget(id) {
+    const instance = await Model.findByPk(id, { attributes: ['ownerId', 'diskUsage'] });
+    if (!instance) throw new NotFound('Instance not found!');
+
+    return { ownerId: instance.ownerId, diskUsage: instance.diskUsage };
+  }
+
+  static async updateDiskUsage(id, diskUsage) {
+    const [updated] = await Model.update({ diskUsage }, { where: { id } });
+    if (updated === 0) throw new NotFound('Instance not found!');
+  }
+
   static async readByWorker(id) {
     const instances = await Model.findAll({
       where: {

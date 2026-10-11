@@ -6,6 +6,8 @@ import Forbidden from './Forbidden.js';
 import ServiceUnavailable from './ServiceUnavailable.js';
 import Internal from './Internal.js';
 import Conflict from './Conflict.js';
+import PayloadTooLarge from './PayloadTooLarge.js';
+import InsufficientStorage from './InsufficientStorage.js';
 
 export {
   NotFound,
@@ -16,4 +18,6 @@ export {
   ServiceUnavailable,
   Internal,
   Conflict,
+  PayloadTooLarge,
+  InsufficientStorage,
 };

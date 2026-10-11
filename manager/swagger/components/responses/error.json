@@ -91,6 +91,22 @@
       }
     }
   },
+  "InsufficientStorage": {
+    "description": "INSUFFICIENT_STORAGE",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "../schemas/error.json"
+        },
+        "example": {
+          "success": false,
+          "error": "INSUFFICIENT_STORAGE",
+          "message": "The worker has insufficient free disk space!",
+          "details": []
+        }
+      }
+    }
+  },
   "UnavailableService": {
     "description": "SERVICE_UNAVAILABLE",
     "content": {

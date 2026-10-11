@@ -40,6 +40,9 @@
       },
       "503": {
         "$ref": "../../components/responses/error.json#/UnavailableService"
+      },
+      "507": {
+        "$ref": "../../components/responses/error.json#/InsufficientStorage"
       }
     },
     "requestBody": {
