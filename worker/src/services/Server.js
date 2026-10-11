@@ -70,10 +70,10 @@ class Server {
     runtime.synchronizer.interval = setInterval(() => runtime.sendInstanceDetails(), 15000);
   }
 
-  static async stop(instance, report = true) {
+  static async stop(instance, report = true, strict = false) {
     try {
       if (running[instance.id]) running[instance.id].suppressReports = !report;
-      await Container.stop(instance.id);
+      await Container.stop(instance.id, strict);
 
       // Stop runtime instance
       if (running[instance.id]) await running[instance.id].finish();
@@ -81,6 +81,7 @@ class Server {
       delete running[instance.id];
     } catch (err) {
       logger.error({ err }, `Error to stop instance ${instance?.id}`);
+      if (strict) throw err;
     }
   }
 
@@ -112,11 +113,14 @@ class Server {
 
     backingUp.add(instance.id);
 
-    const isRunning = instance.status === 'running';
+    let isRunning = false;
     let result = { status: 'failed' };
 
     try {
-      if (isRunning) await Server.stop(instance, false);
+      const container = await Container.get(instance.id, true);
+      const state = container ? (await container.inspect()).State : null;
+      isRunning = !!(state?.Running || state?.Restarting);
+      await Server.stop(instance, false, true);
 
       result = await Backup.execute(instance, true);
     } catch (err) {
@@ -124,7 +128,12 @@ class Server {
     } finally {
       try {
         // This restart belongs to the backup, so it may run while backingUp is set.
-        if (isRunning) await Server.run(instance);
+        if (isRunning) {
+          const container = await Container.get(instance.id, true);
+          const state = container ? (await container.inspect()).State : null;
+          if (!state?.Running && !state?.Restarting) await Server.run(instance);
+          else if (running[instance.id]) running[instance.id].suppressReports = false;
+        }
       } finally {
         try {
           await Manager.reportBackupResult(instance.id, result);

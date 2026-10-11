@@ -28,6 +28,7 @@ import { DIRECTORY_BYTES, diskBytes } from '../utils/diskUsage.js';
 import { InvalidRequest, PayloadTooLarge, InsufficientStorage } from '../errors/index.js';
 
 const TEMP_LIFETIME = 900000;
+const activeBackups = new Set();
 
 const byteLimiter = (limit, counter) => new Transform({
   transform(chunk, encoding, callback) {
@@ -363,7 +364,8 @@ class File {
       const now = Date.now();
 
       for (const item of items) {
-        const createdAt = Number(item);
+        if (activeBackups.has(Path.join(tempPath, item))) continue;
+        const createdAt = Number(item.split('-')[0]);
 
         if (!Number.isInteger(createdAt) || now - createdAt >= TEMP_LIFETIME) {
           await File.delete(Path.join(tempPath, item));
@@ -482,15 +484,50 @@ class File {
     const paths = backupPaths[instance.type];
     if (!paths) throw new Error(`No backup paths defined for game type: ${instance.type}`);
 
-    const tempPath = await File.createTemp();
-    const backupName = `backup-${Date.now()}.zip`;
-    const backupPath = Path.join(tempPath, backupName);
+    // Pin before the first await so maintenance cannot race directory creation.
+    const tempPath = Path.join(config.paths.temp, `${Date.now()}-${randomUUID()}`);
+    activeBackups.add(tempPath);
+    const backupPath = Path.join(tempPath, `backup-${Date.now()}-${randomUUID()}.zip`);
 
-    await File.makeZip(backupPath, paths, instancePath);
+    try {
+      await mkdir(tempPath, { recursive: true });
+      await File.makeZip(backupPath, paths, instancePath);
+      await File.validateBackup(backupPath, instance.type);
+      const { size } = await stat(backupPath);
+      return { backupPath, backupSize: size / (1024 * 1024) };
+    } catch (err) {
+      await File.releaseBackup(backupPath);
+      throw err;
+    }
+  }
 
-    const backupSize = await File.getSize(backupPath);
+  static async validateBackup(backupPath, game) {
+    const archive = await unzipper.Open.file(backupPath);
+    const required = {
+      minecraft: (name) => name === 'world/level.dat',
+      terraria: (name) => name.startsWith('Worlds/') && name.endsWith('.wld'),
+      kerbal: (name) => name.startsWith('Universe/'),
+      hytale: (name) => name.startsWith('universe/'),
+    };
+    let hasWorld = false;
+    // Read every entry back: a valid directory alone does not prove the ZIP is readable.
+    for (const entry of archive.files) {
+      if (entry.type !== 'File') continue;
+      let bytes = 0;
+      for await (const chunk of entry.stream()) bytes += chunk.length;
+      if (bytes !== entry.uncompressedSize) throw new Error(`Invalid backup entry: ${entry.path}`);
+      if (bytes > 0 && required[game](entry.path)) hasWorld = true;
+    }
+    if (!hasWorld) throw new Error(`Backup has no non-empty world data for ${game}`);
+  }
 
-    return { backupPath, backupSize };
+  static async releaseBackup(backupPath) {
+    const tempPath = Path.dirname(backupPath);
+    try {
+      await File.delete(tempPath);
+    } finally {
+      activeBackups.delete(tempPath);
+    }
   }
 }
 

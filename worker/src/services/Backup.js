@@ -28,7 +28,10 @@ class Backup {
     try {
       const dailyBackups = await StorageProvider.list(`${id}/daily/`);
       if (dailyBackups.length > 0) {
-        const lastBackupAge = Date.now() - new Date(dailyBackups[0].LastModified).getTime();
+        const latest = Math.max(...dailyBackups.map((backup) => (
+          new Date(backup.LastModified).getTime()
+        )));
+        const lastBackupAge = Date.now() - latest;
         if (lastBackupAge < ONE_DAY) info.needDaily = false;
       }
 
@@ -68,22 +71,25 @@ class Backup {
   // Server.backup can ask before stopping the container: finding out only after
   // the stop took the server down for a backup that was never going to run.
   static skipReason(instance) {
-    if (!config.storage.enable) return 'storage is disabled';
+    if (![true, 'true', '1'].includes(config.storage.enable)) return 'storage is disabled';
     if (instance.type === 'counterstrike') return 'game does not support backups';
 
     return null;
   }
 
   static async execute(instance, force = false) {
+    let backupPath;
     try {
       if (Backup.skipReason(instance)) return { status: 'skipped' };
 
       // Verify need backups
       const info = await Backup.verifyNeeds(instance.id);
 
+      if (!info.doBackup && !force) return { status: 'skipped' };
+
       if (info.doBackup || force) {
         // Make and send backup to bucket
-        const { backupPath } = await File.makeBackup(instance);
+        ({ backupPath } = await File.makeBackup(instance));
 
         await Backup.send({
           id: instance.id,
@@ -91,8 +97,6 @@ class Backup {
           daily: info.needDaily || force,
           weekly: info.needWeekly,
         });
-
-        await File.delete(backupPath);
       }
 
       // Cleanup old backups — best-effort: the backup already succeeded, so a
@@ -107,6 +111,8 @@ class Backup {
     } catch (err) {
       logger.error({ err }, 'Error while backuping an instance');
       return { status: 'failed' };
+    } finally {
+      if (backupPath) await File.releaseBackup(backupPath);
     }
   }
 }

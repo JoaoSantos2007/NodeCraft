@@ -64,15 +64,28 @@ class Manager {
   }
 
   static async reportBackupResult(instanceId, result) {
-    try {
-      const { requestUrl, options } = Manager.buildRequest(`/instances/${instanceId}/backup`, 'PUT', result);
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      let retryable = true;
 
-      const response = await fetch(requestUrl, options);
+      try {
+        const { requestUrl, options } = Manager.buildRequest(`/instances/${instanceId}/backup`, 'PUT', result);
+        const response = await fetch(requestUrl, options);
 
-      await response.body?.cancel();
-    } catch (err) {
-      logger.error({ err }, 'Error to report backup result to Manager');
+        retryable = response.status === 408 || response.status === 429 || response.status >= 500;
+
+        await response.body?.cancel();
+        if (response.ok) return true;
+
+        throw new Error(`Manager answered ${response.status} to the backup report`);
+      } catch (err) {
+        logger.error({ err, instanceId, attempt: attempt + 1 }, 'Error to report backup result to Manager');
+
+        if (!retryable || attempt === 3) return false;
+
+        await new Promise((resolve) => { setTimeout(resolve, 1000 * (2 ** attempt)); });
+      }
     }
+    return false;
   }
 
   static async getConsoleAccess(instanceId, token) {

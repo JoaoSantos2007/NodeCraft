@@ -262,13 +262,14 @@ class Container {
     return { container, rconPassword };
   }
 
-  static async get(id) {
+  static async get(id, strict = false) {
     try {
       const container = docker.getContainer(`Nodecraft_${id}`);
       await container.inspect();
 
       return container;
-    } catch {
+    } catch (err) {
+      if (strict && err.statusCode !== 404) throw err;
       return null;
     }
   }
@@ -312,10 +313,10 @@ class Container {
     }
   }
 
-  static async stop(id) {
+  static async stop(id, strict = false) {
     try {
       // Read container
-      const container = await Container.get(id);
+      const container = await Container.get(id, strict);
       if (!container) return;
 
       // Get container info
@@ -326,12 +327,21 @@ class Container {
       if (isRunning) {
         try {
           await container.stop({ t: 20 }); // SIGTERM
-        } catch {
+        } catch (err) {
+          if (strict) throw err;
           await container.kill(); // SIGKILL
+        }
+      }
+      if (strict) {
+        const stopped = await container.inspect();
+
+        if (stopped.State.Running || stopped.State.Restarting || stopped.State.ExitCode === 137) {
+          throw new Error('Container did not stop cleanly; backup aborted');
         }
       }
     } catch (err) {
       logger.error({ err }, 'Error to stop container');
+      if (strict) throw err;
     }
   }
 

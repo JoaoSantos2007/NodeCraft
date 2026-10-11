@@ -1,32 +1,47 @@
 import {
   PutObjectCommand,
   DeleteObjectCommand,
-  ListObjectsV2Command,
+  HeadObjectCommand,
   paginateListObjectsV2,
 } from '@aws-sdk/client-s3';
 import { createReadStream } from 'fs';
+import { stat } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import s3Client from '../../config/storage.js';
 import config from '../../config/config.js';
 
 class Storage {
   static async list(prefix) {
-    const { Contents } = await s3Client.send(
-      new ListObjectsV2Command({ Bucket: config.storage.bucket, Prefix: prefix }),
-    );
-
-    return Contents || [];
+    const objects = [];
+    const pages = paginateListObjectsV2({ client: s3Client }, {
+      Bucket: config.storage.bucket, Prefix: prefix,
+    });
+    for await (const page of pages) objects.push(...(page.Contents || []));
+    return objects;
   }
 
   static async upload(key, path) {
-    await s3Client.send(new PutObjectCommand({
-      Bucket: config.storage.bucket,
-      Key: key,
-      Body: createReadStream(path),
-      Metadata: {
-        type: 'full',
-        createdAt: new Date().toISOString(),
-      },
-    }));
+    const { size } = await stat(path);
+    const hash = createHash('md5');
+    for await (const chunk of createReadStream(path)) hash.update(chunk);
+    const body = createReadStream(path);
+    try {
+      // S3 rejects the upload if the received bytes do not match ContentMD5.
+      await s3Client.send(new PutObjectCommand({
+        Bucket: config.storage.bucket,
+        Key: key,
+        Body: body,
+        ContentLength: size,
+        ContentMD5: hash.digest('base64'),
+        Metadata: { type: 'full', createdAt: new Date().toISOString() },
+      }));
+      const stored = await s3Client.send(new HeadObjectCommand({
+        Bucket: config.storage.bucket, Key: key,
+      }));
+      if (stored.ContentLength !== size) throw new Error('Backup upload size verification failed');
+    } finally {
+      body.destroy();
+    }
   }
 
   static async delete(key) {
