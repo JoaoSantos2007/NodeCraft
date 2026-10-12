@@ -13,7 +13,6 @@ import './CreateServer.css';
 
 const GAMES = [
   { id: 'minecraft',    name: 'Minecraft',       desc: 'Java & Bedrock editions', emoji: '⛏️' },
-  { id: 'counterstrike',name: 'Counter-Strike 2', desc: 'CS2 dedicated server',   emoji: '🎯' },
   { id: 'terraria',     name: 'Terraria',         desc: 'Sandbox adventure',       emoji: '🌳' },
   { id: 'kerbal',       name: 'Kerbal Space',     desc: 'Space simulation',        emoji: '🚀' },
   { id: 'hytale',       name: 'Hytale',           desc: 'Adventure RPG',           emoji: '⚔️' },
@@ -23,7 +22,6 @@ const STEPS = ['Select Game', 'Resources', 'Worker', 'Settings', 'Deploy'];
 
 const defaultGameConfig = {
   minecraft: { gamemode: 'survival', difficulty: 'normal', software: 'paper', seed: '', allowlist: false, bedrock: false, licensed: true, pvp: true },
-  counterstrike: {},
   terraria: {},
   kerbal: {},
   hytale: {},

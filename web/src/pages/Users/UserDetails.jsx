@@ -20,7 +20,6 @@ import './UserDetails.css';
 const GAMES = [
   { id: 'minecraft', label: 'Minecraft' },
   { id: 'hytale', label: 'Hytale' },
-  { id: 'counterstrike', label: 'CS2' },
   { id: 'terraria', label: 'Terraria' },
   { id: 'kerbal', label: 'KSP' },
 ];

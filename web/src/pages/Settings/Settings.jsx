@@ -17,7 +17,7 @@ import { authApi } from '../../api/auth.js';
 import './Settings.css';
 
 const GAME_LABELS = {
-  minecraft: 'Minecraft', hytale: 'Hytale', counterstrike: 'CS2',
+  minecraft: 'Minecraft', hytale: 'Hytale',
   terraria: 'Terraria', kerbal: 'KSP',
 };
 

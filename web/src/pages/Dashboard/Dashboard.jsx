@@ -18,7 +18,6 @@ import './Dashboard.css';
 
 const GAME_LABELS = {
   minecraft: 'Minecraft',
-  counterstrike: 'Counter-Strike',
   terraria: 'Terraria',
   kerbal: 'Kerbal Space',
   hytale: 'Hytale',

@@ -75,43 +75,6 @@ class Container {
     };
   }
 
-  static defineCounterStrike(instance, path) {
-    const gameData = instance?.counterstrike;
-    if (!gameData) throw new Error('instance has no counterstrike config!');
-
-    const enviroment = [
-      `SRCDS_TOKEN=${gameData.steamToken}`,
-      `CS2_RCONPW=${gameData.rconPassword}`,
-      `CS2_SERVERNAME=${gameData.servername}`,
-      `CS2_MAXPLAYERS=${gameData.maxPlayers}`,
-      'CS2_SERVER_HIBERNATE=1',
-    ];
-    if (gameData.password) enviroment.push(`CS2_PW="${gameData.password}"`);
-
-    const image = dockerImages.counterstrike;
-    const exposedPorts = {
-      '27015/udp': {},
-      '27015/tcp': {},
-    };
-    const binds = [`${path}:/home/steam/cs2-dedicated`];
-    const portBindings = {
-      '27015/udp': [
-        { HostPort: String(instance.port) },
-      ],
-      '27015/tcp': [
-        { HostPort: String(instance.port) },
-      ],
-    };
-
-    return {
-      enviroment,
-      binds,
-      image,
-      portBindings,
-      exposedPorts,
-    };
-  }
-
   static defineKerbal(instance, path) {
     const image = dockerImages.kerbal;
     const enviroment = [
@@ -139,14 +102,23 @@ class Container {
     };
   }
 
-  static async defineHytale(instance, path) {
+  static defineHytale(instance, path) {
+    const gameData = instance?.hytale;
+    if (!gameData) throw new Error('instance has no hytale config!');
+
     const image = dockerImages.hytale;
     const enviroment = [
       `PUID=${config.system.puid}`,
       `PGID=${config.system.pgid}`,
+      `MAX_PLAYERS=${instance.maxPlayers}`,
+      `MAX_MEMORY=${instance.memory}M`,
+      `VIEW_DISTANCE=${gameData.maxView}`,
+      'DEFAULT_PORT=5520',
+      'AUTH_MODE=authenticated',
+      'ENABLE_BACKUPS=false',
     ];
     const exposedPorts = { '5520/udp': {} };
-    const binds = [`${path}:/data`];
+    const binds = [`${path}:/home/hytale/server-files`];
     const portBindings = {
       '5520/udp': [
         { HostPort: String(instance.port) },
@@ -191,14 +163,15 @@ class Container {
   static async create(instance) {
     const existsContainer = await Container.get(instance.id);
     if (existsContainer) {
-      if (instance.type !== 'minecraft') return { container: existsContainer };
-
       const details = await existsContainer.inspect();
       const password = details.Config?.Env?.find((value) => value.startsWith('RCON_PASSWORD='))
         ?.slice('RCON_PASSWORD='.length);
 
-      // Existing containers with the shared password must be replaced before startup.
-      if (/^[0-9a-f]{64}$/.test(password || '')) {
+      const validPassword = instance.type !== 'minecraft' || /^[0-9a-f]{64}$/.test(password || '');
+      // Adopt auto-removal on the next startup without interrupting running servers.
+      const reusable = details.State.Running
+        || (instance.type !== 'hytale' && details.HostConfig?.AutoRemove);
+      if (validPassword && reusable) {
         return { container: existsContainer, rconPassword: password };
       }
 
@@ -213,9 +186,6 @@ class Container {
       case 'minecraft':
         rconPassword = randomBytes(32).toString('hex');
         info = await Container.defineMinecraft(instance, instancePath, rconPassword);
-        break;
-      case 'counterstrike':
-        info = Container.defineCounterStrike(instance, instancePath);
         break;
       case 'kerbal':
         info = Container.defineKerbal(instance, instancePath);
@@ -240,10 +210,12 @@ class Container {
       AttachStdin: true,
       AttachStdout: true,
       AttachStderr: true,
+      StopTimeout: instance.type === 'hytale' ? 30 : 20,
 
       ExposedPorts: info.exposedPorts,
 
       HostConfig: {
+        AutoRemove: true,
         Binds: info.binds,
         PortBindings: info.portBindings,
 
@@ -265,9 +237,10 @@ class Container {
   static async get(id, strict = false) {
     try {
       const container = docker.getContainer(`Nodecraft_${id}`);
-      await container.inspect();
+      const details = await container.inspect();
 
-      return container;
+      // Keep operations tied to this container, even if its name is reused after exit.
+      return docker.getContainer(details.Id);
     } catch (err) {
       if (strict && err.statusCode !== 404) throw err;
       return null;
@@ -293,6 +266,7 @@ class Container {
 
       await container.remove({ force: true });
     } catch (err) {
+      if (err.statusCode === 404) return; // Docker may already have auto-removed it.
       logger.error({ err }, 'Error to delete docker container');
     }
   }
@@ -314,6 +288,8 @@ class Container {
   }
 
   static async stop(id, strict = false) {
+    let waitController;
+
     try {
       // Read container
       const container = await Container.get(id, strict);
@@ -323,16 +299,34 @@ class Container {
       const info = await container.inspect();
       const isRunning = info.State.Running;
 
+      let exitResult;
+      if (isRunning && info.HostConfig?.AutoRemove) {
+        // Subscribe before stopping: inspect cannot read the exit code after auto-removal.
+        waitController = new AbortController();
+        exitResult = container.wait({ condition: 'removed', abortSignal: waitController.signal })
+          .then((result) => ({ result }), (error) => ({ error }));
+      }
+
       // Stop container
       if (isRunning) {
         try {
-          await container.stop({ t: 20 }); // SIGTERM
+          await container.stop({ t: info.Config?.StopTimeout ?? 20 }); // SIGTERM
         } catch (err) {
           if (strict) throw err;
           await container.kill(); // SIGKILL
         }
       }
-      if (strict) {
+      if (exitResult) {
+        const { result, error } = await exitResult;
+
+        if (error) throw error;
+        const failed = !Number.isInteger(result?.StatusCode)
+          || result.StatusCode === 137 || result.Error?.Message;
+
+        if (strict && failed) {
+          throw new Error('Container did not stop cleanly; backup aborted');
+        }
+      } else if (strict) {
         const stopped = await container.inspect();
 
         if (stopped.State.Running || stopped.State.Restarting || stopped.State.ExitCode === 137) {
@@ -342,6 +336,8 @@ class Container {
     } catch (err) {
       logger.error({ err }, 'Error to stop container');
       if (strict) throw err;
+    } finally {
+      waitController?.abort();
     }
   }
 

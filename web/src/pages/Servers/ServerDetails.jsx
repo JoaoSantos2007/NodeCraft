@@ -129,7 +129,7 @@ const tintFor = (key = '') => {
 };
 
 const GAME_LABELS = {
-  minecraft: 'Minecraft', counterstrike: 'CS2', terraria: 'Terraria',
+  minecraft: 'Minecraft', terraria: 'Terraria',
   kerbal: 'KSP', hytale: 'Hytale',
 };
 
@@ -168,20 +168,6 @@ const GAME_FIELDS = {
       ['npcs',          'NPCs'],
       ['cheats',        'Cheats'],
     ],
-  },
-  counterstrike: {
-    fields: [
-      { key: 'servername',   label: 'Server Name',    type: 'text'  },
-      { key: 'steamToken',   label: 'Steam Token',    type: 'text'  },
-      { key: 'password',     label: 'Password',       type: 'text'  },
-      { key: 'rconPassword', label: 'RCON Password',  type: 'text'  },
-      { key: 'mode',         label: 'Mode',           type: 'select', options: ['casual', 'competitive', 'wingman', 'deathmatch'] },
-      { key: 'map',          label: 'Map',            type: 'select', options: ['mirage', 'dust2', 'inferno', 'nuke', 'overpass', 'vertigo', 'ancient', 'anubis', 'officie', 'italy', 'lake', 'thistle', 'assembly', 'memento'] },
-      { key: 'botMode',      label: 'Bot Mode',       type: 'select', options: ['fill', 'normal'] },
-      { key: 'botDifficulty',label: 'Bot Difficulty', type: 'number', min: 0, max: 3  },
-      { key: 'botQuota',     label: 'Bot Quota',      type: 'number', min: 0, max: 20 },
-    ],
-    toggles: [],
   },
   terraria: {
     fields: [
@@ -481,6 +467,31 @@ function AdminTab({ instance, onOwnerChanged }) {
   );
 }
 
+function renderConsoleLine(line) {
+  return line.split(/(https?:\/\/[^\s<>"'\u001b]+)/gi).map((part, index) => {
+    if (!/^https?:\/\//i.test(part)) return part;
+
+    let url = part.replace(/[.,;:!?]+$/, '');
+    // Keep balanced parentheses in URLs, but exclude surrounding log punctuation.
+    for (const [open, close] of [['(', ')'], ['[', ']'], ['{', '}']]) {
+      while (url.endsWith(close) && url.split(close).length > url.split(open).length) {
+        url = url.slice(0, -1);
+      }
+    }
+    try {
+      new URL(url);
+    } catch {
+      return part;
+    }
+    return (
+      <React.Fragment key={index}>
+        <a href={url} target="_blank" rel="noopener noreferrer">{url}</a>
+        {part.slice(url.length)}
+      </React.Fragment>
+    );
+  });
+}
+
 function ConsoleTab({ instance }) {
   const [lines, setLines] = useState(instance.history || []);
   const [command, setCommand] = useState('');
@@ -488,8 +499,21 @@ function ConsoleTab({ instance }) {
   const [canWrite, setCanWrite] = useState(false);
   const [error, setError] = useState(null);
   const socketRef = useRef(null);
-  const bottomRef = useRef(null);
-  const inputRef = useRef(null);
+  const logRef = useRef(null);
+  const followOutputRef = useRef(true);
+  const selectingRef = useRef(false);
+
+  useEffect(() => {
+    const stopSelecting = () => { selectingRef.current = false; };
+    window.addEventListener('pointerup', stopSelecting);
+    window.addEventListener('pointercancel', stopSelecting);
+    window.addEventListener('blur', stopSelecting);
+    return () => {
+      window.removeEventListener('pointerup', stopSelecting);
+      window.removeEventListener('pointercancel', stopSelecting);
+      window.removeEventListener('blur', stopSelecting);
+    };
+  }, []);
 
   useEffect(() => {
     let socket;
@@ -582,7 +606,12 @@ function ConsoleTab({ instance }) {
   }, [instance.id]);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const log = logRef.current;
+    const selection = window.getSelection();
+    const hasSelection = log && selection && !selection.isCollapsed && selection.containsNode(log, true);
+    if (log && followOutputRef.current && !selectingRef.current && !hasSelection) {
+      log.scrollTop = log.scrollHeight;
+    }
   }, [lines]);
 
   const sendCommand = () => {
@@ -604,24 +633,30 @@ function ConsoleTab({ instance }) {
         <span className="console-status-label">{connected ? 'Connected' : 'Disconnected'}</span>
         {error && <span className="console-status-error">{error}</span>}
       </div>
-      <div className="console-log" onClick={() => inputRef.current?.focus()}>
+      <div
+        ref={logRef}
+        className="console-log"
+        onPointerDown={() => { selectingRef.current = true; }}
+        onScroll={(event) => {
+          const log = event.currentTarget;
+          followOutputRef.current = log.scrollHeight - log.scrollTop - log.clientHeight <= 8;
+        }}
+      >
         {lines.length === 0 ? (
           <span className="console-empty">No console output yet</span>
         ) : (
           lines.map((line, i) => (
             <div key={i} className="console-line">
               <span className="console-line-num">{i + 1}</span>
-              <span>{line}</span>
+              <span className="console-line-text">{renderConsoleLine(line)}</span>
             </div>
           ))
         )}
-        <div ref={bottomRef} />
       </div>
       {canWrite ? (
         <div className="console-input-row">
           <span className="console-prompt">&gt;</span>
           <input
-            ref={inputRef}
             className="console-input"
             value={command}
             onChange={(e) => setCommand(e.target.value)}
