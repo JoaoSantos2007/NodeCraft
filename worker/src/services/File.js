@@ -1,6 +1,5 @@
 import {
   access,
-  realpath,
   lstat,
   mkdir,
   stat,
@@ -23,6 +22,7 @@ import archiver from 'archiver';
 import logger from '../../config/logger.js';
 import config from '../../config/config.js';
 
+import { withPathParent, openDirectory, removePath } from '../utils/mutatePaths.js';
 import { openInsideInstance, visitInstanceFiles } from '../utils/verifyPaths.js';
 import { DIRECTORY_BYTES, diskBytes } from '../utils/diskUsage.js';
 import { InvalidRequest, PayloadTooLarge, InsufficientStorage } from '../errors/index.js';
@@ -40,32 +40,40 @@ const byteLimiter = (limit, counter) => new Transform({
 });
 
 const withStagedPath = async (destinyPath, prefix, writePayload) => {
-  const stage = await mkdtemp(Path.join(Path.dirname(destinyPath), prefix));
-  const output = Path.join(stage, 'payload');
+  const write = async (target) => {
+    const stage = await mkdtemp(Path.join(Path.dirname(target), prefix));
+    let directory;
 
-  try {
-    await writePayload(output);
-    await rename(output, destinyPath);
-    return true;
-  } finally {
-    await rm(stage, { recursive: true, force: true });
-  }
+    try {
+      directory = await openDirectory(stage);
+      const output = `/proc/self/fd/${directory.fd}/payload`;
+      await writePayload(output);
+      await rename(output, target);
+      return true;
+    } finally {
+      try {
+        await removePath(stage, true);
+      } finally {
+        if (directory) await directory.close();
+      }
+    }
+  };
+  return withPathParent(destinyPath, write);
 };
 
 const copyEntry = async ({ handle, stats, name }, output, counter, maxBytes) => {
   const target = Path.join(output, name);
 
   if (stats.isDirectory()) {
-    await mkdir(target, { recursive: true });
+    await withPathParent(target, (safePath) => mkdir(safePath));
     return;
   }
 
-  await mkdir(Path.dirname(target), { recursive: true });
-  await pipeline(
+  await withPathParent(target, (safePath) => pipeline(
     handle.createReadStream({ autoClose: false }),
     byteLimiter(maxBytes, counter),
-    createWriteStream(target, { flags: 'wx' }),
-  );
+    createWriteStream(safePath, { flags: 'wx' }),
+  ));
 };
 
 const chargeZipBytes = (counter, maxBytes) => {
@@ -96,7 +104,7 @@ const ensureZipDirectories = async (output, target, directories, counter, maxByt
 
     if (!directories.has(current)) {
       chargeZipBytes(counter, maxBytes);
-      await mkdir(current);
+      await withPathParent(current, (safePath) => mkdir(safePath));
       directories.add(current);
     }
   }
@@ -111,7 +119,7 @@ const extractZipEntry = async (entry, output, directories, counter, maxBytes) =>
   } else if (entry.type === 'File') {
     await ensureZipDirectories(output, Path.dirname(target), directories, counter, maxBytes);
     chargeZipBytes(counter, maxBytes);
-    await pipeline(entry, byteLimiter(maxBytes, counter), createWriteStream(target, { flags: 'wx' }));
+    await withPathParent(target, (safePath) => pipeline(entry, byteLimiter(maxBytes, counter), createWriteStream(safePath, { flags: 'wx' })));
   } else {
     throw new InvalidRequest('ZIP contains an unsupported entry!');
   }
@@ -137,14 +145,16 @@ const extractZipArchive = async (handle, output, maxBytes) => {
 
 class File {
   static async createFile(path, content) {
-    const temp = Path.join(Path.dirname(path), `.nodecraft-create-${randomUUID()}`);
+    return withPathParent(path, async (target) => {
+      const temp = Path.join(Path.dirname(target), `.nodecraft-create-${randomUUID()}`);
 
-    try {
-      await writeFile(temp, content, { flag: 'wx' });
-      await link(temp, path);
-    } finally {
-      await rm(temp, { force: true });
-    }
+      try {
+        await writeFile(temp, content, { flag: 'wx' });
+        await link(temp, target);
+      } finally {
+        await removePath(temp, true);
+      }
+    });
   }
 
   static async replaceFile(path, content, root) {
@@ -154,13 +164,15 @@ class File {
       throw new InsufficientStorage('No disk space is available to edit this file!');
     }
 
-    const temp = Path.join(Path.dirname(path), `.nodecraft-edit-${randomUUID()}`);
-    try {
-      await writeFile(temp, content, { flag: 'wx' });
-      await rename(temp, path);
-    } finally {
-      await rm(temp, { force: true });
-    }
+    return withPathParent(path, async (target) => {
+      const temp = Path.join(Path.dirname(target), `.nodecraft-edit-${randomUUID()}`);
+      try {
+        await writeFile(temp, content, { flag: 'wx' });
+        await rename(temp, target);
+      } finally {
+        await removePath(temp, true);
+      }
+    });
   }
 
   static async verifyExists(path) {
@@ -212,7 +224,7 @@ class File {
 
   static async readOneFile(path, instancePath = null) {
     if (instancePath) {
-      const root = await realpath(instancePath);
+      const root = Path.resolve(instancePath);
       const { handle, stats } = await openInsideInstance(root, path);
 
       try {
@@ -237,7 +249,7 @@ class File {
 
   static async readOneDirectory(path, detailed = false, instancePath = null) {
     if (instancePath) {
-      const root = await realpath(instancePath);
+      const root = Path.resolve(instancePath);
       const { handle, stats } = await openInsideInstance(root, path);
 
       try {
@@ -435,7 +447,7 @@ class File {
   }
 
   static async unzip(fromZip, toPath, instancePath, maxBytes) {
-    const root = await realpath(instancePath);
+    const root = Path.resolve(instancePath);
     const { handle, stats } = await openInsideInstance(root, fromZip);
 
     try {

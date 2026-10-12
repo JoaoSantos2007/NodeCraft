@@ -1,8 +1,9 @@
 import Path from 'path';
 import {
-  realpath, stat, rename, mkdir, statfs, rm,
+  stat, rename, mkdir, statfs,
 } from 'node:fs/promises';
 import { pipeline } from 'node:stream/promises';
+import { withPathParent, removePath } from '../utils/mutatePaths.js';
 import { openInsideInstance } from '../utils/verifyPaths.js';
 import config from '../../config/config.js';
 import Service from '../services/File.js';
@@ -22,7 +23,7 @@ class File {
       const path = req.query?.path || '';
       const toDownload = req.query?.download === 'true';
 
-      const instancePath = await realpath(Path.join(config.paths.instances, req.params.id));
+      const instancePath = Path.resolve(config.paths.instances, req.params.id);
       const fullPath = Path.join(instancePath, path);
 
       const opened = await openInsideInstance(instancePath, fullPath);
@@ -76,7 +77,7 @@ class File {
       }
       if (body.type === 'directory') {
         await req.diskBudget.check(DIRECTORY_BYTES);
-        await mkdir(fullDestiny);
+        await withPathParent(fullDestiny, (target) => mkdir(target));
       }
 
       await reportUsage(req, res);
@@ -98,7 +99,7 @@ class File {
       if (size > req.diskBudget.remainingBytes) {
         throw new PayloadTooLarge('Upload exceeds the owner disk quota!');
       }
-      await rename(req.tempUploadPath, req.uploadTarget);
+      await withPathParent(req.uploadTarget, (target) => rename(req.tempUploadPath, target));
       await reportUsage(req, res);
 
       return res.status(201).json({
@@ -107,6 +108,8 @@ class File {
       });
     } catch (err) {
       return next(err);
+    } finally {
+      if (req.cleanupUpload) await req.cleanupUpload();
     }
   }
 
@@ -146,7 +149,7 @@ class File {
       const instancePath = Path.join(config.paths.instances, req.params.id);
       const fullPath = Path.join(instancePath, path);
 
-      await rm(fullPath, { recursive: true });
+      await removePath(fullPath);
 
       await reportUsage(req, res);
 
@@ -168,9 +171,12 @@ class File {
       const fullPath = Path.join(instancePath, path);
       const fullDestiny = Path.join(instancePath, destiny);
 
-      if (actions === 'move') await rename(fullPath, fullDestiny);
-      else if (actions === 'copy') {
-        const size = await treeBytes(fullPath);
+      if (actions === 'move') {
+        await withPathParent(fullPath, (source) => (
+          withPathParent(fullDestiny, (target) => rename(source, target))
+        ));
+      } else if (actions === 'copy') {
+        const size = await treeBytes(instancePath, path);
         if (size > config.files.maxOperationBytes) {
           throw new PayloadTooLarge('Copy exceeds the operation limit!');
         }
