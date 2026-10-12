@@ -86,12 +86,13 @@ class Instance {
   }
 
   // Catch stream output
-  async listenStreamEvents(callback) {
+  async listenStreamEvents(callback, options = {}) {
     try {
       if (this.stream) return;
 
       const container = await Container.get(this.id);
       this.stream = await container.attach({
+        ...options,
         stream: true,
         stdin: true,
         stdout: true,
@@ -105,7 +106,11 @@ class Instance {
       this.stream.once('close', this.finish);
       this.stream.once('error', this.finish);
 
-      container.wait().then(this.finish);
+      container.wait().then(this.finish).catch((err) => {
+        if (err.statusCode === 404) return this.finish();
+        logger.error({ err }, 'Error waiting for container to stop');
+        return undefined;
+      });
     } catch (err) {
       logger.error({ err }, 'Error to listen container');
     }

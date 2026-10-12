@@ -15,7 +15,7 @@ import Spinner from '../../components/ui/Spinner.jsx';
 import WorkerMetrics from '../../components/WorkerMetrics/WorkerMetrics.jsx';
 import './WorkerDetails.css';
 
-const GAME_LABELS = { minecraft: 'Minecraft', counterstrike: 'CS2', terraria: 'Terraria', kerbal: 'KSP', hytale: 'Hytale' };
+const GAME_LABELS = { minecraft: 'Minecraft', terraria: 'Terraria', kerbal: 'KSP', hytale: 'Hytale' };
 
 function CopyButton({ text }) {
   const [copied, setCopied] = useState(false);

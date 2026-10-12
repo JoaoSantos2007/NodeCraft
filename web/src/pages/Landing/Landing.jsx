@@ -204,7 +204,7 @@ export default function Landing() {
             </h1>
             <p className="lp-hero-subtitle">
               NodeCraft gives you a full game server — deployed in seconds, managed
-              through one dashboard. Minecraft, CS2, KSP, and more.
+              through one dashboard. Minecraft, Hytale, KSP, and Terraria.
             </p>
             <div className="lp-hero-ctas">
               {user ? (
@@ -262,7 +262,7 @@ export default function Landing() {
             <FeatureCard
               icon="🎮"
               title="Multi-Game Hosting"
-              description="Minecraft, Counter-Strike 2, KSP, Hytale, Terraria — each with its own configuration panel and game-specific controls."
+              description="Minecraft, KSP, Hytale, Terraria — each with its own configuration panel and game-specific controls."
               color="var(--accent)"
               delay="0ms"
             />

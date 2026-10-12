@@ -2,7 +2,7 @@
 
 **A self-hosted panel for game servers across multiple machines.**
 
-Create, configure and monitor game servers from one place. NodeCraft brings together a live console, file management, backups, user permissions and worker monitoring, with Minecraft, Terraria and Kerbal Space Program integrations. Hytale support is still in progress.
+Create, configure and monitor game servers from one place. NodeCraft brings together a live console, file management, backups, user permissions and worker monitoring, with Minecraft, Terraria, Kerbal Space Program and Hytale integrations.
 
 ![Dashboard](docs/screenshots/dashboard.png)
 
@@ -106,7 +106,7 @@ Worker charts show CPU usage, used and total memory, and available disk space. T
 | **Minecraft** | ✅ | ✅ | Java + Bedrock (Geyser + Floodgate), allowlist and player roster |
 | **Terraria** | ✅ | ❌ | Server configuration and world backups |
 | **Kerbal Space Program** | ✅ | ❌ | Multiplayer settings and backups |
-| **Hytale** | Planned | ❌ | Integration is present but not yet ready for normal use |
+| **Hytale** | ✅ | ❌ | Server settings, world backups and console commands; authentication through console links on first startup |
 
 Each game has a `Runtime` class extending a shared base `Instance`. Minecraft adds `server.properties` synchronization and player access control through its roster.
 

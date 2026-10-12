@@ -12,12 +12,12 @@ import Spinner from '../../components/ui/Spinner.jsx';
 import './Servers.css';
 
 const GAME_LABELS = {
-  minecraft: 'Minecraft', counterstrike: 'CS2', terraria: 'Terraria',
+  minecraft: 'Minecraft', terraria: 'Terraria',
   kerbal: 'KSP', hytale: 'Hytale',
 };
 
 const GAME_COLOR = {
-  minecraft: 'green', counterstrike: 'yellow', terraria: 'blue',
+  minecraft: 'green', terraria: 'blue',
   kerbal: 'purple', hytale: 'red',
 };
 

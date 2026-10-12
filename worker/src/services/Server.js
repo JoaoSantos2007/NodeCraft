@@ -97,7 +97,7 @@ class Server {
   static async backup(instance) {
     // Asked before anything else: a backup that was never going to run must not
     // cost the instance a stop/start, and the manager still needs the result.
-    const skipReason = Backup.skipReason(instance);
+    const skipReason = Backup.skipReason();
     if (skipReason) {
       logger.info(`Skipping backup for instance ${instance.id}: ${skipReason}`);
       await Manager.reportBackupResult(instance.id, { status: 'skipped' });

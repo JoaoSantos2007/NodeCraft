@@ -371,6 +371,11 @@
   flex-shrink: 0;
 }
 
+.console-line-text { min-width: 0; overflow-wrap: anywhere; user-select: text; }
+.console-line-text a { color: #7cb7ff; text-decoration: underline; }
+.console-line-text a:hover { color: #b4d5ff; }
+.console-line-text a:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+
 .console-input-row {
   display: flex;
   align-items: center;

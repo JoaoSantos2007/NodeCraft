@@ -58,9 +58,8 @@ const config = {
   },
   images: {
     minecraft: 'itzg/minecraft-server:latest',
-    counterstrike: 'cm2network/cs2:latest',
     kerbal: 'ghcr.io/jsantos43/ksp:latest',
-    hytale: 'ghcr.io/jsantos43/hytale:latest',
+    hytale: 'indifferentbroccoli/hytale-server-docker:latest',
     terraria: 'ghcr.io/passivelemon/terraria-docker:latest',
   },
 };
