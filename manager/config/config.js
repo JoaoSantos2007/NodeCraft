@@ -77,7 +77,7 @@ const config = {
     games: ['minecraft', 'hytale', 'terraria', 'kerbal'],
     maxHistory: process.env.MAX_HISTORY
       ? Number(process.env.MAX_HISTORY)
-      : 50,
+      : 300,
     minPort: process.env.MIN_PORT
       ? Number(process.env.MIN_PORT)
       : 5621,

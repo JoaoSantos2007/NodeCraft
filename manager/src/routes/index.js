@@ -4,7 +4,7 @@ import helmet from 'helmet';
 import config from '../../config/config.js';
 import user from './user.js';
 import instance from './instance.js';
-import worker from './worker.js';
+import worker, { reports } from './worker.js';
 import auth from './auth.js';
 import root from './root.js';
 
@@ -33,9 +33,10 @@ const routes = (app) => {
   });
 
   app.use(
-    express.json(),
     cookieParser(),
     helmet(),
+    reports,
+    express.json(),
     root,
     user,
     instance,
