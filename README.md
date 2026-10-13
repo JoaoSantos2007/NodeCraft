@@ -68,6 +68,7 @@ NodeCraft runs in a self-hosted environment behind Nginx and systemd, with deplo
 - The worker stops an instance if it is running, zips the game's important files, uploads the archive under its `daily/` or `weekly/` storage path, starts the instance again and reports the result.
 - **Retention:** 7 daily + 4 weekly, pruned automatically after each upload.
 - Backups require S3-compatible storage to be configured on the worker.
+- Each worker processes one backup at a time, stopping a running game only when its turn begins. Local ZIPs are limited to 10 GiB by default (`BACKUP_MAX_MB`) and preserve the free-space reserve (`FILE_MIN_FREE_MB`) on the temporary volume. Failed partial archives are removed.
 
 ---
 
@@ -76,6 +77,8 @@ NodeCraft runs in a self-hosted environment behind Nginx and systemd, with deplo
 Administrators configure each user's allowed games and workers, maximum instance count, CPU, memory and disk allowance. Server slots and reported disk usage count across all owned instances; CPU and memory usage count instances that are running or starting. A stopped server therefore keeps its files and slot while releasing its active CPU and memory allocation.
 
 The worker applies CPU and memory settings when starting an instance and reports its disk usage to the manager. File uploads, copies, edits and archive extraction are bounded by the owner's remaining disk allowance and worker file limits. Game processes can still write to their volumes directly; enforcing a hard limit on those writes requires a filesystem or volume quota on the host.
+
+File previews are limited to 1 MiB and directory previews to 1,000 entries; larger content can be downloaded as a stream. The manager and each worker accept up to four simultaneous file reads, returning 503 when busy; oversized previews return 413. The manager also limits worker JSON responses to 8 MiB. Console lines are truncated after 1,024 characters, and pending history is bounded by both entry count and serialized size; slow console clients may miss live output.
 
 Worker charts show CPU usage, used and total memory, and available disk space. The manager retains seven days of heartbeat history, with views from one hour to seven days. Server status and recent history help distinguish a requested action from its eventual result on the worker.
 

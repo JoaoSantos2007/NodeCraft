@@ -1,10 +1,9 @@
 import Path from 'path';
-import { readFile, writeFile } from 'node:fs/promises';
 import { finished } from 'node:stream/promises';
 import Instance from './Instance.js';
 import logger from '../../config/logger.js';
 import Container from '../services/Container.js';
-import { verifyNoSymlinks } from '../utils/verifyPaths.js';
+import FileService from '../services/File.js';
 
 class Hytale extends Instance {
   constructor(instance) {
@@ -19,11 +18,9 @@ class Hytale extends Instance {
     const gameData = this.instance?.hytale;
     if (!gameData) throw new Error('instance hytale data not found!');
 
-    await verifyNoSymlinks(this.paths.settings, true);
-
     let settings = {};
     try {
-      settings = JSON.parse(await readFile(this.paths.settings, 'utf8'));
+      settings = JSON.parse(await FileService.readConfigFile(this.paths.settings));
     } catch (err) {
       if (err.code !== 'ENOENT') throw err;
     }
@@ -48,7 +45,7 @@ class Hytale extends Instance {
       },
     });
 
-    await writeFile(this.paths.settings, `${JSON.stringify(settings, null, 2)}\n`, 'utf8');
+    await FileService.createOneFile(this.paths.settings, `${JSON.stringify(settings, null, 2)}\n`);
   }
 
   async sendCommand(command) {

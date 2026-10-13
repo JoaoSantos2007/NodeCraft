@@ -1,6 +1,5 @@
 import { Op } from 'sequelize';
 import {
-  db,
   gameModels,
   instanceInclude,
   Instance as Model,
@@ -126,27 +125,40 @@ class Instance {
   }
 
   static async update(id, instanceData, gameData = null) {
-    const instance = await Instance.readOne(id);
+    const current = await Instance.readOne(id);
 
-    const { type, ...changes } = instanceData;
+    await Limit.withOwner(current.ownerId, async (transaction) => {
+      const instance = await Model.findByPk(id, { transaction, lock: transaction.LOCK.UPDATE });
 
-    if (type !== undefined && type !== instance.type) {
-      throw new InvalidRequest('The instance type cannot be changed!');
-    }
+      if (!instance) throw new NotFound('Instance not found!');
 
-    await Limit.verifyCanUpdate(instance, changes);
+      if (['running', 'starting'].includes(instance.status)) {
+        throw new InvalidRequest('You cannot do this while instance is running or starting!');
+      }
 
-    await db.transaction(async (t) => {
+      const { type, ...changes } = instanceData;
+
+      if (type !== undefined && type !== instance.type) {
+        throw new InvalidRequest('The instance type cannot be changed!');
+      }
+
+      await Limit.verifyCanUpdate(instance, changes, transaction);
+
       // Update instance basic data
-      await instance.update(changes, { transaction: t });
+      await instance.update(changes, { transaction });
 
       // Update game data
-      if (gameData && instance[instance.type]) {
-        await instance[instance.type].update(gameData, { transaction: t });
+      if (gameData) {
+        const game = await gameModels[instance.type].findOne({
+          where: { instanceId: id },
+          transaction,
+        });
+
+        if (game) await game.update(gameData, { transaction });
       }
     });
 
-    return instance;
+    return Instance.readOne(id);
   }
 
   static async updateDetails(workerId, id, data) {

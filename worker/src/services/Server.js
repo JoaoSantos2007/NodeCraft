@@ -13,6 +13,7 @@ import Manager from './Manager.js';
 // container that is mid-backup and race the restart and the status report.
 const backingUp = new Set();
 const starting = new Set();
+let backupQueue = Promise.resolve();
 
 class Server {
   static start(instance, restart = false) {
@@ -113,6 +114,12 @@ class Server {
 
     backingUp.add(instance.id);
 
+    // Wait before stopping the game; keep one backup/upload active per worker.
+    const previous = backupQueue;
+    let release;
+    backupQueue = new Promise((resolve) => { release = resolve; });
+    await previous;
+
     let isRunning = false;
     let result = { status: 'failed' };
 
@@ -139,6 +146,7 @@ class Server {
           await Manager.reportBackupResult(instance.id, result);
         } finally {
           backingUp.delete(instance.id);
+          release();
         }
       }
     }

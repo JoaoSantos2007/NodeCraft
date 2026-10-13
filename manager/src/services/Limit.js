@@ -95,10 +95,12 @@ class Limit {
     }
   }
 
-  static async verifyCanUpdate(instance, changes) {
+  static async verifyCanUpdate(instance, changes, transaction = undefined) {
     if (changes.memory === undefined && changes.cpu === undefined) return;
 
-    const user = await UserModel.findByPk(instance.ownerId);
+    const user = await UserModel.findByPk(instance.ownerId, { transaction });
+    if (!user) throw new NotFound('User not found!');
+
     Limit.verifyInstanceResources(user, {
       memory: changes.memory ?? instance.memory,
       cpu: changes.cpu ?? instance.cpu,

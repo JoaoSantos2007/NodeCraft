@@ -73,7 +73,7 @@ const openInsideInstance = async (instancePath, targetPath) => {
 
 // The callback must finish consuming the handle before it returns.
 const visitInstanceFiles = async (instancePath, path, onEntry) => {
-  const root = await realpath(instancePath);
+  const root = Path.resolve(instancePath);
   const ancestors = new Set();
 
   const visit = async (target, name) => {
@@ -122,7 +122,7 @@ const verifyAllowedPath = async (
     // The instance root itself must not be replaceable by a tenant-owned link.
     await verifyNoSymlinks(instancePath);
 
-    verifyInsideInstance(await realpath(instancePath), await realpath(fullPath));
+    verifyInsideInstance(Path.resolve(instancePath), await realpath(fullPath));
 
     return;
   }
