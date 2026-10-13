@@ -1,12 +1,12 @@
 import Path from 'path';
 import {
-  open, readdir, unlink, rmdir,
+  open, readdir, unlink, rmdir, mkdir,
 } from 'node:fs/promises';
 import { constants } from 'node:fs';
 
 // Resolve each directory through the previous descriptor. O_NOFOLLOW applies
 // to every component, including ancestors of the instance, not only the leaf.
-const openDirectory = async (path) => {
+const openDirectory = async (path, create = false) => {
   const absolute = Path.resolve(path);
   // Only paths produced by this module use this prefix; API paths are joined
   // to the instance root before reaching here.
@@ -20,7 +20,20 @@ const openDirectory = async (path) => {
 
   try {
     for (const part of absolute.slice(root.length).split(Path.sep).filter(Boolean)) {
-      const child = await open(`/proc/self/fd/${handle.fd}/${part}`, flags);
+      const target = `/proc/self/fd/${handle.fd}/${part}`;
+      let child;
+      try {
+        child = await open(target, flags);
+      } catch (err) {
+        if (!create || err.code !== 'ENOENT') throw err;
+        try {
+          await mkdir(target);
+        } catch (mkdirError) {
+          if (mkdirError.code !== 'EEXIST') throw mkdirError;
+        }
+        // Reopen with O_NOFOLLOW even if another process created the entry.
+        child = await open(target, flags);
+      }
       await handle.close();
       handle = child;
     }

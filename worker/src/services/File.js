@@ -16,7 +16,7 @@ import {
 } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import * as unzipper from 'unzipper';
-import { createWriteStream } from 'node:fs';
+import { createWriteStream, constants } from 'node:fs';
 import { Transform, Writable } from 'node:stream';
 import { pipeline, finished } from 'node:stream/promises';
 import Path from 'path';
@@ -319,26 +319,42 @@ class File {
   }
 
   static async createOneFile(path, data) {
-    try {
-      await writeFile(path, data, 'utf8');
-
+    return withPathParent(path, async (target) => {
+      const temp = Path.join(Path.dirname(target), `.nodecraft-config-${randomUUID()}`);
+      try {
+        await writeFile(temp, data, { flag: 'wx' });
+        // Replace the directory entry, never open/truncate a tenant-owned target.
+        await rename(temp, target);
+      } finally {
+        await removePath(temp, true);
+      }
       return true;
-    } catch (err) {
-      logger.error({ err }, 'Error to create a file');
-      return false;
-    }
+    });
   }
 
   static async createOneDirectory(path) {
+    const directory = await openDirectory(path, true);
     try {
-      await mkdir(path, { recursive: true });
-
       return true;
-    } catch (err) {
-      logger.error({ err }, 'Error to create a directory');
-
-      return false;
+    } finally {
+      await directory.close();
     }
+  }
+
+  static async readConfigFile(path) {
+    return withPathParent(path, async (target) => {
+      // eslint-disable-next-line no-bitwise
+      const flags = constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK;
+      const handle = await open(target, flags);
+      try {
+        if (!(await handle.stat()).isFile()) {
+          throw new InvalidRequest('Configuration must be a regular file!');
+        }
+        return await handle.readFile('utf8');
+      } finally {
+        await handle.close();
+      }
+    });
   }
 
   static async copy(originPath, destinyPath, instancePath, maxBytes) {
@@ -370,9 +386,9 @@ class File {
 
   static async delete(path) {
     try {
-      await rm(path, { recursive: true, force: true });
+      await removePath(path, true);
     } catch (err) {
-      logger.error({ err }, 'Error to delete file');
+      if (err.code !== 'ENOENT') throw err;
     }
   }
 

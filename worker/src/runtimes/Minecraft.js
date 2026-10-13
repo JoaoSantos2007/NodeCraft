@@ -45,6 +45,7 @@ class Minecraft extends Instance {
       await FileService.delete(this.paths.usercache);
     } catch (err) {
       logger.error({ err }, 'Error to wipe instance allowlist');
+      throw err;
     }
   }
 
@@ -53,6 +54,7 @@ class Minecraft extends Instance {
       await FileService.createOneFile(this.paths.ops, '[]');
     } catch (err) {
       logger.error({ err }, 'Error to wipe instance ops');
+      throw err;
     }
   }
 
@@ -119,6 +121,7 @@ class Minecraft extends Instance {
       }
     } catch (err) {
       logger.error({ err }, 'Error to sync geyser and floodgate');
+      throw err;
     }
   }
 
@@ -127,6 +130,7 @@ class Minecraft extends Instance {
       await FileService.delete(this.paths.sessionLock);
     } catch (err) {
       logger.error({ err }, 'Error to remove instance session lock');
+      throw err;
     }
   }
 

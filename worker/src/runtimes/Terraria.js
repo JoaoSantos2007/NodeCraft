@@ -29,6 +29,7 @@ class Terraria extends Instance {
       await FileService.createOneFile(this.paths.settings, terrariaSettings);
     } catch (err) {
       logger.error({ err }, 'Error to sync terraria serverconfig.txt');
+      throw err;
     }
   }
 

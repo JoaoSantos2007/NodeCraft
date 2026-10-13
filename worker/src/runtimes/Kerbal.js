@@ -33,6 +33,7 @@ class Kerbal extends Instance {
       await FileService.createOneFile(this.paths.settings, kerbalSettings);
     } catch (err) {
       logger.error({ err }, 'Error to sync kerbal Server.txt');
+      throw err;
     }
   }
 
