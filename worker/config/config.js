@@ -36,6 +36,9 @@ const config = {
     maxOperationBytes: fileLimitBytes('FILE_MAX_OPERATION_MB', 2048),
     minFreeBytes: fileLimitBytes('FILE_MIN_FREE_MB', 512),
   },
+  backup: {
+    maxBytes: fileLimitBytes('BACKUP_MAX_MB', 10240),
+  },
   manager: {
     url: process.env.MANAGER_URL,
     apiKey: process.env.MANAGER_API_KEY,

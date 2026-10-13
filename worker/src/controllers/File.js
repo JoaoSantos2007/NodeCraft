@@ -10,6 +10,9 @@ import Service from '../services/File.js';
 import { InvalidRequest, PayloadTooLarge, InsufficientStorage } from '../errors/index.js';
 import { treeBytes } from '../middlewares/diskBudget.js';
 import { DIRECTORY_BYTES, diskBytes } from '../utils/diskUsage.js';
+import acquireReadSlot from '../utils/readSlot.js';
+
+const MAX_PREVIEW_BYTES = 1024 * 1024;
 
 const reportUsage = async (req, res) => {
   res.setHeader('X-Instance-Disk-Bytes', String(await treeBytes(req.diskBudget.root)));
@@ -18,8 +21,10 @@ const reportUsage = async (req, res) => {
 class File {
   static async read(req, res, next) {
     let handle;
+    let complete;
 
     try {
+      complete = acquireReadSlot(res);
       const path = req.query?.path || '';
       const toDownload = req.query?.download === 'true';
 
@@ -38,13 +43,32 @@ class File {
           return undefined;
         }
 
-        content = await handle.readFile('utf8');
+        if (opened.stats.size > MAX_PREVIEW_BYTES) {
+          throw new PayloadTooLarge('File preview is limited to 1 MiB; download this file instead.');
+        }
+
+        const chunks = [];
+        let bytes = 0;
+        for await (const chunk of handle.createReadStream({
+          autoClose: false, start: 0, end: MAX_PREVIEW_BYTES,
+        })) {
+          bytes += chunk.length;
+
+          if (bytes > MAX_PREVIEW_BYTES) {
+            throw new PayloadTooLarge('File preview is limited to 1 MiB; download this file instead.');
+          }
+
+          chunks.push(chunk);
+        }
+        content = Buffer.concat(chunks, bytes).toString('utf8');
       } else if (toDownload) {
         res.attachment(`${Path.basename(fullPath)}.zip`);
+
         await Service.streamZip(res, [fullPath], instancePath);
+
         return undefined;
       } else {
-        content = await Service.readOneDirectory(fullPath, true, instancePath);
+        content = await Service.readOneDirectory(fullPath, true, instancePath, 1000);
       }
 
       return res.status(200).json({
@@ -58,7 +82,11 @@ class File {
 
       return next(err);
     } finally {
-      if (handle) await handle.close();
+      try {
+        if (handle) await handle.close();
+      } finally {
+        if (complete) complete();
+      }
     }
   }
 

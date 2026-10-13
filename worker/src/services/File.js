@@ -11,21 +11,23 @@ import {
   mkdtemp,
   statfs,
   link,
+  opendir,
+  open,
 } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import * as unzipper from 'unzipper';
 import { createWriteStream } from 'node:fs';
-import { Transform } from 'node:stream';
+import { Transform, Writable } from 'node:stream';
 import { pipeline, finished } from 'node:stream/promises';
 import Path from 'path';
 import archiver from 'archiver';
 import logger from '../../config/logger.js';
 import config from '../../config/config.js';
-
 import { withPathParent, openDirectory, removePath } from '../utils/mutatePaths.js';
 import { openInsideInstance, visitInstanceFiles } from '../utils/verifyPaths.js';
 import { DIRECTORY_BYTES, diskBytes } from '../utils/diskUsage.js';
 import { InvalidRequest, PayloadTooLarge, InsufficientStorage } from '../errors/index.js';
+import acquireDiskWrite from '../utils/diskWriteLock.js';
 
 const TEMP_LIFETIME = 900000;
 const activeBackups = new Set();
@@ -247,7 +249,12 @@ class File {
     }
   }
 
-  static async readOneDirectory(path, detailed = false, instancePath = null) {
+  static async readOneDirectory(
+    path,
+    detailed = false,
+    instancePath = null,
+    maxEntries = Infinity,
+  ) {
     if (instancePath) {
       const root = Path.resolve(instancePath);
       const { handle, stats } = await openInsideInstance(root, path);
@@ -256,11 +263,18 @@ class File {
         if (!stats.isDirectory()) throw new InvalidRequest('The path must be a directory!');
 
         const directory = `/proc/self/fd/${handle.fd}`;
-        const items = await readdir(directory);
-        if (!detailed) return items;
-
         const result = [];
-        for (const name of items) {
+        for await (const item of await opendir(directory)) {
+          if (result.length >= maxEntries) {
+            throw new PayloadTooLarge('Directory preview is limited to 1000 entries; download it instead.');
+          }
+
+          const { name } = item;
+          if (!detailed) {
+            result.push(name);
+            continue;
+          }
+
           const child = await openInsideInstance(root, Path.join(directory, name));
 
           try {
@@ -388,14 +402,40 @@ class File {
     }
   }
 
-  static async makeZip(outputPath, paths, instancePath) {
-    const output = createWriteStream(outputPath);
+  static async makeZip(outputPath, paths, instancePath, maxBytes = null) {
+    let handle;
     try {
+      let output;
+      if (maxBytes === null) {
+        output = createWriteStream(outputPath);
+      } else {
+        handle = await open(outputPath, 'wx');
+        let written = 0;
+        const write = async (chunk) => {
+          if (written + chunk.length > maxBytes) {
+            throw new PayloadTooLarge('Backup exceeds the local ZIP limit.');
+          }
+          const free = await statfs(Path.dirname(outputPath));
+          const allocated = Math.ceil(chunk.length / free.bsize) * free.bsize;
+          if (allocated + config.files.minFreeBytes > free.bavail * free.bsize) {
+            throw new InsufficientStorage('Insufficient temporary disk space for backup.');
+          }
+          // Await each disk write before checking the next block. No unchecked
+          // bytes may queue behind the free-space check in another write stream.
+          await handle.writeFile(chunk);
+          written += chunk.length;
+        };
+        output = new Writable({
+          write(chunk, encoding, callback) { write(chunk).then(() => callback(), callback); },
+        });
+      }
       await File.streamZip(output, paths, instancePath);
       return outputPath;
     } catch (err) {
       await rm(outputPath, { force: true });
       throw err;
+    } finally {
+      if (handle) await handle.close();
     }
   }
 
@@ -496,20 +536,34 @@ class File {
     const paths = backupPaths[instance.type];
     if (!paths) throw new Error(`No backup paths defined for game type: ${instance.type}`);
 
-    // Pin before the first await so maintenance cannot race directory creation.
+    const release = await acquireDiskWrite();
+    // Pin before directory creation so maintenance cannot race the backup.
     const tempPath = Path.join(config.paths.temp, `${Date.now()}-${randomUUID()}`);
     activeBackups.add(tempPath);
     const backupPath = Path.join(tempPath, `backup-${Date.now()}-${randomUUID()}.zip`);
 
     try {
+      await mkdir(config.paths.temp, { recursive: true });
+
+      const free = await statfs(config.paths.temp);
+      const available = free.bavail * free.bsize - config.files.minFreeBytes;
+      if (available <= 0) {
+        throw new InsufficientStorage('Insufficient temporary disk space for backup.');
+      }
+
+      const maxBytes = Math.min(config.backup.maxBytes, available);
       await mkdir(tempPath, { recursive: true });
-      await File.makeZip(backupPath, paths, instancePath);
+
+      await File.makeZip(backupPath, paths, instancePath, maxBytes);
       await File.validateBackup(backupPath, instance.type);
+
       const { size } = await stat(backupPath);
       return { backupPath, backupSize: size / (1024 * 1024) };
     } catch (err) {
       await File.releaseBackup(backupPath);
       throw err;
+    } finally {
+      release();
     }
   }
 

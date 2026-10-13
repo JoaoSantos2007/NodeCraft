@@ -4,8 +4,7 @@ import config from '../../config/config.js';
 import { InvalidRequest, PayloadTooLarge, InsufficientStorage } from '../errors/index.js';
 import { visitInstanceFiles } from '../utils/verifyPaths.js';
 import { diskBytes } from '../utils/diskUsage.js';
-
-const queues = new Map();
+import acquireDiskWrite from '../utils/diskWriteLock.js';
 
 async function treeBytes(path, relative = '') {
   let bytes = 0;
@@ -35,17 +34,18 @@ async function checkGrowth(req, additionalBytes) {
 const diskBudget = async (req, res, next) => {
   // All instances on this worker share a volume. Serialize API writes so
   // concurrent requests cannot each spend the same free-space allowance.
-  const key = 'shared-volume';
-  const previous = queues.get(key) || Promise.resolve();
-  let release;
-  const current = new Promise((resolve) => { release = resolve; });
-  queues.set(key, current);
-  await previous;
-
+  const release = await acquireDiskWrite();
   const unlock = () => {
-    if (queues.get(key) === current) queues.delete(key);
+    res.removeListener('finish', unlock);
+    res.removeListener('close', unlock);
     release();
   };
+
+  // A queued request may already have disconnected before obtaining the lock.
+  if (res.destroyed || res.writableFinished) {
+    release();
+    return;
+  }
 
   res.once('finish', unlock);
   res.once('close', unlock);

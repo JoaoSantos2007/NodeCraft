@@ -2,10 +2,13 @@ import { Readable } from 'stream';
 import { pipeline } from 'stream/promises';
 import { proxyToWorker, readWorkerJson, sendWorkerJson } from '../utils/proxyFetch.js';
 import withFileBudget from '../utils/fileBudget.js';
+import acquireReadSlot from '../utils/readSlot.js';
 
 class File {
   static async read(req, res, next) {
+    let complete;
     try {
+      complete = acquireReadSlot(res);
       const { id } = req.params;
       const { path, download } = req.query;
       const toDownload = download === 'true';
@@ -43,6 +46,8 @@ class File {
       return res.status(200).json(result);
     } catch (err) {
       return next(err);
+    } finally {
+      if (complete) complete();
     }
   }
 

@@ -9,6 +9,8 @@ import Manager from '../services/Manager.js';
 
 // Console lines held while the manager is unreachable, oldest dropped first.
 const MAX_PENDING_HISTORY = 200;
+const MAX_LINE_CHARS = 1024;
+const MAX_HISTORY_BYTES = 48 * 1024;
 
 class Instance {
   constructor(instance) {
@@ -37,6 +39,8 @@ class Instance {
       measuredAt: 0,
     };
     this.buffer = '';
+    this.truncatedLine = false;
+    this.historyBytes = 0;
   }
 
   static cleanLine(raw) {
@@ -57,28 +61,43 @@ class Instance {
     return noPrefix.replace(/^>\s*/, '').trim();
   }
 
+  queueHistory(message) {
+    const { history } = this.synchronizer;
+    history.push(message);
+
+    this.historyBytes += Buffer.byteLength(JSON.stringify(message)) + 1;
+
+    while (history.length > MAX_PENDING_HISTORY || this.historyBytes > MAX_HISTORY_BYTES) {
+      this.historyBytes -= Buffer.byteLength(JSON.stringify(history.shift())) + 1;
+    }
+  }
+
   async processStreamOutput(chunk, callback) {
     try {
-      this.buffer += chunk.toString('utf8').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+      // Split bounded pieces only. A single line may span unlimited Docker chunks.
+      for (let offset = 0; offset < chunk.length; offset += 4096) {
+        const piece = chunk.slice(offset, offset + 4096).toString('utf8');
+        const parts = piece.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+        for (let index = 0; index < parts.length; index += 1) {
+          const remaining = MAX_LINE_CHARS - this.buffer.length;
+          this.buffer += parts[index].slice(0, remaining);
+          if (parts[index].length > remaining) this.truncatedLine = true;
+          if (index === parts.length - 1) continue;
 
-      const lines = this.buffer.split('\n');
-      this.buffer = lines.pop();
+          const raw = this.buffer + (this.truncatedLine ? ' [truncated]' : '');
+          this.buffer = '';
+          this.truncatedLine = false;
+          const message = Instance.cleanLine(raw);
+          if (!message || /^[.\s]+$/.test(message)) continue;
 
-      for (const raw of lines) {
-        const message = Instance.cleanLine(raw);
-        if (!message || /^[.\s]+$/.test(message)) continue;
+          this.queueHistory(message);
+          // Slow/disconnected transports must not accumulate an unbounded log queue.
+          if (this.io) this.io.to(`instance:${this.id}`).volatile.emit('instance-output', message);
+          if (callback) callback(message);
 
-        // Push line to history
-        this.synchronizer.history.push(message);
-
-        // Send message to socket.io
-        if (this.io) this.io.to(`instance:${this.id}`).emit('instance-output', message);
-
-        // Exec callback if it exists
-        if (callback) callback(message);
-
-        // eslint-disable-next-line no-console
-        if (config.app.stage === 'DEV') console.log(message);
+          // eslint-disable-next-line no-console
+          if (config.app.stage === 'DEV') console.log(message);
+        }
       }
     } catch (err) {
       logger.error({ err }, 'Error to handle container message');
@@ -192,27 +211,31 @@ class Instance {
   async sendInstanceDetails() {
     if (this.sending || this.suppressReports) return;
     this.sending = true;
+    let sending;
+    let delivered = false;
 
     try {
       const diskUsage = await this.measureDiskUsage();
-      const history = this?.synchronizer?.history || [];
+      // Detach the batch: bounded ingestion can evict old lines while I/O awaits.
+      // Removing a prefix from the live queue afterwards would drop new lines.
+      sending = this.synchronizer.history;
+      this.synchronizer.history = [];
+      this.historyBytes = 0;
 
-      const sending = [...history];
-
-      const delivered = await Manager.sendInstanceDetails(this.id, {
+      delivered = await Manager.sendInstanceDetails(this.id, {
         status: this.status,
         history: sending,
         diskUsage,
       });
-
-      if (delivered) {
-        history.splice(0, sending.length);
-      } else if (history.length > MAX_PENDING_HISTORY) {
-        history.splice(0, history.length - MAX_PENDING_HISTORY);
-      }
     } catch (err) {
       logger.error({ err }, 'Error to send instance details');
     } finally {
+      if (sending && !delivered) {
+        const pending = [...sending, ...this.synchronizer.history];
+        this.synchronizer.history = [];
+        this.historyBytes = 0;
+        pending.forEach((message) => this.queueHistory(message));
+      }
       this.sending = false;
     }
   }
