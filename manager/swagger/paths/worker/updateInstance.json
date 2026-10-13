@@ -1,7 +1,7 @@
 {
   "put": {
     "summary": "report an Instance's status/history to the manager (worker auth)",
-    "description": "Called by the worker every 15s to push instance status, new console/log lines and disk usage.",
+    "description": "Called by the worker every 15s to push instance status, all pending console/log lines and disk usage in one request. Accepts JSON bodies up to 9 MiB after worker authentication.",
     "tags": [
       "Worker"
     ],

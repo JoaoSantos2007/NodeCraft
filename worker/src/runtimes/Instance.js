@@ -8,9 +8,10 @@ import { getIO } from '../../config/socket.js';
 import Manager from '../services/Manager.js';
 
 // Console lines held while the manager is unreachable, oldest dropped first.
-const MAX_PENDING_HISTORY = 200;
-const MAX_LINE_CHARS = 1024;
-const MAX_HISTORY_BYTES = 48 * 1024;
+const MAX_PENDING_HISTORY = 20000;
+// Even worst-case JSON escaping of one line fits in the 8 MiB pending queue.
+const MAX_LINE_CHARS = 1024 * 1024;
+const MAX_HISTORY_BYTES = 8 * 1024 * 1024;
 
 class Instance {
   constructor(instance) {
@@ -183,8 +184,15 @@ class Instance {
 
       if (sent) {
         // RCON replies don't go through stdout, so push the response to the console
-        const message = Instance.cleanLine(result);
-        if (message && this.io) this.io.to(`instance:${this.id}`).emit('instance-output', message);
+        for (const line of result.split(/\r\n|\r|\n/)) {
+          const raw = line.slice(0, MAX_LINE_CHARS) + (line.length > MAX_LINE_CHARS ? ' [truncated]' : '');
+
+          const message = Instance.cleanLine(raw);
+          if (!message) continue;
+
+          this.queueHistory(message);
+          if (this.io) this.io.to(`instance:${this.id}`).emit('instance-output', message);
+        }
       } else if (this.stream && !this.stream.destroyed) {
         // Fallback to stdin; the container echoes the result via stdout
         this.stream.write(`${command}\r\n`);
@@ -209,7 +217,14 @@ class Instance {
   }
 
   async sendInstanceDetails() {
-    if (this.sending || this.suppressReports) return;
+    if (this.suppressReports) return undefined;
+    if (this.sending) return this.reportPromise;
+    this.reportPromise = this.flushInstanceDetails();
+
+    return this.reportPromise;
+  }
+
+  async flushInstanceDetails() {
     this.sending = true;
     let sending;
     let delivered = false;
@@ -222,6 +237,7 @@ class Instance {
       this.synchronizer.history = [];
       this.historyBytes = 0;
 
+      // Send all pending lines in this cycle, without waiting to fill a batch.
       delivered = await Manager.sendInstanceDetails(this.id, {
         status: this.status,
         history: sending,
@@ -258,7 +274,8 @@ class Instance {
 
   async finish() {
     try {
-      if (!this) return;
+      if (!this || this.finishing) return;
+      this.finishing = true;
       this.status = 'stopped';
 
       // remove stream
@@ -277,11 +294,9 @@ class Instance {
 
       if (this.suppressReports) return;
 
-      // Send to manager that instance has stopped
-      await Manager.sendInstanceDetails(this.id, {
-        status: 'stopped',
-        history: this?.synchronizer?.history || [],
-      });
+      // Finish the active report before sending the last pending lines.
+      await this.reportPromise;
+      await this.sendInstanceDetails();
 
       delete this;
     } catch (err) {

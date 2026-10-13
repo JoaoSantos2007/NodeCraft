@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, json } from 'express';
 import Controller from '../controllers/Worker.js';
 import {
   auth, workerAuth, workerOrAuth, validate,
@@ -6,6 +6,15 @@ import {
 import { createWorker, updateWorker } from '../schemas/index.js';
 
 const router = Router();
+
+// Mounted before the default JSON parser. Authenticate before accepting large reports.
+const reports = Router();
+reports.put(
+  '/worker/:workerId/instances/:instanceId',
+  workerAuth(),
+  json({ limit: '9mb' }),
+  Controller.updateInstance,
+);
 
 router
   .get(
@@ -56,11 +65,6 @@ router
     Controller.readInstances,
   )
   .put(
-    '/worker/:workerId/instances/:instanceId',
-    workerAuth(),
-    Controller.updateInstance,
-  )
-  .put(
     '/worker/:workerId/instances/:instanceId/backup',
     workerAuth(),
     Controller.reportBackupResult,
@@ -71,4 +75,5 @@ router
     Controller.consoleAccess,
   );
 
+export { reports };
 export default router;
