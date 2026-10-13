@@ -12,8 +12,6 @@ import { treeBytes } from '../middlewares/diskBudget.js';
 import { DIRECTORY_BYTES, diskBytes } from '../utils/diskUsage.js';
 import acquireReadSlot from '../utils/readSlot.js';
 
-const MAX_PREVIEW_BYTES = 1024 * 1024;
-
 const reportUsage = async (req, res) => {
   res.setHeader('X-Instance-Disk-Bytes', String(await treeBytes(req.diskBudget.root)));
 };
@@ -43,19 +41,19 @@ class File {
           return undefined;
         }
 
-        if (opened.stats.size > MAX_PREVIEW_BYTES) {
-          throw new PayloadTooLarge('File preview is limited to 1 MiB; download this file instead.');
+        if (opened.stats.size > config.files.maxPreviewBytes) {
+          throw new PayloadTooLarge(`File preview is limited to ${config.files.maxPreviewBytes} bytes; download this file instead.`);
         }
 
         const chunks = [];
         let bytes = 0;
         for await (const chunk of handle.createReadStream({
-          autoClose: false, start: 0, end: MAX_PREVIEW_BYTES,
+          autoClose: false, start: 0, end: config.files.maxPreviewBytes,
         })) {
           bytes += chunk.length;
 
-          if (bytes > MAX_PREVIEW_BYTES) {
-            throw new PayloadTooLarge('File preview is limited to 1 MiB; download this file instead.');
+          if (bytes > config.files.maxPreviewBytes) {
+            throw new PayloadTooLarge(`File preview is limited to ${config.files.maxPreviewBytes} bytes; download this file instead.`);
           }
 
           chunks.push(chunk);
@@ -68,7 +66,12 @@ class File {
 
         return undefined;
       } else {
-        content = await Service.readOneDirectory(fullPath, true, instancePath, 1000);
+        content = await Service.readOneDirectory(
+          fullPath,
+          true,
+          instancePath,
+          config.files.maxDirectoryEntries,
+        );
       }
 
       return res.status(200).json({

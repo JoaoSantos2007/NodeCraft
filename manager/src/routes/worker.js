@@ -1,4 +1,5 @@
 import { Router, json } from 'express';
+import config from '../../config/config.js';
 import Controller from '../controllers/Worker.js';
 import {
   auth, workerAuth, workerOrAuth, validate,
@@ -12,7 +13,7 @@ const reports = Router();
 reports.put(
   '/worker/:workerId/instances/:instanceId',
   workerAuth(),
-  json({ limit: '9mb' }),
+  json({ limit: config.http.workerReportBytes }),
   Controller.updateInstance,
 );
 

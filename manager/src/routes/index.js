@@ -36,7 +36,7 @@ const routes = (app) => {
     cookieParser(),
     helmet(),
     reports,
-    express.json(),
+    express.json({ limit: config.http.jsonBytes }),
     root,
     user,
     instance,

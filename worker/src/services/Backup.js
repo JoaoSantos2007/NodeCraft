@@ -4,9 +4,6 @@ import StorageProvider from '../providers/Storage.js';
 import File from './File.js';
 import config from '../../config/config.js';
 
-const DAILY_RETENTION = 7;
-const WEEKLY_RETENTION = 4;
-
 class Backup {
   static async verifyAvailableSpace(backupSize) {
     const result = await StorageProvider.getStorageUsage();
@@ -63,8 +60,8 @@ class Backup {
   }
 
   static async cleanup(id) {
-    await StorageProvider.prune(`${id}/daily/`, DAILY_RETENTION);
-    await StorageProvider.prune(`${id}/weekly/`, WEEKLY_RETENTION);
+    await StorageProvider.prune(`${id}/daily/`, config.backup.dailyRetention);
+    await StorageProvider.prune(`${id}/weekly/`, config.backup.weeklyRetention);
   }
 
   // Why this instance has nothing to back up, or null when it does. Public so
