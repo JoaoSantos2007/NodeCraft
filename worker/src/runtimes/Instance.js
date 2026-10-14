@@ -7,12 +7,6 @@ import logger from '../../config/logger.js';
 import { getIO } from '../../config/socket.js';
 import Manager from '../services/Manager.js';
 
-// Console lines held while the manager is unreachable, oldest dropped first.
-const MAX_PENDING_HISTORY = 20000;
-// Even worst-case JSON escaping of one line fits in the 8 MiB pending queue.
-const MAX_LINE_CHARS = 1024 * 1024;
-const MAX_HISTORY_BYTES = 8 * 1024 * 1024;
-
 class Instance {
   constructor(instance) {
     this.id = instance.id;
@@ -68,7 +62,8 @@ class Instance {
 
     this.historyBytes += Buffer.byteLength(JSON.stringify(message)) + 1;
 
-    while (history.length > MAX_PENDING_HISTORY || this.historyBytes > MAX_HISTORY_BYTES) {
+    while (history.length > config.console.maxPendingLines
+      || this.historyBytes > config.console.maxHistoryBytes) {
       this.historyBytes -= Buffer.byteLength(JSON.stringify(history.shift())) + 1;
     }
   }
@@ -80,7 +75,7 @@ class Instance {
         const piece = chunk.slice(offset, offset + 4096).toString('utf8');
         const parts = piece.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
         for (let index = 0; index < parts.length; index += 1) {
-          const remaining = MAX_LINE_CHARS - this.buffer.length;
+          const remaining = config.console.maxLineChars - this.buffer.length;
           this.buffer += parts[index].slice(0, remaining);
           if (parts[index].length > remaining) this.truncatedLine = true;
           if (index === parts.length - 1) continue;
@@ -92,8 +87,9 @@ class Instance {
           if (!message || /^[.\s]+$/.test(message)) continue;
 
           this.queueHistory(message);
-          // Slow/disconnected transports must not accumulate an unbounded log queue.
-          if (this.io) this.io.to(`instance:${this.id}`).volatile.emit('instance-output', message);
+          // Polling transports may be between requests when output arrives.
+          // Volatile events would silently lose those lines until a page reload.
+          if (this.io) this.io.to(`instance:${this.id}`).emit('instance-output', message);
           if (callback) callback(message);
 
           // eslint-disable-next-line no-console
@@ -185,7 +181,7 @@ class Instance {
       if (sent) {
         // RCON replies don't go through stdout, so push the response to the console
         for (const line of result.split(/\r\n|\r|\n/)) {
-          const raw = line.slice(0, MAX_LINE_CHARS) + (line.length > MAX_LINE_CHARS ? ' [truncated]' : '');
+          const raw = line.slice(0, config.console.maxLineChars) + (line.length > config.console.maxLineChars ? ' [truncated]' : '');
 
           const message = Instance.cleanLine(raw);
           if (!message) continue;

@@ -8,6 +8,16 @@ const ONE_MINUTE = 60 * ONE_SECOND;
 const ONE_HOUR = 60 * ONE_MINUTE;
 const ONE_DAY = 24 * ONE_HOUR;
 
+const positiveLimit = (name, fallback, unit = 1) => {
+  const value = process.env[name] ? Number(process.env[name]) : fallback;
+
+  if (!Number.isSafeInteger(value) || value <= 0 || value > Number.MAX_SAFE_INTEGER / unit) {
+    throw new Error(`${name} must be a positive integer (unit: ${unit})`);
+  }
+
+  return value * unit;
+};
+
 const siteUrl = (process.env.SITE_URL || 'http://localhost:3030').replace(/\/+$/, '');
 const apiBasePath = (process.env.API_BASE_PATH || (process.env.STAGE === 'DEV' ? '' : '/api'))
   .replace(/\/+$/, '');
@@ -75,9 +85,7 @@ const config = {
   },
   instance: {
     games: ['minecraft', 'hytale', 'terraria', 'kerbal'],
-    maxHistory: process.env.MAX_HISTORY
-      ? Number(process.env.MAX_HISTORY)
-      : 300,
+    maxHistory: positiveLimit('MAX_HISTORY', 300),
     minPort: process.env.MIN_PORT
       ? Number(process.env.MIN_PORT)
       : 5621,
@@ -96,7 +104,15 @@ const config = {
       'instance:roster:edit',
     ],
   },
+  files: {
+    maxConcurrentReads: positiveLimit('FILE_MAX_CONCURRENT_READS', 4),
+  },
+  http: {
+    jsonBytes: positiveLimit('HTTP_JSON_KB', 100, 1024),
+    workerReportBytes: positiveLimit('WORKER_REPORT_MAX_MB', 9, 1024 * 1024),
+  },
   worker: {
+    maxJsonBytes: positiveLimit('WORKER_JSON_MAX_MB', 8, 1024 * 1024),
     // Timeout of every manager -> worker request that is not streaming a file.
     timeout: process.env.WORKER_TIMEOUT
       ? Number(process.env.WORKER_TIMEOUT)

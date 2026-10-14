@@ -71,7 +71,9 @@ const registerSocketEvents = (io) => {
         socket.emit('instance-output', 'You do not have permission to send commands.');
         return;
       }
-      if (running[instanceId]) running[instanceId].sendCommand(command);
+      // A command can arrive before the asynchronous join-console handler finishes.
+      await socket.join(`instance:${instanceId}`);
+      if (socket.connected && running[instanceId]) await running[instanceId].sendCommand(command);
     });
   });
 };

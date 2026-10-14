@@ -3,8 +3,6 @@ import getWorkerContext from './getWorkerContext.js';
 import config from '../../config/config.js';
 
 const workerTimeout = config.worker.timeout;
-// A 1 MiB preview can expand sixfold when JSON escapes control characters.
-const MAX_JSON_BYTES = 8 * 1024 * 1024;
 
 // Native fetch cancellation also applies while its response body is being read.
 async function proxyFetch(route, { streaming = false, signal, ...options } = {}) {
@@ -58,9 +56,9 @@ async function proxyToWorker(id, {
 async function readWorkerJson(response) {
   let body;
   try {
-    if (Number(response.headers.get('content-length')) > MAX_JSON_BYTES) {
+    if (Number(response.headers.get('content-length')) > config.worker.maxJsonBytes) {
       await response.body?.cancel();
-      throw new PayloadTooLarge('Worker response exceeds the 8 MiB JSON limit.');
+      throw new PayloadTooLarge(`Worker response exceeds the ${config.worker.maxJsonBytes} byte JSON limit.`);
     }
 
     const chunks = [];
@@ -68,8 +66,8 @@ async function readWorkerJson(response) {
     if (response.body) {
       for await (const chunk of response.body) {
         bytes += chunk.byteLength;
-        if (bytes > MAX_JSON_BYTES) {
-          throw new PayloadTooLarge('Worker response exceeds the 8 MiB JSON limit.');
+        if (bytes > config.worker.maxJsonBytes) {
+          throw new PayloadTooLarge(`Worker response exceeds the ${config.worker.maxJsonBytes} byte JSON limit.`);
         }
 
         chunks.push(Buffer.from(chunk));

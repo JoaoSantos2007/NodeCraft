@@ -1,6 +1,7 @@
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
+import config from '../../config/config.js';
 import server from './server.js';
 
 const routes = (app) => {
@@ -19,7 +20,7 @@ const routes = (app) => {
   });
 
   app.use(
-    express.json(),
+    express.json({ limit: config.http.jsonBytes }),
     cookieParser(),
     helmet(),
     server,

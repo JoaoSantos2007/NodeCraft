@@ -140,7 +140,9 @@ const extractZipArchive = async (handle, output, maxBytes) => {
 
   for await (const entry of archive) {
     entries += 1;
-    if (entries > 10000) throw new PayloadTooLarge('ZIP has too many entries!');
+
+    if (entries > config.files.maxArchiveEntries) throw new PayloadTooLarge('ZIP has too many entries!');
+
     await extractZipEntry(entry, output, directories, counter, maxBytes);
   }
 };
@@ -266,7 +268,7 @@ class File {
         const result = [];
         for await (const item of await opendir(directory)) {
           if (result.length >= maxEntries) {
-            throw new PayloadTooLarge('Directory preview is limited to 1000 entries; download it instead.');
+            throw new PayloadTooLarge(`Directory preview is limited to ${maxEntries} entries; download it instead.`);
           }
 
           const { name } = item;

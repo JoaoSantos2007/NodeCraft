@@ -79,7 +79,7 @@ export default async (req, res, next) => {
     multer({
       storage,
       limits: {
-        fileSize: allowed, files: 1, fields: 0, parts: 1,
+        fileSize: allowed, files: 1, fields: 0, parts: 2,
       },
     })
       .single('file')(req, res, (err) => {
