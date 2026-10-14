@@ -492,8 +492,10 @@ function renderConsoleLine(line) {
   });
 }
 
+const CONSOLE_LINE_LIMIT = 100;
+
 function ConsoleTab({ instance }) {
-  const [lines, setLines] = useState(instance.history || []);
+  const [lines, setLines] = useState(() => (instance.history || []).slice(-CONSOLE_LINE_LIMIT));
   const [command, setCommand] = useState('');
   const [connected, setConnected] = useState(false);
   const [canWrite, setCanWrite] = useState(false);
@@ -586,7 +588,7 @@ function ConsoleTab({ instance }) {
         });
 
         nextSocket.on('instance-output', (line) => {
-          setLines((prev) => [...prev, line]);
+          setLines((prev) => [...prev, line].slice(-CONSOLE_LINE_LIMIT));
         });
       } catch (err) {
         if (!stopped) setError(err.message || 'Failed to get console token');
@@ -618,7 +620,7 @@ function ConsoleTab({ instance }) {
     const cmd = command.trim();
     if (!cmd || !canWrite || !socketRef.current?.connected) return;
     socketRef.current.emit('send-command', { instanceId: instance.id, command: cmd });
-    setLines((prev) => [...prev, `> ${cmd}`]);
+    setLines((prev) => [...prev, `> ${cmd}`].slice(-CONSOLE_LINE_LIMIT));
     setCommand('');
   };
 

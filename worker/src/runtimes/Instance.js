@@ -87,8 +87,9 @@ class Instance {
           if (!message || /^[.\s]+$/.test(message)) continue;
 
           this.queueHistory(message);
-          // Slow/disconnected transports must not accumulate an unbounded log queue.
-          if (this.io) this.io.to(`instance:${this.id}`).volatile.emit('instance-output', message);
+          // Polling transports may be between requests when output arrives.
+          // Volatile events would silently lose those lines until a page reload.
+          if (this.io) this.io.to(`instance:${this.id}`).emit('instance-output', message);
           if (callback) callback(message);
 
           // eslint-disable-next-line no-console
